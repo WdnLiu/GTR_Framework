@@ -39,6 +39,8 @@ namespace SCN {
 		bool use_no_texture;
 		bool use_normal_map;
 		bool use_emissive;
+		bool use_specular;
+		bool use_occlusion;
 
 		GFX::Texture* skybox_cubemap;
 

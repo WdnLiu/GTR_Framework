@@ -120,6 +120,8 @@ uniform mat4 u_model;
 uniform vec4 u_color;
 uniform sampler2D u_texture;
 uniform sampler2D u_normal_texture;
+uniform sampler2D u_emissive_texture;
+uniform sampler2D u_occlusion_texture;
 uniform float u_time;
 uniform float u_alpha_cutoff;
 uniform vec3 u_ambient_light;
@@ -133,7 +135,9 @@ uniform float u_light_max_distance;
 uniform int u_light_type;
 uniform float alpha;
 
+uniform int occlusion_option;
 uniform int normal_option;
+uniform int emissive_option;
 
 #define POINTLIGHT 1
 #define SPOTLIGHT 2
@@ -175,8 +179,17 @@ void main()
 		L = u_light_front;
 		float NdotL = clamp(dot(N, L), 0.0, 1.0);
 		
-		//store the amount of diffuse light
-		light += NdotL*u_light_color;
+		vec3 factor = vec3(1.0);
+
+		if (u_specular > 0.0f)
+		{
+			factor *= u_specular*(clamp(pow(dot(R, V), alpha), 0.0, 1.0));
+		}
+		if (occlusion_option == 1){
+			factor *= texture( u_occlusion_texture, v_uv ).xyz;
+		}
+
+		light += NdotL*u_light_color*factor;
 	}
 	else if (u_light_type == POINTLIGHT || u_light_type == SPOTLIGHT)
 	{
@@ -188,14 +201,31 @@ void main()
 		att_factor /= u_light_max_distance;
 		att_factor = max(att_factor, 0.0);
 
-        float specular = u_specular*(clamp(pow(dot(R, V), alpha), 0.0, 1.0));
+		vec3 factor = vec3(1.0);
 
-		light += NdotL*u_light_color * att_factor +  NdotL*u_light_color* specular;
+		factor *= att_factor;
+
+		if (u_specular > 0.0f)
+		{
+			//add specular lighting to the factor
+			factor *=  u_specular*(clamp(pow(dot(R, V), alpha), 0.0, 1.0));;
+		}
+		if (occlusion_option == 1){
+			//add occlusion lighting to the factor
+			factor *= texture( u_occlusion_texture, v_uv ).xyz;
+		}
+
+		light += NdotL*u_light_color * att_factor;
 	}
 
+	vec3 emissive_light = vec3(0);
+
+	if (emissive_option == 1) {
+		emissive_light = u_emissive_light*texture2D(u_emissive_texture, v_uv).xyz;
+	}
 
 	vec4 final_color;
-	final_color.xyz = color.xyz*light + u_emissive_light;
+	final_color.xyz = color.xyz*light + emissive_light;
 	final_color.a = color.a;
 
 	FragColor = final_color;

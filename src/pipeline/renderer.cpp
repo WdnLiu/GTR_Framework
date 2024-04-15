@@ -70,6 +70,8 @@ Renderer::Renderer(const char* shader_atlas_filename)
 	use_no_texture = false;
 	use_normal_map = false;
 	use_emissive = false;
+	use_specular = false;
+	use_occlusion = false;
 
 	sphere.createSphere(1.0f);
 	sphere.uploadToVRAM();
@@ -105,7 +107,7 @@ void Renderer::extractSceneInfo(SCN::Scene* scene, Camera* camera)
 
 bool Renderer::renderableComparator(const Renderable& a, const Renderable& b)
 {
-	if (a.material->alpha_mode != eAlphaMode::NO_ALPHA) return 0;
+	if (a.material->alpha_mode == eAlphaMode::BLEND || a.material->alpha_mode == eAlphaMode::MASK) return 0;
 	return a.dist_to_cam > b.dist_to_cam;
 }
 
@@ -289,7 +291,6 @@ void Renderer::renderMeshWithMaterialLights(const Matrix44 model, GFX::Mesh* mes
 	
 	texture = material->textures[SCN::eTextureChannel::ALBEDO].texture;
 
-	GFX::Texture* normalTexture = material->textures[eTextureChannel::NORMALMAP].texture;
 	//texture = material->emissive_texture;
 	//texture = material->metallic_roughness_texture;
 	//texture = material->normal_texture;
@@ -341,17 +342,26 @@ void Renderer::renderMeshWithMaterialLights(const Matrix44 model, GFX::Mesh* mes
 	shader->setUniform("eye", camera->eye);
 	shader->setUniform("alpha", material->roughness_factor);
 
-	shader->setUniform("u_specular", material->metallic_factor);
+	if (use_specular)
+		shader->setUniform("u_specular", material->metallic_factor);
+
+	shader->setUniform("u_occlusion", material->textures[eTextureChannel::OCCLUSION].texture);
+	shader->setUniform("occlusion_option", use_occlusion);
 
 	shader->setUniform("u_color", material->color);
 	if(texture)
 		shader->setUniform("u_texture", texture, 0);
 
-	shader->setUniform("u_normal_texture", normalTexture);
+	shader->setUniform("u_normal_texture",  material->textures[eTextureChannel::NORMALMAP].texture);
 
 	if (use_emissive)
+	{
 		shader->setUniform("u_emissive_light", material->emissive_factor);
+		shader->setUniform("u_emissive_texture", material->textures[eTextureChannel::EMISSIVE].texture);
+	}
 
+	shader->setUniform("emissive_option", use_emissive);
+		
 	//this is used to say which is the alpha threshold to what we should not paint a pixel on the screen (to cut polygons according to texture alpha)
 	shader->setUniform("u_alpha_cutoff", material->alpha_mode == SCN::eAlphaMode::MASK ? material->alpha_cutoff : 0.001f);
 
@@ -367,15 +377,15 @@ void Renderer::renderMeshWithMaterialLights(const Matrix44 model, GFX::Mesh* mes
 
 	if (lights.size()){
 		//do the draw call that renders the mesh into the screen
-		for (int i = 0; i < lights.size(); ++i)
+		for (LightEntity* light : lights)
 		{
 
-			lightToShader(lights[i], shader);
+			lightToShader(light, shader);
 			mesh->render(GL_TRIANGLES);
 
-			glEnable(GL_BLEND);
 			shader->setUniform("u_ambient_light", vec3(0.0));
 			shader->setUniform("u_emissive_light", vec3(0.0f));
+			glEnable(GL_BLEND);
 		}
 	}
 	else
@@ -421,6 +431,8 @@ void Renderer::showUI()
 	ImGui::Checkbox("Multipass Light", &use_multipass_lights);
 	ImGui::Checkbox("No texture", &use_no_texture);
 	ImGui::Checkbox("Normal map", &use_normal_map);
+	ImGui::Checkbox("Specular light", &use_specular);
+	ImGui::Checkbox("Occlusion light", &use_occlusion);
 }
 
 #else
