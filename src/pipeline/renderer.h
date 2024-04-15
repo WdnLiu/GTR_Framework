@@ -35,6 +35,10 @@ namespace SCN {
 	public:
 		bool render_wireframe;
 		bool render_boundaries;
+		bool use_multipass_lights;
+		bool use_no_texture;
+		bool use_normal_map;
+		bool use_emissive;
 
 		GFX::Texture* skybox_cubemap;
 
@@ -43,6 +47,7 @@ namespace SCN {
 		//tmp containers
 		std::vector<Renderable> renderables;
 		std::vector<LightEntity*> lights;
+		std::vector<LightEntity*> visibleLights;
 
 		void extractRenderables(SCN::Node* node, Camera* camera);
 
@@ -54,7 +59,7 @@ namespace SCN {
 
 		//add here your functions
 		void extractSceneInfo(SCN::Scene* scene, Camera* camera);
-
+		static bool renderableComparator(const Renderable& a, const Renderable& b);
 		//renders several elements of the scene
 		void renderScene(SCN::Scene* scene, Camera* camera);
 
@@ -72,6 +77,7 @@ namespace SCN {
 		void showUI();
 
 		void cameraToShader(Camera* camera, GFX::Shader* shader); //sends camera uniforms to shader
+		void lightToShader(LightEntity* light, GFX::Shader* shader); //sends light uniforms to shader	
 	};
 
 };

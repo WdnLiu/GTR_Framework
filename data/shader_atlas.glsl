@@ -116,11 +116,28 @@ in vec3 v_normal;
 in vec2 v_uv;
 in vec4 v_color;
 
+uniform mat4 u_model;
 uniform vec4 u_color;
 uniform sampler2D u_texture;
+uniform sampler2D u_normal_texture;
 uniform float u_time;
 uniform float u_alpha_cutoff;
 uniform vec3 u_ambient_light;
+uniform vec3 u_emissive_light;
+uniform vec3 u_light_position;
+uniform vec3 u_light_color;
+uniform vec3 u_light_front;
+uniform vec3 eye;
+uniform float u_specular;
+uniform float u_light_max_distance;
+uniform int u_light_type;
+uniform float alpha;
+
+uniform int normal_option;
+
+#define POINTLIGHT 1
+#define SPOTLIGHT 2
+#define DIRECTIONALLIGHT 3
 
 out vec4 FragColor;
 
@@ -130,13 +147,55 @@ void main()
 	vec4 color = u_color;
 	color *= texture( u_texture, v_uv );
 
+	vec3 N;
+
+	if (normal_option == 1)
+	{
+		vec3 N = texture2D(u_normal_texture, v_uv).xyz;
+    	N = (vec4(N * 2.0 - vec3(1.0), 0.0)*u_model).xyz;
+	}
+
 	if(color.a < u_alpha_cutoff)
 		discard;
 
 	vec3 light = u_ambient_light;
 
+	if (normal_option != 1) N = normalize( v_normal );
+
+
+	vec3 L = u_light_position- v_world_position;
+	float dist = length(L);
+	L = L/dist;
+
+	vec3 V = normalize(eye-v_world_position);
+    vec3 R = normalize(reflect(-L, N));
+
+	if (u_light_type == DIRECTIONALLIGHT)
+	{
+		L = u_light_front;
+		float NdotL = clamp(dot(N, L), 0.0, 1.0);
+		
+		//store the amount of diffuse light
+		light += NdotL*u_light_color;
+	}
+	else if (u_light_type == POINTLIGHT || u_light_type == SPOTLIGHT)
+	{
+		//store the amount of diffuse light
+		float NdotL = clamp(dot(N, L), 0.0, 1.0);
+		
+		//Compute attenuation
+		float att_factor = u_light_max_distance - dist;
+		att_factor /= u_light_max_distance;
+		att_factor = max(att_factor, 0.0);
+
+        float specular = u_specular*(clamp(pow(dot(R, V), alpha), 0.0, 1.0));
+
+		light += NdotL*u_light_color * att_factor +  NdotL*u_light_color* specular;
+	}
+
+
 	vec4 final_color;
-	final_color.xyz = color.xyz*light;
+	final_color.xyz = color.xyz*light + u_emissive_light;
 	final_color.a = color.a;
 
 	FragColor = final_color;
