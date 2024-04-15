@@ -23,6 +23,38 @@ using namespace SCN;
 //some globals
 GFX::Mesh sphere;
 
+void Renderer::extractRenderables(SCN::Node* node, Camera* camera)
+{
+	if (!node->visible)
+		return;
+	
+	//Compute global matrix
+	Matrix44 node_model = node->getGlobalMatrix(true);
+
+	//If node has mesh->render
+	if (node->mesh && node->material)
+	{
+		//Compute bounding box of the object in world space by using box transformed to world space
+		BoundingBox world_bounding = transformBoundingBox(node_model, node->mesh->box);
+
+		//If bounding box inside the camera frustum then the object is probably visible
+		if (camera->testBoxInFrustum(world_bounding.center, world_bounding.halfsize))
+		{
+			Renderable re;
+			re.model = node_model;
+			re.mesh  = node->mesh;
+			re.material = node->material;
+			re.dist_to_cam = camera->eye.distance(world_bounding.center);
+			re.bounding = world_bounding;
+			renderables.push_back(re);
+		}
+	}
+
+	//Iterate recursively with children
+	for (int i = 0; i < node->children.size(); ++i)
+		extractRenderables(node->children[i], camera);
+}
+
 Renderer::Renderer(const char* shader_atlas_filename)
 {
 	render_wireframe = false;
@@ -38,6 +70,41 @@ Renderer::Renderer(const char* shader_atlas_filename)
 	sphere.uploadToVRAM();
 }
 
+void Renderer::extractSceneInfo(SCN::Scene* scene, Camera* camera)
+{
+	renderables.clear();
+	lights.clear();
+
+	for (int i = 0; i < scene->entities.size(); ++i)
+	{
+		BaseEntity* ent = scene->entities[i];
+		if (!ent->visible)
+			continue;
+		
+		//Is a prefab
+		if (ent->getType() == eEntityType::PREFAB)
+		{
+			PrefabEntity* pent = (SCN::PrefabEntity*) ent;
+			if (pent->prefab)
+				extractRenderables(&pent->root, camera);
+		}
+		else if (ent->getType() == eEntityType::LIGHT)
+		{
+			LightEntity* light = (SCN::LightEntity*) ent;
+			// if (light->getType() == eLightType::POINT)
+			// {
+			// 	SCN::Node node = light->root;
+			// 	Matrix44 node_model = node.getGlobalMatrix(true);
+			// 	BoundingBox world_bounding = transformBoundingBox(node_model, node.mesh->box);
+
+			// 	if (camera->testSphereInFrustum(world_bounding.center, light->max_distance))
+			// 		continue;
+			// }
+			lights.push_back(light);
+		}
+	}
+}
+
 void Renderer::setupScene()
 {
 	if (scene->skybox_filename.size())
@@ -50,6 +117,7 @@ void Renderer::renderScene(SCN::Scene* scene, Camera* camera)
 {
 	this->scene = scene;
 	setupScene();
+	extractSceneInfo(scene, camera);
 
 	glDisable(GL_BLEND);
 	glEnable(GL_DEPTH_TEST);
@@ -66,20 +134,8 @@ void Renderer::renderScene(SCN::Scene* scene, Camera* camera)
 		renderSkybox(skybox_cubemap);
 
 	//render entities
-	for (int i = 0; i < scene->entities.size(); ++i)
-	{
-		BaseEntity* ent = scene->entities[i];
-		if (!ent->visible )
-			continue;
-
-		//is a prefab!
-		if (ent->getType() == eEntityType::PREFAB)
-		{
-			PrefabEntity* pent = (SCN::PrefabEntity*)ent;
-			if (pent->prefab)
-				renderNode( &pent->root, camera);
-		}
-	}
+	for (Renderable& re : renderables)
+		renderMeshWithMaterialLights(re.model, re.mesh, re.material);
 }
 
 
@@ -206,6 +262,85 @@ void Renderer::renderMeshWithMaterial(const Matrix44 model, GFX::Mesh* mesh, SCN
 
 	//do the draw call that renders the mesh into the screen
 	mesh->render(GL_TRIANGLES);
+
+	//disable shader
+	shader->disable();
+
+	//set the render state as it was before to avoid problems with future renders
+	glDisable(GL_BLEND);
+	glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
+}
+
+void Renderer::renderMeshWithMaterialLights(const Matrix44 model, GFX::Mesh* mesh, SCN::Material* material)
+{
+	//in case there is nothing to do
+	if (!mesh || !mesh->getNumVertices() || !material )
+		return;
+    assert(glGetError() == GL_NO_ERROR);
+
+	//define locals to simplify coding
+	GFX::Shader* shader = NULL;
+	GFX::Texture* texture = NULL;
+	Camera* camera = Camera::current;
+	
+	texture = material->textures[SCN::eTextureChannel::ALBEDO].texture;
+	//texture = material->emissive_texture;
+	//texture = material->metallic_roughness_texture;
+	//texture = material->normal_texture;
+	//texture = material->occlusion_texture;
+	if (texture == NULL)
+		texture = GFX::Texture::getWhiteTexture(); //a 1x1 white texture
+
+	//select the blending
+	if (material->alpha_mode == SCN::eAlphaMode::BLEND)
+	{
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	}
+	else
+		glDisable(GL_BLEND);
+
+	//select if render both sides of the triangles
+	if(material->two_sided)
+		glDisable(GL_CULL_FACE);
+	else
+		glEnable(GL_CULL_FACE);
+    assert(glGetError() == GL_NO_ERROR);
+
+	glEnable(GL_DEPTH_TEST);
+
+	//chose a shader
+	shader = GFX::Shader::Get("light");
+
+    assert(glGetError() == GL_NO_ERROR);
+
+	//no shader? then nothing to render
+	if (!shader)
+		return;
+	shader->enable();
+
+	//upload uniforms
+	shader->setUniform("u_model", model);
+	cameraToShader(camera, shader);
+	float t = getTime();
+	shader->setUniform("u_time", t );
+
+
+	shader->setUniform("u_ambient_light", scene->ambient_light);
+	shader->setUniform("u_color", material->color);
+	if(texture)
+		shader->setUniform("u_texture", texture, 0);
+
+	//this is used to say which is the alpha threshold to what we should not paint a pixel on the screen (to cut polygons according to texture alpha)
+	shader->setUniform("u_alpha_cutoff", material->alpha_mode == SCN::eAlphaMode::MASK ? material->alpha_cutoff : 0.001f);
+
+	if (render_wireframe)
+		glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
+
+	for (int i = 0; i < lights.size(); ++i) {
+		//do the draw call that renders the mesh into the screen
+		mesh->render(GL_TRIANGLES);
+	}
 
 	//disable shader
 	shader->disable();

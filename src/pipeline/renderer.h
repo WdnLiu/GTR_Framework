@@ -18,6 +18,16 @@ namespace SCN {
 	class Prefab;
 	class Material;
 
+	class Renderable
+	{
+	public:
+		mat4 model;
+		GFX::Mesh* mesh;
+		SCN::Material* material;
+		BoundingBox bounding;
+		float dist_to_cam;
+	};
+
 	// This class is in charge of rendering anything in our system.
 	// Separating the render from anything else makes the code cleaner
 	class Renderer
@@ -30,6 +40,12 @@ namespace SCN {
 
 		SCN::Scene* scene;
 
+		//tmp containers
+		std::vector<Renderable> renderables;
+		std::vector<LightEntity*> lights;
+
+		void extractRenderables(SCN::Node* node, Camera* camera);
+
 		//updated every frame
 		Renderer(const char* shaders_atlas_filename );
 
@@ -37,7 +53,7 @@ namespace SCN {
 		void setupScene();
 
 		//add here your functions
-		//...
+		void extractSceneInfo(SCN::Scene* scene, Camera* camera);
 
 		//renders several elements of the scene
 		void renderScene(SCN::Scene* scene, Camera* camera);
@@ -50,6 +66,8 @@ namespace SCN {
 
 		//to render one mesh given its material and transformation matrix
 		void renderMeshWithMaterial(const Matrix44 model, GFX::Mesh* mesh, SCN::Material* material);
+
+		void renderMeshWithMaterialLights(const Matrix44 model, GFX::Mesh* mesh, SCN::Material* material);
 
 		void showUI();
 
