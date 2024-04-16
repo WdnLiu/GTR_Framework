@@ -72,6 +72,7 @@ Renderer::Renderer(const char* shader_atlas_filename)
 	use_emissive = false;
 	use_specular = false;
 	use_occlusion = false;
+	use_single_pass = true;
 
 	sphere.createSphere(1.0f);
 	sphere.uploadToVRAM();
@@ -102,13 +103,11 @@ void Renderer::extractSceneInfo(SCN::Scene* scene, Camera* camera)
 				lights.push_back(light);
 		}
 	}
-	// sort(renderables.begin(), renderables.end(), renderableComparator);
 }
 
 bool Renderer::renderableComparator(const Renderable& a, const Renderable& b)
 {
-	if (a.material->alpha_mode == eAlphaMode::BLEND || a.material->alpha_mode == eAlphaMode::MASK) return 0;
-	return a.dist_to_cam > b.dist_to_cam;
+	return a.dist_to_cam >= b.dist_to_cam;
 }
 
 void Renderer::setupScene()
@@ -125,6 +124,23 @@ void Renderer::renderScene(SCN::Scene* scene, Camera* camera)
 	setupScene();
 	extractSceneInfo(scene, camera);
 
+	std::vector<Renderable> opaque;
+	std::vector<Renderable> nonOpaque;
+
+	for (Renderable r : renderables)
+	{
+		if (r.material->alpha_mode == eAlphaMode::NO_ALPHA) opaque.push_back(r);
+		else nonOpaque.push_back(r);
+	}
+
+	sort(nonOpaque.begin(), nonOpaque.end(), renderableComparator);
+
+	std::vector<Renderable> sortedRenderables;
+
+	sortedRenderables.reserve( opaque.size() + nonOpaque.size() ); // preallocate memory
+	sortedRenderables.insert( sortedRenderables.end(), opaque.begin(), opaque.end() );
+	sortedRenderables.insert( sortedRenderables.end(), nonOpaque.begin(), nonOpaque.end() );
+
 	glDisable(GL_BLEND);
 	glEnable(GL_DEPTH_TEST);
 
@@ -140,7 +156,7 @@ void Renderer::renderScene(SCN::Scene* scene, Camera* camera)
 		renderSkybox(skybox_cubemap);
 
 	//render entities
-	for (Renderable& re : renderables)
+	for (Renderable& re : sortedRenderables)
 		renderMeshWithMaterialLights(re.model, re.mesh, re.material);
 }
 
@@ -377,15 +393,37 @@ void Renderer::renderMeshWithMaterialLights(const Matrix44 model, GFX::Mesh* mes
 
 	if (lights.size()){
 		//do the draw call that renders the mesh into the screen
-		for (LightEntity* light : lights)
+		if (!use_single_pass)
 		{
+			for (LightEntity* light : lights)
+			{
 
-			lightToShader(light, shader);
+				lightToShader(light, shader);
+				mesh->render(GL_TRIANGLES);
+
+				shader->setUniform("u_ambient_light", vec3(0.0));
+				shader->setUniform("u_emissive_light", vec3(0.0f));
+				glEnable(GL_BLEND);
+			}
+		}
+		else
+		{
+			int n_lights = 4;
+			shader->setUniform("single_pass_option", use_single_pass);
+			vec3 light_position[n_lights];
+			vec3 light_color[n_lights];
+
+			for (int i = 0; i < n_lights; ++i)
+			{
+				light_position[i] = lights[i]->root.model.getTranslation();
+				light_color[i] = lights[i]->color;
+			}
+
+			shader->setUniform3Array("u_light_pos", (float*)&light_position, n_lights);
+			shader->setUniform3Array("u_light_color", (float*)&light_color, n_lights);
+			shader->setUniform1("u_num_lights", n_lights);
+
 			mesh->render(GL_TRIANGLES);
-
-			shader->setUniform("u_ambient_light", vec3(0.0));
-			shader->setUniform("u_emissive_light", vec3(0.0f));
-			glEnable(GL_BLEND);
 		}
 	}
 	else
@@ -406,7 +444,7 @@ void SCN::Renderer::lightToShader(LightEntity* light, GFX::Shader* shader)
 {
 	shader->setUniform("u_light_type", (int) light->light_type);
 	shader->setUniform("u_light_position", light->root.model.getTranslation());
-	shader->setUniform("u_light_color", light->color*light->intensity);
+	shader->setUniform("u_light_color_multi", light->color*light->intensity);
 	shader->setUniform("u_light_max_distance", light->max_distance);
 	shader->setUniform("u_light_cone_info", light->cone_info);
 	shader->setUniform("u_light_front", light->root.model.frontVector().normalize());
@@ -433,6 +471,7 @@ void Renderer::showUI()
 	ImGui::Checkbox("Normal map", &use_normal_map);
 	ImGui::Checkbox("Specular light", &use_specular);
 	ImGui::Checkbox("Occlusion light", &use_occlusion);
+	ImGui::Checkbox("Single Pass", &use_single_pass);
 }
 
 #else

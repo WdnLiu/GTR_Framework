@@ -116,6 +116,11 @@ in vec3 v_normal;
 in vec2 v_uv;
 in vec4 v_color;
 
+const int MAX_LIGHTS = 4;
+uniform vec3 u_light_pos[MAX_LIGHTS];
+uniform vec3 u_light_color[MAX_LIGHTS];
+uniform int u_num_lights;
+
 uniform mat4 u_model;
 uniform vec4 u_color;
 uniform sampler2D u_texture;
@@ -127,7 +132,7 @@ uniform float u_alpha_cutoff;
 uniform vec3 u_ambient_light;
 uniform vec3 u_emissive_light;
 uniform vec3 u_light_position;
-uniform vec3 u_light_color;
+uniform vec3 u_light_color_multi;
 uniform vec3 u_light_front;
 uniform vec3 eye;
 uniform float u_specular;
@@ -138,12 +143,43 @@ uniform float alpha;
 uniform int occlusion_option;
 uniform int normal_option;
 uniform int emissive_option;
+uniform int single_pass_option;
 
 #define POINTLIGHT 1
 #define SPOTLIGHT 2
 #define DIRECTIONALLIGHT 3
 
 out vec4 FragColor;
+
+mat3 cotangent_frame(vec3 N, vec3 p, vec2 uv)
+{
+	// get edge vectors of the pixel triangle
+	vec3 dp1 = dFdx( p );
+	vec3 dp2 = dFdy( p );
+	vec2 duv1 = dFdx( uv );
+	vec2 duv2 = dFdy( uv );
+	
+	// solve the linear system
+	vec3 dp2perp = cross( dp2, N );
+	vec3 dp1perp = cross( N, dp1 );
+	vec3 T = dp2perp * duv1.x + dp1perp * duv2.x;
+	vec3 B = dp2perp * duv1.y + dp1perp * duv2.y;
+ 
+	// construct a scale-invariant frame 
+	float invmax = inversesqrt( max( dot(T,T), dot(B,B) ) );
+	return mat3( T * invmax, B * invmax, N );
+}
+
+// assume N, the interpolated vertex normal and 
+// WP the world position
+//vec3 normal_pixel = texture2D( normalmap, uv ).xyz; 
+vec3 perturbNormal(vec3 N, vec3 WP, vec2 uv, vec3 normal_pixel)
+{
+	normal_pixel = normal_pixel * 255./127. - 128./127.;
+	mat3 TBN = cotangent_frame(N, WP, uv);
+	return normalize(TBN * normal_pixel);
+}
+
 
 void main()
 {
@@ -152,81 +188,98 @@ void main()
 	color *= texture( u_texture, v_uv );
 
 	vec3 N;
-
-	if (normal_option == 1)
-	{
-		vec3 N = texture2D(u_normal_texture, v_uv).xyz;
-    	N = (vec4(N * 2.0 - vec3(1.0), 0.0)*u_model).xyz;
-	}
-
-	if(color.a < u_alpha_cutoff)
-		discard;
-
-	vec3 light = u_ambient_light;
+	vec4 final_color = vec4(1.0f);
 
 	if (normal_option != 1) N = normalize( v_normal );
 
-
-	vec3 L = u_light_position- v_world_position;
-	float dist = length(L);
-	L = L/dist;
-
-	vec3 V = normalize(eye-v_world_position);
-    vec3 R = normalize(reflect(-L, N));
-
-	if (u_light_type == DIRECTIONALLIGHT)
+	if (single_pass_option == 0)
 	{
-		L = u_light_front;
-		float NdotL = clamp(dot(N, L), 0.0, 1.0);
-		
-		vec3 factor = vec3(1.0);
-
-		if (u_specular > 0.0f)
+		if (normal_option == 1)
 		{
-			factor *= u_specular*(clamp(pow(dot(R, V), alpha), 0.0, 1.0));
-		}
-		if (occlusion_option == 1){
-			factor *= texture( u_occlusion_texture, v_uv ).xyz;
+			vec3 N = texture2D(u_normal_texture, v_uv).xyz;
+			N = (vec4(N * 2.0 - vec3(1.0), 0.0)*u_model).xyz;
 		}
 
-		light += NdotL*u_light_color*factor;
-	}
-	else if (u_light_type == POINTLIGHT || u_light_type == SPOTLIGHT)
-	{
-		//store the amount of diffuse light
-		float NdotL = clamp(dot(N, L), 0.0, 1.0);
-		
-		//Compute attenuation
-		float att_factor = u_light_max_distance - dist;
-		att_factor /= u_light_max_distance;
-		att_factor = max(att_factor, 0.0);
+		if(color.a < u_alpha_cutoff)
+			discard;
 
-		vec3 factor = vec3(1.0);
+		vec3 light = u_ambient_light;
 
-		factor *= att_factor;
+		vec3 L = u_light_position- v_world_position;
+		float dist = length(L);
+		L = L/dist;
 
-		if (u_specular > 0.0f)
+		vec3 V = normalize(eye-v_world_position);
+		vec3 R = normalize(reflect(-L, N));
+
+		if (u_light_type == DIRECTIONALLIGHT)
 		{
-			//add specular lighting to the factor
-			factor *=  u_specular*(clamp(pow(dot(R, V), alpha), 0.0, 1.0));;
+			L = u_light_front;
+			float NdotL = clamp(dot(N, L), 0.0, 1.0);
+			
+			vec3 factor = vec3(1.0);
+
+			if (u_specular > 0.0f)
+			{
+				factor *= u_specular*(clamp(pow(dot(R, V), alpha), 0.0, 1.0));
+			}
+			if (occlusion_option == 1){
+				factor *= texture( u_occlusion_texture, v_uv ).xyz;
+			}
+
+			light += NdotL*u_light_color_multi*factor;
 		}
-		if (occlusion_option == 1){
-			//add occlusion lighting to the factor
-			factor *= texture( u_occlusion_texture, v_uv ).xyz;
+		else if (u_light_type == POINTLIGHT || u_light_type == SPOTLIGHT)
+		{
+			//store the amount of diffuse light
+			float NdotL = clamp(dot(N, L), 0.0, 1.0);
+			
+			//Compute attenuation
+			float att_factor = u_light_max_distance - dist;
+			att_factor /= u_light_max_distance;
+			att_factor = max(att_factor, 0.0);
+
+			vec3 factor = vec3(1.0);
+
+			factor *= att_factor;
+
+			if (u_specular > 0.0f)
+			{
+				//add specular lighting to the factor
+				factor *=  u_specular*(clamp(pow(dot(R, V), alpha), 0.0, 1.0));;
+			}
+			if (occlusion_option == 1){
+				//add occlusion lighting to the factor
+				factor *= texture( u_occlusion_texture, v_uv ).xyz;
+			}
+
+			light += NdotL*u_light_color_multi * att_factor;
 		}
 
-		light += NdotL*u_light_color * att_factor;
+		vec3 emissive_light = vec3(0);
+
+		if (emissive_option == 1) {
+			emissive_light = u_emissive_light*texture2D(u_emissive_texture, v_uv).xyz;
+		}
+
+		final_color.xyz = color.xyz*light + emissive_light;
+		final_color.a = color.a;
 	}
+	else {
+		vec3 light = vec3(0.0);
+		for( int i = 0; i < MAX_LIGHTS; ++i )
+		{
+			if(i < u_num_lights)
+			{
+				vec3 L = normalize( u_light_pos[i] - v_world_position );
+				float NdotL = max( dot(L,N), 0.0 );
+				light += NdotL * u_light_color[i];
+			}
+		}
 
-	vec3 emissive_light = vec3(0);
+		final_color.xyz *= light;
 
-	if (emissive_option == 1) {
-		emissive_light = u_emissive_light*texture2D(u_emissive_texture, v_uv).xyz;
 	}
-
-	vec4 final_color;
-	final_color.xyz = color.xyz*light + emissive_light;
-	final_color.a = color.a;
 
 	FragColor = final_color;
 }
