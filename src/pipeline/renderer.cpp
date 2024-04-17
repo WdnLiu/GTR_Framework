@@ -72,7 +72,6 @@ Renderer::Renderer(const char* shader_atlas_filename)
 	use_emissive = false;
 	use_specular = false;
 	use_occlusion = false;
-	use_single_pass = true;
 
 	sphere.createSphere(1.0f);
 	sphere.uploadToVRAM();
@@ -351,32 +350,52 @@ void Renderer::renderMeshWithMaterialLights(const Matrix44 model, GFX::Mesh* mes
 	float t = getTime();
 	shader->setUniform("u_time", t );
 
-	shader->setUniform("normal_option", (int) use_normal_map);
-
 	shader->setUniform("u_ambient_light", scene->ambient_light);
 
 	shader->setUniform("eye", camera->eye);
 	shader->setUniform("alpha", material->roughness_factor);
 
-	if (use_specular)
-		shader->setUniform("u_specular", material->metallic_factor);
+	float specular_factor = NULL; specular_factor = material->metallic_factor;
 
-	shader->setUniform("u_occlusion", material->textures[eTextureChannel::OCCLUSION].texture);
-	shader->setUniform("occlusion_option", use_occlusion);
+	if (use_specular && specular_factor)
+	{
+		shader->setUniform("u_specular", specular_factor);
+		shader->setUniform("specular_option", true);
+	}
+	else
+		shader->setUniform1("specular_option", false);
 
 	shader->setUniform("u_color", material->color);
 	if(texture)
 		shader->setUniform("u_texture", texture, 0);
 
-	shader->setUniform("u_normal_texture",  material->textures[eTextureChannel::NORMALMAP].texture);
+	GFX::Texture* normalMap    = NULL; normalMap    = material->textures[SCN::eTextureChannel::NORMALMAP].texture;
+	GFX::Texture* emissiveTex  = NULL; emissiveTex  = material->textures[SCN::eTextureChannel::EMISSIVE].texture;
+	GFX::Texture* occlusionTex = NULL; occlusionTex = material->textures[SCN::eTextureChannel::METALLIC_ROUGHNESS].texture;
 
-	if (use_emissive)
+	if (normalMap != NULL){
+		shader->setUniform("u_normal_texture", normalMap, 1);
+		shader->setUniform("normal_option", (int) use_normal_map);
+	}
+	else
+		shader->setUniform("normal_option", 0);
+
+	if (emissiveTex != NULL && &material->emissive_factor != nullptr)
 	{
 		shader->setUniform("u_emissive_light", material->emissive_factor);
-		shader->setUniform("u_emissive_texture", material->textures[eTextureChannel::EMISSIVE].texture);
+		shader->setUniform("u_emissive_texture", emissiveTex, 2);
+		shader->setUniform("emissive_option", (int) use_emissive);
 	}
+	else
+		shader->setUniform("emissive_option", 0);
 
-	shader->setUniform("emissive_option", use_emissive);
+	if (occlusionTex != NULL)
+	{
+		shader->setUniform("u_occlusion_texture", occlusionTex, 3);
+		shader->setUniform("occlusion_option", (int) use_occlusion);
+	}
+	else
+		shader->setUniform("occlusion_option", 0);
 		
 	//this is used to say which is the alpha threshold to what we should not paint a pixel on the screen (to cut polygons according to texture alpha)
 	shader->setUniform("u_alpha_cutoff", material->alpha_mode == SCN::eAlphaMode::MASK ? material->alpha_cutoff : 0.001f);
@@ -393,7 +412,8 @@ void Renderer::renderMeshWithMaterialLights(const Matrix44 model, GFX::Mesh* mes
 
 	if (lights.size()){
 		//do the draw call that renders the mesh into the screen
-		if (!use_single_pass)
+		shader->setUniform("single_pass_option", !use_multipass_lights);
+		if (use_multipass_lights)
 		{
 			for (LightEntity* light : lights)
 			{
@@ -401,29 +421,25 @@ void Renderer::renderMeshWithMaterialLights(const Matrix44 model, GFX::Mesh* mes
 				lightToShader(light, shader);
 				mesh->render(GL_TRIANGLES);
 
-				shader->setUniform("u_ambient_light", vec3(0.0));
+				shader->setUniform("u_ambient_light" , vec3(0.0));
 				shader->setUniform("u_emissive_light", vec3(0.0f));
 				glEnable(GL_BLEND);
 			}
 		}
 		else
 		{
-			int n_lights = 4;
-			shader->setUniform("single_pass_option", use_single_pass);
-			vec3 light_position[n_lights];
-			vec3 light_color[n_lights];
+			int n_lights = lights.size();
 
-			for (int i = 0; i < n_lights; ++i)
-			{
-				light_position[i] = lights[i]->root.model.getTranslation();
-				light_color[i] = lights[i]->color;
-			}
-
-			shader->setUniform3Array("u_light_pos", (float*)&light_position, n_lights);
-			shader->setUniform3Array("u_light_color", (float*)&light_color, n_lights);
-			shader->setUniform1("u_num_lights", n_lights);
-
+			lightToShader(n_lights, shader);
 			mesh->render(GL_TRIANGLES);
+
+			// shader->setUniform("u_ambient_light", vec3(0.0));
+			// shader->setUniform("u_emissive_light", vec3(0.0f));
+			// if (material->alpha_mode != SCN::eAlphaMode::BLEND)
+			// {
+			// 	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+			// 	glDisable(GL_BLEND);
+			// }
 		}
 	}
 	else
@@ -450,6 +466,34 @@ void SCN::Renderer::lightToShader(LightEntity* light, GFX::Shader* shader)
 	shader->setUniform("u_light_front", light->root.model.frontVector().normalize());
 }
 
+void SCN::Renderer::lightToShader(int n_lights, GFX::Shader* shader)
+{
+	vec3 light_position[n_lights];
+	vec3 light_color[n_lights];
+	int light_types[n_lights];
+	float light_max_distances[n_lights];
+	vec2 cone_infos[n_lights];
+	vec3 light_fronts[n_lights];
+
+	for (int i = 0; i < n_lights; ++i)
+	{
+		light_position[i] = lights[i]->root.model.getTranslation();
+		light_color[i] = lights[i]->color*lights[i]->intensity;
+		light_types[i] = (int) lights[i]->light_type;
+		light_max_distances[i] = lights[i]->max_distance;
+		cone_infos[i] = lights[i]->cone_info;
+		light_fronts[i] = lights[i]->root.model.frontVector().normalize();
+	}
+
+	shader->setUniform3Array("u_light_pos", (float*)&light_position, n_lights);
+	shader->setUniform3Array("u_light_color", (float*)&light_color, n_lights);
+	shader->setUniform1Array("u_light_types", (int*) &light_types, n_lights);
+	shader->setUniform1Array("u_light_max_distances", (float*)&light_max_distances, n_lights);
+	shader->setUniform2Array("u_light_cones_info", (float*)&cone_infos, n_lights);
+	shader->setUniform3Array("u_light_fronts", (float*)&light_fronts, n_lights);
+	shader->setUniform1("u_num_lights", n_lights);
+}
+
 void SCN::Renderer::cameraToShader(Camera* camera, GFX::Shader* shader)
 {
 	shader->setUniform("u_viewprojection", camera->viewprojection_matrix );
@@ -471,7 +515,6 @@ void Renderer::showUI()
 	ImGui::Checkbox("Normal map", &use_normal_map);
 	ImGui::Checkbox("Specular light", &use_specular);
 	ImGui::Checkbox("Occlusion light", &use_occlusion);
-	ImGui::Checkbox("Single Pass", &use_single_pass);
 }
 
 #else
