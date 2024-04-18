@@ -294,6 +294,7 @@ void Renderer::renderMeshWithMaterial(const Matrix44 model, GFX::Mesh* mesh, SCN
 
 void Renderer::renderMeshWithMaterialLights(const Matrix44 model, GFX::Mesh* mesh, SCN::Material* material)
 {
+	int texPosition = 0;
 	//in case there is nothing to do
 	if (!mesh || !mesh->getNumVertices() || !material )
 		return;
@@ -357,7 +358,7 @@ void Renderer::renderMeshWithMaterialLights(const Matrix44 model, GFX::Mesh* mes
 
 	float specular_factor = NULL; specular_factor = material->metallic_factor;
 
-	if (use_specular && specular_factor)
+	if (specular_factor)
 	{
 		shader->setUniform("u_specular", specular_factor);
 		shader->setUniform("specular_option", true);
@@ -367,35 +368,25 @@ void Renderer::renderMeshWithMaterialLights(const Matrix44 model, GFX::Mesh* mes
 
 	shader->setUniform("u_color", material->color);
 	if(texture)
-		shader->setUniform("u_texture", texture, 0);
+		shader->setUniform("u_texture", texture, texPosition++);
 
-	GFX::Texture* normalMap    = NULL; normalMap    = material->textures[SCN::eTextureChannel::NORMALMAP].texture;
-	GFX::Texture* emissiveTex  = NULL; emissiveTex  = material->textures[SCN::eTextureChannel::EMISSIVE].texture;
-	GFX::Texture* occlusionTex = NULL; occlusionTex = material->textures[SCN::eTextureChannel::METALLIC_ROUGHNESS].texture;
+	GFX::Texture* normalMap    = material->textures[eTextureChannel::NORMALMAP         ].texture;
+	GFX::Texture* emissiveTex  = material->textures[eTextureChannel::EMISSIVE          ].texture;
+	GFX::Texture* occlusionTex = material->textures[eTextureChannel::METALLIC_ROUGHNESS].texture;
 
-	if (normalMap != NULL){
-		shader->setUniform("u_normal_texture", normalMap, 1);
-		shader->setUniform("normal_option", (int) use_normal_map);
-	}
-	else
-		shader->setUniform("normal_option", 0);
+	normalMap    = (normalMap)    ? normalMap    : GFX::Texture::getWhiteTexture();
+	emissiveTex  = (emissiveTex)  ? emissiveTex  : GFX::Texture::getWhiteTexture();
+	occlusionTex = (occlusionTex) ? occlusionTex : GFX::Texture::getWhiteTexture();
 
-	if (emissiveTex != NULL && &material->emissive_factor != nullptr)
-	{
-		shader->setUniform("u_emissive_light", material->emissive_factor);
-		shader->setUniform("u_emissive_texture", emissiveTex, 2);
-		shader->setUniform("emissive_option", (int) use_emissive);
-	}
-	else
-		shader->setUniform("emissive_option", 0);
+	shader->setUniform("u_normal_texture", normalMap, texPosition++);
+	shader->setUniform("normal_option", (int) use_normal_map);
 
-	if (occlusionTex != NULL)
-	{
-		shader->setUniform("u_occlusion_texture", occlusionTex, 3);
-		shader->setUniform("occlusion_option", (int) use_occlusion);
-	}
-	else
-		shader->setUniform("occlusion_option", 0);
+	shader->setUniform("u_emissive_factor", material->emissive_factor);
+	shader->setUniform("u_emissive_texture", emissiveTex, texPosition++);
+	shader->setUniform("emissive_option", (int) use_emissive);
+
+	shader->setUniform("u_occlusion_texture", occlusionTex, texPosition++);
+	shader->setUniform("occlusion_option", (int) use_occlusion);
 		
 	//this is used to say which is the alpha threshold to what we should not paint a pixel on the screen (to cut polygons according to texture alpha)
 	shader->setUniform("u_alpha_cutoff", material->alpha_mode == SCN::eAlphaMode::MASK ? material->alpha_cutoff : 0.001f);
@@ -432,14 +423,6 @@ void Renderer::renderMeshWithMaterialLights(const Matrix44 model, GFX::Mesh* mes
 
 			lightToShader(n_lights, shader);
 			mesh->render(GL_TRIANGLES);
-
-			// shader->setUniform("u_ambient_light", vec3(0.0));
-			// shader->setUniform("u_emissive_light", vec3(0.0f));
-			// if (material->alpha_mode != SCN::eAlphaMode::BLEND)
-			// {
-			// 	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
-			// 	glDisable(GL_BLEND);
-			// }
 		}
 	}
 	else
@@ -462,7 +445,7 @@ void SCN::Renderer::lightToShader(LightEntity* light, GFX::Shader* shader)
 	shader->setUniform("u_light_position", light->root.model.getTranslation());
 	shader->setUniform("u_light_color_multi", light->color*light->intensity);
 	shader->setUniform("u_light_max_distance", light->max_distance);
-	shader->setUniform("u_light_cone_info", light->cone_info);
+	shader->setUniform("u_light_cone_info", vec2( cosf(light->cone_info.x * PI/180.0f), cosf(light->cone_info.y * PI/180.0f) ));
 	shader->setUniform("u_light_front", light->root.model.frontVector().normalize());
 }
 
@@ -481,7 +464,7 @@ void SCN::Renderer::lightToShader(int n_lights, GFX::Shader* shader)
 		light_color[i] = lights[i]->color*lights[i]->intensity;
 		light_types[i] = (int) lights[i]->light_type;
 		light_max_distances[i] = lights[i]->max_distance;
-		cone_infos[i] = lights[i]->cone_info;
+		cone_infos[i] = vec2( cosf(lights[i]->cone_info.x * PI/180.0f), cosf(lights[i]->cone_info.y * PI/180.0f) );
 		light_fronts[i] = lights[i]->root.model.frontVector().normalize();
 	}
 
