@@ -186,31 +186,31 @@ vec3 perturbNormal(vec3 N, vec3 WP, vec3 normal_pixel, vec2 uv)
 	return normalize(TBN * normal_pixel);
 }
 
-vec3 multipass(vec3 N, vec3 light)
+vec3 multipass(vec3 N, vec3 light, vec4 color)
 {
-	vec2 uv = v_uv;
-	vec4 color = u_color;
-	color *= texture( u_texture, v_uv );
-	
+	//initialize further used variables
 	vec3 L;
-
 	vec3 factor = vec3(1.0f);
-
 	float NdotL;
 
 	if (u_light_type == DIRECTIONALLIGHT)
 	{
+		//all rays are parallel, so using light front, and no attenuation
 		L = u_light_front;
 		NdotL = clamp(dot(N, L), 0.0, 1.0);
 	}
 	else if (u_light_type == SPOTLIGHT  || u_light_type == POINTLIGHT)
-	{
+	{	//emitted from single point in all directions
+
+		//vector from point to light
 		L = u_light_position - v_world_position;
 		float dist = length(L);
+		//ignore light distance
 		L = L/dist;
 
 		NdotL = clamp(dot(N, L), 0.0, 1.0);
 
+		//calculate area affected by spotlight
 		if (u_light_type == SPOTLIGHT)
 		{
 			float cos_angle = dot( u_light_front.xyz, L );
@@ -226,49 +226,55 @@ vec3 multipass(vec3 N, vec3 light)
 		att_factor /= u_light_max_distance;
 		att_factor = max(att_factor, 0.0);
 
+		//accumulate light attributes in single factor
 		factor *= att_factor;
 	}
-
+	
+	//compute specular light if option activated, otherwise simply sum 0
+	vec3 specular = vec3(0);
 	if (specular_option == 1)
 	{
-		//add specular lighting to the factor
+		//view vector, from point being shaded on surface to camera (eye) 
 		vec3 V = normalize(eye-v_world_position);
+		//reflected light vector from L, hence the -L
 		vec3 R = normalize(reflect(-L, N));
-		factor *= u_specular*(clamp(pow(dot(R, V), alpha), 0.0, 1.0));
+		//pow(dot(R, V), alpha) computes specular power
+		specular = factor*u_specular*(clamp(pow(dot(R, V), 1/alpha), 0.0, 1.0));
 	}
 
-	light += NdotL*u_light_color_multi * factor;
+	light += NdotL*u_light_color_multi * factor + NdotL*specular*u_light_color_multi;
 
 	return light;
 }
 
-vec3 single_pass(vec3 N, vec3 light)
+vec3 single_pass(vec3 N, vec3 light, vec4 color)
 {
-	vec2 uv = v_uv;
-	vec4 color = u_color;
-	color *= texture( u_texture, v_uv );
-
 	for( int i = 0; i < MAX_LIGHTS; ++i )
 	{
 		if(i < u_num_lights)
 		{
+			//initialize further used variables
 			vec3 factor = vec3(1.0);
 			vec3 L;
 
 			float NdotL;
 
 			if (u_light_types[i] == DIRECTIONALLIGHT)
-			{
+			{	//all rays are parallel, so using light front, and no attenuation
 				L = u_light_fronts[i];
 				NdotL = max( dot(L,N), 0.0 );
 			}
-			else if (u_light_types[i] == POINTLIGHT || u_light_types[i] == SPOTLIGHT){
+			else if (u_light_types[i] == POINTLIGHT || u_light_types[i] == SPOTLIGHT)
+			{	//emitted from single point in all directions
+				//vector from point to light
 				L = u_light_pos[i]- v_world_position;
 				float dist = length(L);
+				//ignore light distance
 				L = L/dist;
 
 				NdotL = max( dot(L,N), 0.0 );
 
+				//calculate area affected by spotlight
 				if (u_light_types[i] == SPOTLIGHT)
 				{
 					float cos_angle = dot( u_light_fronts[i].xyz, L );
@@ -279,22 +285,26 @@ vec3 single_pass(vec3 N, vec3 light)
 						NdotL *= ( cos_angle - u_light_cones_info[i].x ) / ( u_light_cones_info[i].y - u_light_cones_info[i].x );
 				}
 
+				//compute attenuation factor
 				float att_factor = u_light_max_distances[i] - dist;
 				att_factor /= u_light_max_distances[i];
 				att_factor = max(att_factor, 0.0);
 
+				//accumulate into single factor
 				factor *= att_factor;
 			}
 
+			//compute specular light if option activated, otherwise simply sum 0
+			vec3 specular = vec3(0);
 			if (specular_option == 1)
 			{
 				vec3 V = normalize(eye-v_world_position);
 				vec3 R = normalize(reflect(-L, N));
-				factor *= u_specular*(clamp(pow(dot(R, V), alpha), 0.0, 1.0));
+				specular = factor*u_specular*(clamp(pow(dot(R, V), alpha), 0.0, 1.0));
 			}
 
-			light += NdotL*u_light_color[i]*factor;
-
+			//accumulate computed light into final light
+			light += NdotL*u_light_color[i]*factor + NdotL*specular*u_light_color[i];
 		}
 	}
 
@@ -305,17 +315,18 @@ void main()
 {
 	vec2 uv = v_uv;
 	vec4 color = u_color;
-	color *= texture( u_texture, v_uv );
+	color *= texture( u_texture, uv );
 
 	vec3 N = normalize( v_normal );
 	vec4 final_color;
 
 	vec3 normal = N;
 
+	//calculate normal with normalmap if option activated
 	if (normal_option == 1)
 	{
 		//extract normal map from your texture
-		vec3 normalRGB = texture2D(u_normal_texture, v_uv).rgb;
+		vec3 normalRGB = texture2D(u_normal_texture, uv).rgb;
 
 		//perturb the normal
 		normal = perturbNormal(N, v_world_position, normalRGB, uv);
@@ -323,25 +334,27 @@ void main()
 
 	vec3 light = u_ambient_light;
 
-	if (emissive_option == 1) {
-		light += u_emissive_factor*texture2D(u_emissive_texture, v_uv).rgb;
-	}
+	//add ambient occlusion if option activated
+	if (occlusion_option == 1)
+		light *= texture( u_occlusion_texture, uv ).x;
 
-	if (occlusion_option == 1){
-		light *= texture( u_occlusion_texture, v_uv ).x;
-	}
+	//add emissive light if option activated
+	if (emissive_option == 1) 
+		light += u_emissive_factor*texture2D(u_emissive_texture, uv).rgb;	
 
 	if(color.a < u_alpha_cutoff)
 			discard;
 
+	//choose either single_pass or multipass
 	if (single_pass_option == 0)
 	{
-		light = multipass(normal, light);
+		light = multipass(normal, light, color);
 	}
 	else {
-		light = single_pass(normal, light);
+		light = single_pass(normal, light, color);
 	}
 
+	//calculate final colours
 	final_color.xyz = color.xyz*light;
 
 	final_color.a = color.a;

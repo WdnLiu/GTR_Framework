@@ -82,9 +82,8 @@ void Renderer::extractSceneInfo(SCN::Scene* scene, Camera* camera)
 	renderables.clear();
 	lights.clear();
 
-	for (int i = 0; i < scene->entities.size(); ++i)
+	for (BaseEntity* ent : scene->entities)
 	{
-		BaseEntity* ent = scene->entities[i];
 		if (!ent->visible)
 			continue;
 		
@@ -137,7 +136,7 @@ void Renderer::renderScene(SCN::Scene* scene, Camera* camera)
 	std::vector<Renderable> sortedRenderables;
 
 	sortedRenderables.reserve( opaque.size() + nonOpaque.size() ); // preallocate memory
-	sortedRenderables.insert( sortedRenderables.end(), opaque.begin(), opaque.end() );
+	sortedRenderables.insert( sortedRenderables.end(), opaque.begin()   , opaque.end()    );
 	sortedRenderables.insert( sortedRenderables.end(), nonOpaque.begin(), nonOpaque.end() );
 
 	glDisable(GL_BLEND);
@@ -351,25 +350,22 @@ void Renderer::renderMeshWithMaterialLights(const Matrix44 model, GFX::Mesh* mes
 	float t = getTime();
 	shader->setUniform("u_time", t );
 
+	//ambient light
 	shader->setUniform("u_ambient_light", scene->ambient_light);
 
+	//uniforms to calculate specular: camera position, alpha shininess, specular factor
 	shader->setUniform("eye", camera->eye);
 	shader->setUniform("alpha", material->roughness_factor);
+	float specular_factor = material->metallic_factor;
+	shader->setUniform("u_specular", material->metallic_factor);
+	shader->setUniform("specular_option", use_specular && specular_factor>0.0f);
 
-	float specular_factor = NULL; specular_factor = material->metallic_factor;
-
-	if (specular_factor)
-	{
-		shader->setUniform("u_specular", specular_factor);
-		shader->setUniform("specular_option", true);
-	}
-	else
-		shader->setUniform1("specular_option", false);
-
+	//color
 	shader->setUniform("u_color", material->color);
 	if(texture)
 		shader->setUniform("u_texture", texture, texPosition++);
 
+	//upload of normal, emissive and occlusion (red value of metallic roughness as specified) textures, if they don't exist upload white texture
 	GFX::Texture* normalMap    = material->textures[eTextureChannel::NORMALMAP         ].texture;
 	GFX::Texture* emissiveTex  = material->textures[eTextureChannel::EMISSIVE          ].texture;
 	GFX::Texture* occlusionTex = material->textures[eTextureChannel::METALLIC_ROUGHNESS].texture;
@@ -393,34 +389,38 @@ void Renderer::renderMeshWithMaterialLights(const Matrix44 model, GFX::Mesh* mes
 
 	if (render_wireframe)
 		glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
-	if (material->alpha_mode != SCN::eAlphaMode::BLEND)
-	{
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE);
-		glDisable(GL_BLEND);
-	}
-	glDepthFunc(GL_LEQUAL);
-
 
 	if (lights.size()){
 		//do the draw call that renders the mesh into the screen
 		shader->setUniform("single_pass_option", !use_multipass_lights);
 		if (use_multipass_lights)
 		{
+			if (material->alpha_mode != SCN::eAlphaMode::BLEND)
+			{
+				glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+				glDisable(GL_BLEND);
+			}
+			glDepthFunc(GL_LEQUAL);
+
 			for (LightEntity* light : lights)
 			{
-
+				//upload uniforms and render
 				lightToShader(light, shader);
-				mesh->render(GL_TRIANGLES);
+				mesh->render(GL_TRIANGLES  );
 
-				shader->setUniform("u_ambient_light" , vec3(0.0));
+				//only upload once
+				shader->setUniform("u_ambient_light" , vec3(0.0f));
 				shader->setUniform("u_emissive_light", vec3(0.0f));
 				glEnable(GL_BLEND);
 			}
+
+			glDepthFunc(GL_LESS);
 		}
 		else
 		{
 			int n_lights = lights.size();
-
+			
+			//upload uniforms and render
 			lightToShader(n_lights, shader);
 			mesh->render(GL_TRIANGLES);
 		}
@@ -441,12 +441,14 @@ void Renderer::renderMeshWithMaterialLights(const Matrix44 model, GFX::Mesh* mes
 
 void SCN::Renderer::lightToShader(LightEntity* light, GFX::Shader* shader)
 {
-	shader->setUniform("u_light_type", (int) light->light_type);
-	shader->setUniform("u_light_position", light->root.model.getTranslation());
-	shader->setUniform("u_light_color_multi", light->color*light->intensity);
-	shader->setUniform("u_light_max_distance", light->max_distance);
-	shader->setUniform("u_light_cone_info", vec2( cosf(light->cone_info.x * PI/180.0f), cosf(light->cone_info.y * PI/180.0f) ));
-	shader->setUniform("u_light_front", light->root.model.frontVector().normalize());
+	vec2 cone_info = vec2( cosf(light->cone_info.x * PI/180.0f), cosf(light->cone_info.y * PI/180.0f) );
+
+	shader->setUniform("u_light_type"        , (int) light->light_type                    );
+	shader->setUniform("u_light_position"    , light->root.model.getTranslation()         );
+	shader->setUniform("u_light_front"       , light->root.model.frontVector().normalize());
+	shader->setUniform("u_light_color_multi" , light->color*light->intensity              );
+	shader->setUniform("u_light_max_distance", light->max_distance                        );
+	shader->setUniform("u_light_cone_info"   , cone_info);
 }
 
 void SCN::Renderer::lightToShader(int n_lights, GFX::Shader* shader)
@@ -460,20 +462,22 @@ void SCN::Renderer::lightToShader(int n_lights, GFX::Shader* shader)
 
 	for (int i = 0; i < n_lights; ++i)
 	{
-		light_position[i] = lights[i]->root.model.getTranslation();
-		light_color[i] = lights[i]->color*lights[i]->intensity;
-		light_types[i] = (int) lights[i]->light_type;
+		vec2 cone_info = vec2( cosf(lights[i]->cone_info.x * PI/180.0f), cosf(lights[i]->cone_info.y * PI/180.0f) );
+
+		light_position[i]      = lights[i]->root.model.getTranslation();
+		light_color[i]         = lights[i]->color*lights[i]->intensity;
+		light_types[i]         = (int) lights[i]->light_type;
 		light_max_distances[i] = lights[i]->max_distance;
-		cone_infos[i] = vec2( cosf(lights[i]->cone_info.x * PI/180.0f), cosf(lights[i]->cone_info.y * PI/180.0f) );
-		light_fronts[i] = lights[i]->root.model.frontVector().normalize();
+		cone_infos[i]          = cone_info;
+		light_fronts[i]        = lights[i]->root.model.frontVector().normalize();
 	}
 
-	shader->setUniform3Array("u_light_pos", (float*)&light_position, n_lights);
-	shader->setUniform3Array("u_light_color", (float*)&light_color, n_lights);
-	shader->setUniform1Array("u_light_types", (int*) &light_types, n_lights);
-	shader->setUniform1Array("u_light_max_distances", (float*)&light_max_distances, n_lights);
-	shader->setUniform2Array("u_light_cones_info", (float*)&cone_infos, n_lights);
-	shader->setUniform3Array("u_light_fronts", (float*)&light_fronts, n_lights);
+	shader->setUniform3Array("u_light_pos"          , (float*) &light_position, n_lights     );
+	shader->setUniform3Array("u_light_color"        , (float*) &light_color, n_lights        );
+	shader->setUniform1Array("u_light_types"        , (int*  ) &light_types, n_lights        );
+	shader->setUniform1Array("u_light_max_distances", (float*) &light_max_distances, n_lights);
+	shader->setUniform2Array("u_light_cones_info"   , (float*) &cone_infos, n_lights         );
+	shader->setUniform3Array("u_light_fronts"       , (float*) &light_fronts, n_lights       );
 	shader->setUniform1("u_num_lights", n_lights);
 }
 
