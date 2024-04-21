@@ -239,10 +239,10 @@ vec3 multipass(vec3 N, vec3 light, vec4 color)
 		//reflected light vector from L, hence the -L
 		vec3 R = normalize(reflect(-L, N));
 		//pow(dot(R, V), alpha) computes specular power
-		specular = factor*u_specular*(clamp(pow(dot(R, V), 1/alpha), 0.0, 1.0));
+		specular = factor*u_specular*(clamp(pow(dot(R, V), alpha), 0.0, 1.0))* NdotL * u_light_color_multi * color.xyz ;
 	}
 
-	light += NdotL*u_light_color_multi * factor + NdotL*specular*u_light_color_multi;
+	light += NdotL*u_light_color_multi * factor + specular;
 
 	return light;
 }
@@ -300,11 +300,11 @@ vec3 single_pass(vec3 N, vec3 light, vec4 color)
 			{
 				vec3 V = normalize(eye-v_world_position);
 				vec3 R = normalize(reflect(-L, N));
-				specular = factor*u_specular*(clamp(pow(dot(R, V), alpha), 0.0, 1.0));
+				specular = factor*u_specular*(clamp(pow(dot(R, V), alpha), 0.0, 1.0)) * NdotL * u_light_color[i] * color.xyz;
 			}
 
 			//accumulate computed light into final light
-			light += NdotL*u_light_color[i]*factor + NdotL*specular*u_light_color[i];
+			light += NdotL*u_light_color[i]*factor + specular;
 		}
 	}
 
