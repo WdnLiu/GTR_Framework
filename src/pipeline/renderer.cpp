@@ -17,6 +17,8 @@
 
 #include "scene.h"
 
+#define N_LIGHTS 4
+
 
 using namespace SCN;
 
@@ -47,6 +49,11 @@ void Renderer::extractRenderables(SCN::Node* node, Camera* camera)
 			re.dist_to_cam = camera->eye.distance(world_bounding.center);
 			re.bounding = world_bounding;
 			renderables.push_back(re);
+
+			if (re.material->alpha_mode == eAlphaMode::BLEND)
+				alpha_renderables.push_back(re);
+			else
+				opaque_renderables.push_back(re);
 		}
 	}
 
@@ -75,12 +82,18 @@ Renderer::Renderer(const char* shader_atlas_filename)
 
 	sphere.createSphere(1.0f);
 	sphere.uploadToVRAM();
+
+	shadowmap_size = 1024;
+	mainLight = nullptr;
 }
 
 void Renderer::extractSceneInfo(SCN::Scene* scene, Camera* camera)
 {
 	renderables.clear();
 	lights.clear();
+	opaque_renderables.clear();
+	alpha_renderables.clear();
+	mainLight = nullptr;
 
 	for (BaseEntity* ent : scene->entities)
 	{
@@ -99,6 +112,9 @@ void Renderer::extractSceneInfo(SCN::Scene* scene, Camera* camera)
 			LightEntity* light = (SCN::LightEntity*) ent;
 			if ( light->light_type == eLightType::DIRECTIONAL || camera->testSphereInFrustum(light->root.model.getTranslation(), light->max_distance))
 				lights.push_back(light);
+
+			if (!mainLight && light->light_type == eLightType::DIRECTIONAL)
+				mainLight = light;
 		}
 	}
 }
@@ -116,28 +132,69 @@ void Renderer::setupScene()
 		skybox_cubemap = nullptr;
 }
 
+void Renderer::generateShadowMaps(Camera* camera)
+{
+	for (int i = 0; i < lights.size(); ++i)
+	{
+		LightEntity* light = lights[i];
+
+		if (!light->cast_shadows)
+			continue;
+
+		Camera light_camera;
+		vec3 up = vec3(0, 1, 0);
+
+		vec3 pos = light->getGlobalPosition();
+		//pos = camera->eye;
+		light_camera.lookAt(pos, pos - light->getFront(), up);
+
+		if (light->light_type == eLightType::DIRECTIONAL)
+		{
+			light = mainLight;
+			if (light->shadowMapFBO == nullptr || light->shadowMapFBO->width != shadowmap_size)
+			{
+				if (light->shadowMapFBO)
+					delete light->shadowMapFBO;
+				light->shadowMapFBO = new GFX::FBO();
+				light->shadowMapFBO->setDepthOnly(shadowmap_size, shadowmap_size);
+			}
+
+			light->shadowMapFBO->bind();
+			glClear(GL_DEPTH_BUFFER_BIT);
+
+			float halfArea = light->area / 2.0f;
+			light_camera.setOrthographic(-halfArea, halfArea, -halfArea, halfArea, 0.1, light->max_distance);
+			light_camera.enable();
+
+			for (Renderable& re : opaque_renderables)
+			{
+				if (light_camera.testBoxInFrustum(re.bounding.center, re.bounding.halfsize))
+					renderMeshWithMaterialPlain(re.model, re.mesh, re.material);
+			}
+			light->shadowMap_viewProjection = light_camera.viewprojection_matrix;
+
+			light->shadowMapFBO->unbind();
+		}
+		else
+			continue;
+	}
+}
+
 void Renderer::renderScene(SCN::Scene* scene, Camera* camera)
 {
 	this->scene = scene;
 	setupScene();
 	extractSceneInfo(scene, camera);
+	generateShadowMaps(camera);
+	camera->enable();
 
-	std::vector<Renderable> opaque;
-	std::vector<Renderable> nonOpaque;
-
-	for (Renderable r : renderables)
-	{
-		if (r.material->alpha_mode == eAlphaMode::NO_ALPHA) opaque.push_back(r);
-		else nonOpaque.push_back(r);
-	}
-
-	sort(nonOpaque.begin(), nonOpaque.end(), renderableComparator);
+	sort(alpha_renderables.begin(), alpha_renderables.end(), renderableComparator);
 
 	std::vector<Renderable> sortedRenderables;
 
-	sortedRenderables.reserve( opaque.size() + nonOpaque.size() ); // preallocate memory
-	sortedRenderables.insert( sortedRenderables.end(), opaque.begin()   , opaque.end()    );
-	sortedRenderables.insert( sortedRenderables.end(), nonOpaque.begin(), nonOpaque.end() );
+	sortedRenderables.reserve( opaque_renderables.size() + alpha_renderables.size() ); // preallocate memory
+	sortedRenderables.insert( sortedRenderables.end(), opaque_renderables.begin()   , opaque_renderables.end()    );
+	sortedRenderables.insert( sortedRenderables.end(), alpha_renderables.begin(), alpha_renderables.end() );
 
 	glDisable(GL_BLEND);
 	glEnable(GL_DEPTH_TEST);
@@ -155,7 +212,10 @@ void Renderer::renderScene(SCN::Scene* scene, Camera* camera)
 
 	//render entities
 	for (Renderable& re : sortedRenderables)
-		renderMeshWithMaterialLights(re.model, re.mesh, re.material);
+	{
+		if (camera->testBoxInFrustum(re.bounding.center, re.bounding.halfsize))
+			renderMeshWithMaterialLights(re.model, re.mesh, re.material);
+	}
 }
 
 
@@ -291,9 +351,67 @@ void Renderer::renderMeshWithMaterial(const Matrix44 model, GFX::Mesh* mesh, SCN
 	glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
 }
 
+void Renderer::renderMeshWithMaterialPlain(const Matrix44 model, GFX::Mesh* mesh, SCN::Material* material)
+{
+	//in case there is nothing to do
+	if (!mesh || !mesh->getNumVertices() || !material)
+		return;
+	assert(glGetError() == GL_NO_ERROR);
+
+	//define locals to simplify coding
+	GFX::Shader* shader = NULL;
+	GFX::Texture* texture = NULL;
+	Camera* camera = Camera::current;
+
+	texture = material->textures[SCN::eTextureChannel::ALBEDO].texture;
+
+	if (texture == NULL)
+		texture = GFX::Texture::getWhiteTexture(); //a 1x1 white texture
+
+	glDisable(GL_BLEND);
+
+	//select if render both sides of the triangles
+	if (material->two_sided)
+		glDisable(GL_CULL_FACE);
+	else
+		glEnable(GL_CULL_FACE);
+	assert(glGetError() == GL_NO_ERROR);
+
+	glEnable(GL_DEPTH_TEST);
+
+	//chose a shader
+	shader = GFX::Shader::Get("texture");
+
+	assert(glGetError() == GL_NO_ERROR);
+
+	//no shader? then nothing to render
+	if (!shader)
+		return;
+	shader->enable();
+
+	//upload uniforms
+	shader->setUniform("u_model", model);
+	cameraToShader(camera, shader);
+
+	shader->setUniform("u_color", material->color);
+	if (texture)
+		shader->setUniform("u_texture", texture, 0);
+
+	//this is used to say which is the alpha threshold to what we should not paint a pixel on the screen (to cut polygons according to texture alpha)
+	shader->setUniform("u_alpha_cutoff", material->alpha_mode == SCN::eAlphaMode::MASK ? material->alpha_cutoff : 0.001f);
+
+
+	//do the draw call that renders the mesh into the screen
+	mesh->render(GL_TRIANGLES);
+
+	//disable shader
+	shader->disable();
+}
+
 void Renderer::renderMeshWithMaterialLights(const Matrix44 model, GFX::Mesh* mesh, SCN::Material* material)
 {
 	int texPosition = 0;
+	int shadowMapPos = 8;
 	//in case there is nothing to do
 	if (!mesh || !mesh->getNumVertices() || !material )
 		return;
@@ -306,10 +424,6 @@ void Renderer::renderMeshWithMaterialLights(const Matrix44 model, GFX::Mesh* mes
 	
 	texture = material->textures[SCN::eTextureChannel::ALBEDO].texture;
 
-	//texture = material->emissive_texture;
-	//texture = material->metallic_roughness_texture;
-	//texture = material->normal_texture;
-	//texture = material->occlusion_texture;
 	if (use_no_texture)
 		texture = GFX::Texture::getWhiteTexture(); //a 1x1 white texture
 
@@ -406,6 +520,17 @@ void Renderer::renderMeshWithMaterialLights(const Matrix44 model, GFX::Mesh* mes
 			{
 				//upload uniforms and render
 				lightToShader(light, shader);
+
+				if (light->cast_shadows && light->shadowMapFBO)
+				{
+					shader->setUniform("u_light_cast_shadows", 1);
+					shader->setUniform("u_shadowmap", light->shadowMapFBO->depth_texture, shadowMapPos++);
+					shader->setUniform("u_shadowmap_viewprojection", light->shadowMap_viewProjection);
+					shader->setUniform("u_shadow_bias", light->shadow_bias);
+				}
+				else
+					shader->setUniform("u_light_cast_shadows", 0);
+
 				mesh->render(GL_TRIANGLES  );
 
 				//only upload once
@@ -421,7 +546,7 @@ void Renderer::renderMeshWithMaterialLights(const Matrix44 model, GFX::Mesh* mes
 			int n_lights = lights.size();
 			
 			//upload uniforms and render
-			lightToShader(n_lights, shader);
+			lightToShader(shader);
 			mesh->render(GL_TRIANGLES);
 		}
 	}
@@ -451,16 +576,16 @@ void SCN::Renderer::lightToShader(LightEntity* light, GFX::Shader* shader)
 	shader->setUniform("u_light_cone_info"   , cone_info);
 }
 
-void SCN::Renderer::lightToShader(int n_lights, GFX::Shader* shader)
+void SCN::Renderer::lightToShader(GFX::Shader* shader)
 {
-	vec3 light_position[n_lights];
-	vec3 light_color[n_lights];
-	int light_types[n_lights];
-	float light_max_distances[n_lights];
-	vec2 cone_infos[n_lights];
-	vec3 light_fronts[n_lights];
+	vec3 light_position[N_LIGHTS];
+	vec3 light_color[N_LIGHTS];
+	int light_types[N_LIGHTS];
+	float light_max_distances[N_LIGHTS];
+	vec2 cone_infos[N_LIGHTS];
+	vec3 light_fronts[N_LIGHTS];
 
-	for (int i = 0; i < n_lights; ++i)
+	for (int i = 0; i < N_LIGHTS; ++i)
 	{
 		vec2 cone_info = vec2( cosf(lights[i]->cone_info.x * PI/180.0f), cosf(lights[i]->cone_info.y * PI/180.0f) );
 
@@ -472,13 +597,13 @@ void SCN::Renderer::lightToShader(int n_lights, GFX::Shader* shader)
 		light_fronts[i]        = lights[i]->root.model.frontVector().normalize();
 	}
 
-	shader->setUniform3Array("u_light_pos"          , (float*) &light_position, n_lights     );
-	shader->setUniform3Array("u_light_color"        , (float*) &light_color, n_lights        );
-	shader->setUniform1Array("u_light_types"        , (int*  ) &light_types, n_lights        );
-	shader->setUniform1Array("u_light_max_distances", (float*) &light_max_distances, n_lights);
-	shader->setUniform2Array("u_light_cones_info"   , (float*) &cone_infos, n_lights         );
-	shader->setUniform3Array("u_light_fronts"       , (float*) &light_fronts, n_lights       );
-	shader->setUniform1("u_num_lights", n_lights);
+	shader->setUniform3Array("u_light_pos"          , (float*) &light_position, N_LIGHTS     );
+	shader->setUniform3Array("u_light_color"        , (float*) &light_color, N_LIGHTS		 );
+	shader->setUniform1Array("u_light_types"        , (int*  ) &light_types, N_LIGHTS		 );
+	shader->setUniform1Array("u_light_max_distances", (float*) &light_max_distances, N_LIGHTS);
+	shader->setUniform2Array("u_light_cones_info"   , (float*) &cone_infos, N_LIGHTS		 );
+	shader->setUniform3Array("u_light_fronts"       , (float*) &light_fronts, N_LIGHTS		 );
+	shader->setUniform1("u_num_lights", N_LIGHTS);
 }
 
 void SCN::Renderer::cameraToShader(Camera* camera, GFX::Shader* shader)
@@ -502,6 +627,17 @@ void Renderer::showUI()
 	ImGui::Checkbox("Normal map", &use_normal_map);
 	ImGui::Checkbox("Specular light", &use_specular);
 	ImGui::Checkbox("Occlusion light", &use_occlusion);
+
+	if (ImGui::Button("ShadowMap 256"))
+		shadowmap_size = 256;
+	if (ImGui::Button("ShadowMap 512"))
+		shadowmap_size = 512;
+	if (ImGui::Button("ShadowMap 1024"))
+		shadowmap_size = 1024;
+	if (ImGui::Button("ShadowMap 2048"))
+		shadowmap_size = 2048;
+
+		
 }
 
 #else

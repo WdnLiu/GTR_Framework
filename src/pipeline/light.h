@@ -1,6 +1,7 @@
 #pragma once
 
 #include "scene.h"
+#include "../gfx/fbo.h"
 
 namespace SCN {
 
@@ -25,8 +26,11 @@ namespace SCN {
 		vec2 cone_info;
 		float area; //for direct;
 
-		ENTITY_METHODS(LightEntity, LIGHT, 14,4);
+		GFX::FBO* shadowMapFBO;
+		mat4 shadowMap_viewProjection;
 
+		ENTITY_METHODS(LightEntity, LIGHT, 14,4);
+		
 		LightEntity();
 
 		void configure(cJSON* json);

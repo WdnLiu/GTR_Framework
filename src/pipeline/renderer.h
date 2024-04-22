@@ -4,6 +4,8 @@
 
 #include "light.h"
 
+#define MAX_SHADOWS 4
+
 //forward declarations
 class Camera;
 class Skeleton;
@@ -43,6 +45,8 @@ namespace SCN {
 		bool use_occlusion;
 		bool use_single_pass;
 
+		int shadowmap_size;
+
 		GFX::Texture* skybox_cubemap;
 
 		SCN::Scene* scene;
@@ -50,7 +54,11 @@ namespace SCN {
 		//tmp containers
 		std::vector<Renderable> renderables;
 		std::vector<LightEntity*> lights;
+		std::vector<Renderable> opaque_renderables;
+		std::vector<Renderable> alpha_renderables;
 		std::vector<LightEntity*> visibleLights;
+
+		LightEntity* mainLight;
 
 		void extractRenderables(SCN::Node* node, Camera* camera);
 
@@ -72,8 +80,12 @@ namespace SCN {
 		//to render one node from the prefab and its children
 		void renderNode(SCN::Node* node, Camera* camera);
 
+		void generateShadowMaps(Camera* camera);
+
 		//to render one mesh given its material and transformation matrix
 		void renderMeshWithMaterial(const Matrix44 model, GFX::Mesh* mesh, SCN::Material* material);
+		
+		void renderMeshWithMaterialPlain(const Matrix44 model, GFX::Mesh* mesh, SCN::Material* material);
 
 		void renderMeshWithMaterialLights(const Matrix44 model, GFX::Mesh* mesh, SCN::Material* material);
 
@@ -81,7 +93,7 @@ namespace SCN {
 
 		void cameraToShader(Camera* camera, GFX::Shader* shader); //sends camera uniforms to shader
 		void lightToShader(LightEntity* light, GFX::Shader* shader); //sends light uniforms to shader	
-		void lightToShader(int n_lights, GFX::Shader* shader);
+		void lightToShader(GFX::Shader* shader);
 	};
 
 };
