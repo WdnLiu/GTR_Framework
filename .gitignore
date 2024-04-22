@@ -62,3 +62,9 @@ visualstudio/VS2015/Release/visualstudio.log
 *.idb
 *.pdb
 visualstudio/VS2015/Release/visualstudio.log
+*.idb
+*.pdb
+visualstudio/VS2015/Release/visualstudio.log
+*.idb
+/visualstudio/VS2015/Debug
+/visualstudio/VS2015/Release
