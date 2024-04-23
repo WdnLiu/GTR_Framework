@@ -75,7 +75,7 @@ namespace SCN {
 
 		BaseEntity() { scene = nullptr; visible = true; layers = 3; }
 		virtual ~BaseEntity() { assert(!scene); if (s_selected == this) s_selected = nullptr; };
-		
+
 		virtual void configure(cJSON* json) {}
 		virtual void serialize(cJSON* json) {}
 
@@ -88,6 +88,9 @@ namespace SCN {
 
 		static void registerEntityType(BaseEntity* entity);
 		static BaseEntity* createEntity(const char* type);
+
+		vec3 getGlobalPosition() { return root.global_model.getTranslation(); }
+		vec3 getFront() { return root.global_model.frontVector(); }
 	};
 
 	//represents one prefab in the scene

@@ -14,6 +14,8 @@ SCN::LightEntity::LightEntity()
 	shadow_bias = 0.001;
 	near_distance = 0.1;
 	area = 1000;
+
+	shadowMapFBO = nullptr;
 }
 
 void SCN::LightEntity::configure(cJSON* json)
@@ -35,6 +37,8 @@ void SCN::LightEntity::configure(cJSON* json)
 		light_type = eLightType::SPOT;
 	if (light_type_str == "DIRECTIONAL")
 		light_type = eLightType::DIRECTIONAL;
+
+	shadowMapFBO = nullptr;
 }
 
 void SCN::LightEntity::serialize(cJSON* json)
