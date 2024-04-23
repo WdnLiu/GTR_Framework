@@ -76,9 +76,9 @@ Renderer::Renderer(const char* shader_atlas_filename)
 	use_multipass_lights = true;
 	use_no_texture = false;
 	use_normal_map = false;
-	use_emissive = false;
-	use_specular = false;
-	use_occlusion = false;
+	use_emissive   = false;
+	use_specular   = false;
+	use_occlusion  = false;
 
 	sphere.createSphere(1.0f);
 	sphere.uploadToVRAM();
@@ -110,7 +110,10 @@ void Renderer::extractSceneInfo(SCN::Scene* scene, Camera* camera)
 		else if (ent->getType() == eEntityType::LIGHT)
 		{
 			LightEntity* light = (SCN::LightEntity*) ent;
-			if ( light->light_type == eLightType::DIRECTIONAL || camera->testSphereInFrustum(light->root.model.getTranslation(), light->max_distance))
+
+			mat4 globalMatrix = light->root.getGlobalMatrix();
+
+			if ( light->light_type == eLightType::DIRECTIONAL || camera->testSphereInFrustum(globalMatrix.getTranslation(), light->max_distance))
 				lights.push_back(light);
 
 			if (!mainLight && light->light_type == eLightType::DIRECTIONAL)
@@ -138,8 +141,16 @@ void Renderer::generateShadowMaps(Camera* camera)
 	{
 		LightEntity* light = lights[i];
 
-		if (!light->cast_shadows)
+		if (!light->cast_shadows || light->light_type == eLightType::POINT)
 			continue;
+
+		if (light->shadowMapFBO == nullptr || light->shadowMapFBO->width != shadowmap_size)
+		{
+			if (light->shadowMapFBO)
+				delete light->shadowMapFBO;
+			light->shadowMapFBO = new GFX::FBO();
+			light->shadowMapFBO->setDepthOnly(shadowmap_size, shadowmap_size);
+		}
 
 		Camera light_camera;
 		vec3 up = vec3(0, 1, 0);
@@ -148,35 +159,31 @@ void Renderer::generateShadowMaps(Camera* camera)
 		//pos = camera->eye;
 		light_camera.lookAt(pos, pos - light->getFront(), up);
 
+		light->shadowMapFBO->bind();
+		glClear(GL_DEPTH_BUFFER_BIT);
+
 		if (light->light_type == eLightType::DIRECTIONAL)
 		{
-			light = mainLight;
-			if (light->shadowMapFBO == nullptr || light->shadowMapFBO->width != shadowmap_size)
-			{
-				if (light->shadowMapFBO)
-					delete light->shadowMapFBO;
-				light->shadowMapFBO = new GFX::FBO();
-				light->shadowMapFBO->setDepthOnly(shadowmap_size, shadowmap_size);
-			}
-
-			light->shadowMapFBO->bind();
-			glClear(GL_DEPTH_BUFFER_BIT);
+			//light = mainLight;
 
 			float halfArea = light->area / 2.0f;
-			light_camera.setOrthographic(-halfArea, halfArea, -halfArea, halfArea, 0.1, light->max_distance);
-			light_camera.enable();
-
-			for (Renderable& re : opaque_renderables)
-			{
-				if (light_camera.testBoxInFrustum(re.bounding.center, re.bounding.halfsize))
-					renderMeshWithMaterialPlain(re.model, re.mesh, re.material);
-			}
-			light->shadowMap_viewProjection = light_camera.viewprojection_matrix;
-
-			light->shadowMapFBO->unbind();
+			light_camera.setOrthographic(-halfArea, halfArea, -halfArea, halfArea, light->near_distance, light->max_distance);
 		}
-		else
-			continue;
+		else if (light->light_type == eLightType::SPOT)
+		{
+			light_camera.setPerspective(light->cone_info.y * 2.0f, 1.0f, light->near_distance, light->max_distance);
+		}
+
+		light_camera.enable();
+
+		light->shadowMap_viewProjection = light_camera.viewprojection_matrix;
+
+		for (Renderable& re : opaque_renderables)
+		{
+			if (light_camera.testBoxInFrustum(re.bounding.center, re.bounding.halfsize))
+				renderMeshWithMaterialPlain(re.model, re.mesh, re.material);
+		}
+		light->shadowMapFBO->unbind();
 	}
 }
 
@@ -400,7 +407,6 @@ void Renderer::renderMeshWithMaterialPlain(const Matrix44 model, GFX::Mesh* mesh
 	//this is used to say which is the alpha threshold to what we should not paint a pixel on the screen (to cut polygons according to texture alpha)
 	shader->setUniform("u_alpha_cutoff", material->alpha_mode == SCN::eAlphaMode::MASK ? material->alpha_cutoff : 0.001f);
 
-
 	//do the draw call that renders the mesh into the screen
 	mesh->render(GL_TRIANGLES);
 
@@ -523,15 +529,12 @@ void Renderer::renderMeshWithMaterialLights(const Matrix44 model, GFX::Mesh* mes
 
 				if (light->cast_shadows && light->shadowMapFBO)
 				{
-					shader->setUniform("u_light_cast_shadows", 1);
-					shader->setUniform("u_shadowmap", light->shadowMapFBO->depth_texture, shadowMapPos++);
-					shader->setUniform("u_shadowmap_viewprojection", light->shadowMap_viewProjection);
-					shader->setUniform("u_shadow_bias", light->shadow_bias);
+					shadowToShader(light, shadowMapPos, shader);
 				}
 				else
 					shader->setUniform("u_light_cast_shadows", 0);
 
-				mesh->render(GL_TRIANGLES  );
+				if (material->alpha_mode != SCN::eAlphaMode::BLEND || light == lights[0]) mesh->render(GL_TRIANGLES);
 
 				//only upload once
 				shader->setUniform("u_ambient_light" , vec3(0.0f));
@@ -546,6 +549,7 @@ void Renderer::renderMeshWithMaterialLights(const Matrix44 model, GFX::Mesh* mes
 			int n_lights = lights.size();
 			
 			//upload uniforms and render
+			shadowToShader(shader);
 			lightToShader(shader);
 			mesh->render(GL_TRIANGLES);
 		}
@@ -562,6 +566,60 @@ void Renderer::renderMeshWithMaterialLights(const Matrix44 model, GFX::Mesh* mes
 	//set the render state as it was before to avoid problems with future renders
 	glDisable(GL_BLEND);
 	glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
+}
+
+void SCN::Renderer::shadowToShader(LightEntity* light, int& shadowMapPos, GFX::Shader* shader)
+{
+	shader->setUniform("u_light_cast_shadows", 1);
+	shader->setUniform("u_shadowmap", light->shadowMapFBO->depth_texture, shadowMapPos++);
+	shader->setUniform("u_shadowmap_viewprojection", light->shadowMap_viewProjection);
+	shader->setUniform("u_shadow_bias", light->shadow_bias);
+}
+
+void SCN::Renderer::shadowToShader(GFX::Shader* shader)
+{
+	int u_light_cast_shadows_arr[N_LIGHTS];
+	mat4 u_shadowmap_viewprojections[N_LIGHTS];
+	float u_shadowmap_biases[N_LIGHTS];
+
+	for (int i = 0; i < N_LIGHTS; ++i)
+	{
+		LightEntity* light = lights[i];
+		u_light_cast_shadows_arr[i] = light->cast_shadows;
+		u_shadowmap_biases[i] = light->shadow_bias;
+	}
+
+	shadowToShaderAuxiliar(shader);
+
+	shader->setUniform1Array("u_light_cast_shadows_arr", (int*) &u_light_cast_shadows_arr, N_LIGHTS);
+	shader->setUniform1Array("u_shadowmap_biases", (float*) &u_shadowmap_biases, N_LIGHTS);
+}
+
+void SCN::Renderer::shadowToShaderAuxiliar(GFX::Shader* shader)
+{
+	int shadowMapPos = 8;
+
+	GFX::Texture* shadowTex;
+
+	LightEntity* light = lights[0];
+	shadowTex = (light->shadowMapFBO) ? light->shadowMapFBO->depth_texture : GFX::Texture::getWhiteTexture();
+	shader->setUniform("u_shadow_textures[0]", shadowTex, shadowMapPos++);
+	shader->setUniform("u_light_shadowmap_viewprojections[0]", light->shadowMap_viewProjection);
+
+	light = lights[1];
+	shadowTex = (light->shadowMapFBO) ? light->shadowMapFBO->depth_texture : GFX::Texture::getWhiteTexture();
+	shader->setUniform("u_shadow_textures[1]", shadowTex, shadowMapPos++);
+	shader->setUniform("u_light_shadowmap_viewprojections[1]", light->shadowMap_viewProjection);
+
+	light = lights[2];
+	shadowTex = (light->shadowMapFBO) ? light->shadowMapFBO->depth_texture : GFX::Texture::getWhiteTexture();
+	shader->setUniform("u_shadow_textures[2]", shadowTex, shadowMapPos++);
+	shader->setUniform("u_light_shadowmap_viewprojections[2]", light->shadowMap_viewProjection);
+
+	light = lights[3];
+	shadowTex = (light->shadowMapFBO) ? light->shadowMapFBO->depth_texture : GFX::Texture::getWhiteTexture();
+	shader->setUniform("u_shadow_textures[3]", shadowTex, shadowMapPos++);
+	shader->setUniform("u_light_shadowmap_viewprojections[3]", light->shadowMap_viewProjection);
 }
 
 void SCN::Renderer::lightToShader(LightEntity* light, GFX::Shader* shader)
@@ -627,6 +685,7 @@ void Renderer::showUI()
 	ImGui::Checkbox("Normal map", &use_normal_map);
 	ImGui::Checkbox("Specular light", &use_specular);
 	ImGui::Checkbox("Occlusion light", &use_occlusion);
+	ImGui::Checkbox("Create Shadow Maps", &use_shadowMap);
 
 	if (ImGui::Button("ShadowMap 256"))
 		shadowmap_size = 256;

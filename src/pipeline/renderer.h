@@ -91,6 +91,9 @@ namespace SCN {
 
 		void showUI();
 
+		void shadowToShader(GFX::Shader* shader);
+		void shadowToShaderAuxiliar(GFX::Shader* shader);
+		void shadowToShader(LightEntity* light, int& shadowMapPos, GFX::Shader* shader);
 		void cameraToShader(Camera* camera, GFX::Shader* shader); //sends camera uniforms to shader
 		void lightToShader(LightEntity* light, GFX::Shader* shader); //sends light uniforms to shader	
 		void lightToShader(GFX::Shader* shader);
