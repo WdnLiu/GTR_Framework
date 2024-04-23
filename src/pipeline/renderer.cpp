@@ -165,18 +165,31 @@ void Renderer::generateShadowMaps(Camera* camera)
 		if (light->light_type == eLightType::DIRECTIONAL)
 		{
 			//light = mainLight;
+			//pos = camera->eye;
+			light_camera.lookAt(pos, pos - light->getFront(), up);
 
 			float halfArea = light->area / 2.0f;
 			light_camera.setOrthographic(-halfArea, halfArea, -halfArea, halfArea, light->near_distance, light->max_distance);
+
+			//compute texel size in world units, where frustum size is the distance from left to right in the camera
+			float grid = light->area / (float) shadowmap_size;
+
+			//snap camera X,Y to that size in camera space assuming the frustum is square, otherwise compute gridx and gridy
+				light_camera.view_matrix.M[3][0] = round(light_camera.view_matrix.M[3][0] / grid) * grid;
+
+			light_camera.view_matrix.M[3][1] = round(light_camera.view_matrix.M[3][1] / grid) * grid;
+
+			//update viewproj matrix (be sure no one changes it)
+			light_camera.viewprojection_matrix = light_camera.view_matrix * light_camera.projection_matrix;
+
 		}
 		else if (light->light_type == eLightType::SPOT)
 		{
 			light_camera.setPerspective(light->cone_info.y * 2.0f, 1.0f, light->near_distance, light->max_distance);
 		}
 
-		light_camera.enable();
-
 		light->shadowMap_viewProjection = light_camera.viewprojection_matrix;
+		light_camera.enable();
 
 		for (Renderable& re : opaque_renderables)
 		{
@@ -193,6 +206,7 @@ void Renderer::renderScene(SCN::Scene* scene, Camera* camera)
 	setupScene();
 	extractSceneInfo(scene, camera);
 	generateShadowMaps(camera);
+
 	camera->enable();
 
 	sort(alpha_renderables.begin(), alpha_renderables.end(), renderableComparator);
@@ -546,8 +560,6 @@ void Renderer::renderMeshWithMaterialLights(const Matrix44 model, GFX::Mesh* mes
 		}
 		else
 		{
-			int n_lights = lights.size();
-			
 			//upload uniforms and render
 			shadowToShader(shader);
 			lightToShader(shader);
@@ -645,14 +657,16 @@ void SCN::Renderer::lightToShader(GFX::Shader* shader)
 
 	for (int i = 0; i < N_LIGHTS; ++i)
 	{
-		vec2 cone_info = vec2( cosf(lights[i]->cone_info.x * PI/180.0f), cosf(lights[i]->cone_info.y * PI/180.0f) );
+		LightEntity* light = lights[i];
 
-		light_position[i]      = lights[i]->root.model.getTranslation();
-		light_color[i]         = lights[i]->color*lights[i]->intensity;
-		light_types[i]         = (int) lights[i]->light_type;
-		light_max_distances[i] = lights[i]->max_distance;
+		vec2 cone_info = vec2( cosf(light->cone_info.x * PI/180.0f), cosf(light->cone_info.y * PI/180.0f) );
+
+		light_position[i]      = light->getGlobalPosition();
+		light_color[i]         = light->color*lights[i]->intensity;
+		light_types[i]         = (int) light->light_type;
+		light_max_distances[i] = light->max_distance;
 		cone_infos[i]          = cone_info;
-		light_fronts[i]        = lights[i]->root.model.frontVector().normalize();
+		light_fronts[i]        = light->root.model.frontVector().normalize();
 	}
 
 	shader->setUniform3Array("u_light_pos"          , (float*) &light_position, N_LIGHTS     );
@@ -685,7 +699,6 @@ void Renderer::showUI()
 	ImGui::Checkbox("Normal map", &use_normal_map);
 	ImGui::Checkbox("Specular light", &use_specular);
 	ImGui::Checkbox("Occlusion light", &use_occlusion);
-	ImGui::Checkbox("Create Shadow Maps", &use_shadowMap);
 
 	if (ImGui::Button("ShadowMap 256"))
 		shadowmap_size = 256;

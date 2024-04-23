@@ -367,7 +367,8 @@ vec3 single_pass(vec3 N, vec3 light, vec4 color)
 				//calculate area affected by spotlight
 				if (u_light_types[i] == SPOTLIGHT)
 				{
-					shadow_factor *= computeShadow_single(v_world_position, i);
+					if ( u_light_cast_shadows_arr[i] == 1.0)
+						shadow_factor *= computeShadow_single(v_world_position, i);
 
 					float cos_angle = dot( u_light_fronts[i].xyz, L );
 					
