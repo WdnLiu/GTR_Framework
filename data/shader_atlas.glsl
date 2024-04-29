@@ -5,6 +5,8 @@ light basic.vs light.fs
 skybox basic.vs skybox.fs
 depth quad.vs depth.fs
 multi basic.vs multi.fs
+gbuffers basic.vs gbuffers.fs
+deferred_global quad.vs deferred_global.fs
 
 \basic.vs
 
@@ -76,6 +78,52 @@ void main()
 	FragColor = u_color;
 }
 
+\computeShadow
+
+#define POINTLIGHT 1
+#define SPOTLIGHT 2
+#define DIRECTIONALLIGHT 3
+
+uniform int u_light_cast_shadows;
+uniform sampler2D u_shadowmap;
+uniform mat4 u_shadowmap_viewprojection;
+uniform float u_shadow_bias;
+
+float computeShadow(vec3 wp)
+{
+	//project our 3D position to the shadowmap
+	vec4 proj_pos = u_shadowmap_viewprojection * vec4(wp,1.0);
+
+	//from homogeneus space to clip space
+	vec2 shadow_uv = proj_pos.xy / proj_pos.w;
+
+	//from clip space to uv space
+	shadow_uv = shadow_uv * 0.5 + vec2(0.5);
+
+	if (shadow_uv.x < 0.0 || shadow_uv.x > 1.0 ||
+	shadow_uv.y < 0.0 || shadow_uv.y > 1.0)
+	{
+		if (u_light_type == DIRECTIONALLIGHT) 
+			return 1.0;
+	}
+	//get point depth [-1 .. +1] in non-linear space
+	float real_depth = (proj_pos.z - u_shadow_bias) / proj_pos.w;
+
+	//normalize from [-1..+1] to [0..+1] still non-linear
+	real_depth = real_depth * 0.5 + 0.5;
+
+	//read depth from depth buffer in [0..+1] non-linear
+	float shadow_depth = texture(u_shadowmap, shadow_uv).x;
+
+	//compute final shadow factor by comparing
+	float shadow_factor = 1.0;
+
+	//we can compare them, even if they are not linear
+	if( shadow_depth < real_depth )
+		shadow_factor = 0.0;
+
+	return shadow_factor;
+}
 
 \texture.fs
 
@@ -455,6 +503,40 @@ void main()
 	FragColor = final_color;
 }
 
+\gbuffers.fs
+
+#version 330 core
+
+in vec3 v_position;
+in vec3 v_world_position;
+in vec3 v_normal;
+in vec2 v_uv;
+
+uniform vec4 u_color;
+uniform sampler2D u_texture;
+uniform float u_time;
+uniform float u_alpha_cutoff;
+
+layout(location = 0) out vec4 FragColor;
+layout(location = 1) out vec4 NormalColor;
+layout(location = 2) out vec4 ExtraColor;
+
+void main()
+{
+	vec2 uv = v_uv;
+	vec4 color = u_color;
+	color *= texture( u_texture, uv );
+
+	if(color.a < u_alpha_cutoff)
+		discard;
+
+	vec3 N = normalize(v_normal);
+
+	FragColor = color;
+	NormalColor = vec4(N*0.5 + vec3(0.5),1.0);
+
+	ExtraColor = vec4(v_world_position, 1.0);
+}
 
 \skybox.fs
 
@@ -563,4 +645,70 @@ void main()
 
 	//calcule the position of the vertex using the matrices
 	gl_Position = u_viewprojection * vec4( v_world_position, 1.0 );
+}
+
+\deferred_global.fs
+
+#version 330 core
+
+in vec3 v_position;
+in vec2 v_uv;
+
+uniform vec3 u_ambient_light;
+
+uniform sampler2D u_color_texture;
+uniform sampler2D u_normal_texture;
+uniform sampler2D u_extra_texture;
+uniform sampler2D u_depth_texture;
+
+uniform vec3 u_emissive_factor;
+uniform vec3 u_light_position;
+uniform vec3 u_light_color_multi;
+uniform vec3 u_light_front;
+uniform vec3 eye;
+uniform float u_specular;
+uniform float u_light_max_distance;
+uniform int u_light_type;
+uniform vec2 u_light_cone_info;
+uniform float alpha;
+
+uniform vec2 u_iRes;
+uniform mat4 u_inverse_viewprojection;
+
+#define POINTLIGHT 1
+#define SPOTLIGHT 2
+#define DIRECTIONALLIGHT 3
+
+#include "lights.fs"
+
+out vec4 FragColor;
+
+void main()
+{
+	vec2 uv = v_uv;
+	vec4 color = texture(u_color_texture, uv);
+	vec3 N = texture( u_normal_texture, uv).xyz * 2 - vec3(1.0f);
+	float depth = texture(u_depth_texture, uv).x;
+
+	if (depth == 1)
+		discard;
+
+	vec4 screen_pos = vec4(uv.x*2.0f-1.0f, uv.y*2.0f-1.0f, depth*2.0f-1.0f, 1.0);
+	vec4 proj_worldpos = u_inverse_viewprojection * screen_pos;
+	vec3 world_position = proj_worldpos.xyz / proj_worldpos.w;
+
+	vec3 light = u_ambient_light;
+	N = normalize(N);
+
+	vec3 L = u_light_position - world_position;
+	float dist = length(L);
+	L = L / dist;
+
+	float NdotL = 0.0f;
+
+	vec3 final_color = vec3(0.0);
+
+	final_color = u_ambient_light*color.xyz;
+
+	FragColor = vec4(final_color, 1.0);
 }

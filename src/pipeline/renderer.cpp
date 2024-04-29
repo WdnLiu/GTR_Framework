@@ -19,11 +19,11 @@
 
 #define N_LIGHTS 4
 
-
 using namespace SCN;
 
 //some globals
 GFX::Mesh sphere;
+GFX::FBO* gbuffers = nullptr;
 
 void Renderer::extractRenderables(SCN::Node* node, Camera* camera)
 {
@@ -79,6 +79,9 @@ Renderer::Renderer(const char* shader_atlas_filename)
 	use_emissive   = false;
 	use_specular   = false;
 	use_occlusion  = false;
+
+	pipeline_mode = ePipelineMode::DEFERRED;
+	gbuffer_show_mode = eShowGBuffer::NONE;
 
 	sphere.createSphere(1.0f);
 	sphere.uploadToVRAM();
@@ -207,15 +210,23 @@ void Renderer::renderScene(SCN::Scene* scene, Camera* camera)
 	extractSceneInfo(scene, camera);
 	generateShadowMaps(camera);
 
+	if (pipeline_mode == ePipelineMode::FORWARD)
+		renderSceneForward(scene, camera);
+	else if (pipeline_mode == ePipelineMode::DEFERRED)
+		renderSceneDeferred(scene, camera);
+}
+
+void Renderer::renderSceneForward(SCN::Scene* scene, Camera* camera)
+{
 	camera->enable();
 
 	sort(alpha_renderables.begin(), alpha_renderables.end(), renderableComparator);
 
 	std::vector<Renderable> sortedRenderables;
 
-	sortedRenderables.reserve( opaque_renderables.size() + alpha_renderables.size() ); // preallocate memory
-	sortedRenderables.insert( sortedRenderables.end(), opaque_renderables.begin()   , opaque_renderables.end()    );
-	sortedRenderables.insert( sortedRenderables.end(), alpha_renderables.begin(), alpha_renderables.end() );
+	sortedRenderables.reserve(opaque_renderables.size() + alpha_renderables.size()); // preallocate memory
+	sortedRenderables.insert(sortedRenderables.end(), opaque_renderables.begin(), opaque_renderables.end());
+	sortedRenderables.insert(sortedRenderables.end(), alpha_renderables.begin(), alpha_renderables.end());
 
 	glDisable(GL_BLEND);
 	glEnable(GL_DEPTH_TEST);
@@ -228,7 +239,7 @@ void Renderer::renderScene(SCN::Scene* scene, Camera* camera)
 	GFX::checkGLErrors();
 
 	//render skybox
-	if(skybox_cubemap)
+	if (skybox_cubemap)
 		renderSkybox(skybox_cubemap);
 
 	//render entities
@@ -239,6 +250,54 @@ void Renderer::renderScene(SCN::Scene* scene, Camera* camera)
 	}
 }
 
+void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
+{
+	int texturePos = 0;
+	vec2 size = CORE::getWindowSize();
+
+	//generate gbuffers
+	if (!gbuffers)
+	{
+		gbuffers = new GFX::FBO();
+		gbuffers->create(size.x, size.y, 3, GL_RGBA, GL_UNSIGNED_BYTE, true);
+	}
+
+	gbuffers->bind();
+
+	camera->enable();
+	glDisable(GL_BLEND);
+	glEnable(GL_DEPTH_TEST);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	//set the clear color
+	glClearColor(0, 0, 0, 1.0f);
+
+	for (Renderable& re : opaque_renderables)
+		if (camera->testBoxInFrustum(re.bounding.center, re.bounding.halfsize))
+			renderMeshWithMaterialGBuffers(re.model, re.mesh, re.material);
+
+	gbuffers->unbind();
+
+	glClearColor(scene->background_color.x, scene->background_color.y, scene->background_color.z, 1.0);
+
+	//draw lights
+	GFX::Mesh* quad = GFX::Mesh::getQuad();
+	GFX::Shader* deferred_global = GFX::Shader::Get("deferred_global");
+	deferred_global->enable();
+	deferred_global->setUniform("u_color_texture", gbuffers->color_textures[0], texturePos++);
+	quad->render(GL_TRIANGLES);
+
+	glEnable(GL_DEPTH_TEST);
+
+	switch (gbuffer_show_mode)
+	{
+		case eShowGBuffer::COLOR : gbuffers->color_textures[0]->toViewport(); break;
+		case eShowGBuffer::NORMAL: gbuffers->color_textures[1]->toViewport(); break;
+		case eShowGBuffer::EXTRA : gbuffers->color_textures[2]->toViewport(); break;
+		case eShowGBuffer::DEPTH : gbuffers->depth_texture->toViewport(); break;
+	}
+
+}
 
 void Renderer::renderSkybox(GFX::Texture* cubemap)
 {
@@ -580,6 +639,62 @@ void Renderer::renderMeshWithMaterialLights(const Matrix44 model, GFX::Mesh* mes
 	glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
 }
 
+void Renderer::renderMeshWithMaterialGBuffers(const Matrix44 model, GFX::Mesh* mesh, SCN::Material* material)
+{
+	//in case there is nothing to do
+	if (!mesh || !mesh->getNumVertices() || !material)
+		return;
+	assert(glGetError() == GL_NO_ERROR);
+
+	//define locals to simplify coding
+	GFX::Shader* shader = NULL;
+	GFX::Texture* texture = NULL;
+	Camera* camera = Camera::current;
+
+	texture = material->textures[SCN::eTextureChannel::ALBEDO].texture;
+
+	if (texture == NULL)
+		texture = GFX::Texture::getWhiteTexture(); //a 1x1 white texture
+
+	glDisable(GL_BLEND);
+
+	//select if render both sides of the triangles
+	if (material->two_sided)
+		glDisable(GL_CULL_FACE);
+	else
+		glEnable(GL_CULL_FACE);
+	assert(glGetError() == GL_NO_ERROR);
+
+	glEnable(GL_DEPTH_TEST);
+
+	//chose a shader
+	shader = GFX::Shader::Get("gbuffers");
+
+	assert(glGetError() == GL_NO_ERROR);
+
+	//no shader? then nothing to render
+	if (!shader)
+		return;
+	shader->enable();
+
+	//upload uniforms
+	shader->setUniform("u_model", model);
+	cameraToShader(camera, shader);
+
+	shader->setUniform("u_color", material->color);
+	if (texture)
+		shader->setUniform("u_texture", texture, 0);
+
+	//this is used to say which is the alpha threshold to what we should not paint a pixel on the screen (to cut polygons according to texture alpha)
+	shader->setUniform("u_alpha_cutoff", material->alpha_mode == SCN::eAlphaMode::MASK ? material->alpha_cutoff : 0.001f);
+
+	//do the draw call that renders the mesh into the screen
+	mesh->render(GL_TRIANGLES);
+
+	//disable shader
+	shader->disable();
+}
+
 void SCN::Renderer::shadowToShader(LightEntity* light, int& shadowMapPos, GFX::Shader* shader)
 {
 	shader->setUniform("u_light_cast_shadows", 1);
@@ -691,6 +806,9 @@ void Renderer::showUI()
 		
 	ImGui::Checkbox("Wireframe", &render_wireframe);
 	ImGui::Checkbox("Boundaries", &render_boundaries);
+
+	ImGui::Combo("Pipeline", (int*) &pipeline_mode, "FLAT\0FORWARD\0DEFERRED\0", ePipelineMode::PIPELINECOUNT);
+	ImGui::Combo("Show GBuffer", (int*) &gbuffer_show_mode, "NONE\0COLOR\0NORMAL\0EXTRA\0DEPTH\0", eShowGBuffer::SHOW_BUFFER_COUNT);
 
 	//add here your stuff
 	ImGui::Checkbox("Emissive materials", &use_emissive);
