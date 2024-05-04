@@ -61,7 +61,6 @@ namespace SCN {
 		bool use_emissive;
 		bool use_specular;
 		bool use_occlusion;
-		bool use_single_pass;
 
 		ePipelineMode pipeline_mode;
 		eShowGBuffer gbuffer_show_mode;
@@ -91,7 +90,7 @@ namespace SCN {
 
 		//add here your functions
 		void extractSceneInfo(SCN::Scene* scene, Camera* camera);
-		static bool renderableComparator(const Renderable& a, const Renderable& b);
+		static bool compareRenderablesByDistance(const Renderable& a, const Renderable& b);
 		//renders several elements of the scene
 		void renderScene(SCN::Scene* scene, Camera* camera);
 		void renderSceneForward(SCN::Scene* scene, Camera* camera);
@@ -121,7 +120,8 @@ namespace SCN {
 		void shadowToShader(LightEntity* light, int& shadowMapPos, GFX::Shader* shader);
 		void cameraToShader(Camera* camera, GFX::Shader* shader); //sends camera uniforms to shader
 		void lightToShader(LightEntity* light, GFX::Shader* shader); //sends light uniforms to shader	
-		void lightToShader(GFX::Shader* shader);
+		void alllightToShader(GFX::Shader* shader);
+		void sendTexturestoShader(SCN::Material* material, GFX::Shader* shader);
 	};
 
 };
