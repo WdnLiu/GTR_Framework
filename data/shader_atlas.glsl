@@ -590,9 +590,10 @@ uniform sampler2D u_texture;
 uniform float u_time;
 uniform float u_alpha_cutoff;
 
+//mas de un output
 layout(location = 0) out vec4 FragColor;
 layout(location = 1) out vec4 NormalColor;
-layout(location = 2) out vec4 ExtraColor;
+layout(location = 2) out vec4 ExtraColor; //ej to save metalnees &roughness
 
 void main()
 {
@@ -727,13 +728,14 @@ void main()
 in vec3 v_position;
 in vec2 v_uv;
 
-uniform vec3 u_ambient_light;
+
 
 uniform sampler2D u_color_texture;
 uniform sampler2D u_normal_texture;
 uniform sampler2D u_extra_texture;
 uniform sampler2D u_depth_texture;
 
+uniform vec3 u_ambient_light;
 uniform vec3 u_emissive_factor;
 uniform vec3 u_light_position;
 uniform vec3 u_light_color_multi;
@@ -763,7 +765,7 @@ void main()
 	vec3 N = texture( u_normal_texture, uv).xyz * 2 - vec3(1.0f);
 	float depth = texture(u_depth_texture, uv).x;
 
-	if (depth == 1)
+	if (depth == 1.0)
 		discard;
 
 	vec4 screen_pos = vec4(uv.x*2.0f-1.0f, uv.y*2.0f-1.0f, depth*2.0f-1.0f, 1.0);
@@ -784,4 +786,5 @@ void main()
 	final_color = u_ambient_light*color.xyz;
 
 	FragColor = vec4(final_color, 1.0);
+
 }

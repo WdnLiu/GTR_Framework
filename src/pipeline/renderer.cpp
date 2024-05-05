@@ -37,7 +37,7 @@ Renderer::Renderer(const char* shader_atlas_filename)
 	use_multipass_lights = true;
 	use_no_texture = false;
 	use_normal_map = false;
-	use_emissive = false;
+	use_emissive = true;
 	use_specular = false;
 	use_occlusion = false;
 	shadowmap_size = 1024;
@@ -50,7 +50,7 @@ Renderer::Renderer(const char* shader_atlas_filename)
 
 	
 
-	pipeline_mode = ePipelineMode::FORWARD;
+	pipeline_mode = ePipelineMode::DEFERRED;
 	gbuffer_show_mode = eShowGBuffer::NONE;
 
 	sphere.createSphere(1.0f);
@@ -268,14 +268,14 @@ void Renderer::renderSceneForward(SCN::Scene* scene, Camera* camera)
 
 void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 {
-	int texturePos = 0;
+	
 	vec2 size = CORE::getWindowSize();
 
 	//generate gbuffers
 	if (!gbuffers)
 	{
 		gbuffers = new GFX::FBO();
-		gbuffers->create(size.x, size.y, 3, GL_RGBA, GL_UNSIGNED_BYTE, true);
+		gbuffers->create(size.x, size.y, 3, GL_RGBA, GL_UNSIGNED_BYTE, true);  //crea todas las texturas attached, true if we want depthbuffer in a texure (para poder leerlo)
 	}
 
 	gbuffers->bind();
@@ -295,22 +295,38 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 	gbuffers->unbind();
 
 	glClearColor(scene->background_color.x, scene->background_color.y, scene->background_color.z, 1.0);
-
+	glClearColor(0, 0, 0, 1.0f);//set the clear color
+	
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	
+	if (skybox_cubemap)
+		renderSkybox(skybox_cubemap);
+	
 	//draw lights
-	GFX::Mesh* quad = GFX::Mesh::getQuad();
+	//lights afectana toda la escena: la directional,ambient y emissive
+	GFX::Mesh* quad = GFX::Mesh::getQuad(); 
 	GFX::Shader* deferred_global = GFX::Shader::Get("deferred_global");
 	deferred_global->enable();
+
+	int texturePos = 0;
 	deferred_global->setUniform("u_color_texture", gbuffers->color_textures[0], texturePos++);
+	deferred_global->setUniform("u_normal_texture", gbuffers->color_textures[1], texturePos++);
+	deferred_global->setUniform("u_extra_texture", gbuffers->color_textures[2], texturePos++);
+	deferred_global->setUniform("u_depth_texture", gbuffers->depth_texture, texturePos++);
+	deferred_global->setUniform("u_ambient_light", scene->ambient_light);
+
 	quad->render(GL_TRIANGLES);
+
+	
 
 	glEnable(GL_DEPTH_TEST);
 
-	switch (gbuffer_show_mode)
+	switch (gbuffer_show_mode) //debug
 	{
 		case eShowGBuffer::COLOR : gbuffers->color_textures[0]->toViewport(); break;
 		case eShowGBuffer::NORMAL: gbuffers->color_textures[1]->toViewport(); break;
 		case eShowGBuffer::EXTRA : gbuffers->color_textures[2]->toViewport(); break;
-		case eShowGBuffer::DEPTH : gbuffers->depth_texture->toViewport(); break;
+		case eShowGBuffer::DEPTH : gbuffers->depth_texture->toViewport(); break; //para visualizar depth usar depth.fs y funcion
 	}
 
 }
