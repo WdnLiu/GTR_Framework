@@ -546,7 +546,7 @@ void Renderer::renderMeshWithMaterialLights(const Matrix44 model, GFX::Mesh* mes
 	if(use_multipass_lights)
 		shader = GFX::Shader::Get("light");
 	else
-		shader = GFX::Shader::Get("texture"); //cambiar
+		shader = GFX::Shader::Get("alllights"); //cambiar
 
     assert(glGetError() == GL_NO_ERROR);
 

@@ -2,6 +2,7 @@
 flat basic.vs flat.fs
 texture basic.vs texture.fs
 light basic.vs light.fs
+alllights basic.vs alllights.fs
 skybox basic.vs skybox.fs
 depth quad.vs depth.fs
 multi basic.vs multi.fs
@@ -153,6 +154,37 @@ void main()
 
 	FragColor = color;
 }
+\functions
+mat3 cotangent_frame(vec3 N, vec3 p, vec2 uv)
+{
+	// get edge vectors of the pixel triangle
+	vec3 dp1 = dFdx( p );
+	vec3 dp2 = dFdy( p );
+	vec2 duv1 = dFdx( uv );
+	vec2 duv2 = dFdy( uv );
+	
+	// solve the linear system
+	vec3 dp2perp = cross( dp2, N );
+	vec3 dp1perp = cross( N, dp1 );
+	vec3 T = dp2perp * duv1.x + dp1perp * duv2.x;
+	vec3 B = dp2perp * duv1.y + dp1perp * duv2.y;
+ 
+	// construct a scale-invariant frame 
+	float invmax = inversesqrt( max( dot(T,T), dot(B,B) ) );
+	return mat3( T * invmax, B * invmax, N );
+}
+
+// assume N, the interpolated vertex normal and 
+// WP the world position
+//vec3 normal_pixel = texture2D( normalmap, uv ).xyz; 
+vec3 perturbNormal(vec3 N, vec3 WP, vec3 normal_pixel, vec2 uv)
+{
+	normal_pixel = normal_pixel * 255./127. - 128./127.;
+	mat3 TBN = cotangent_frame(N, WP, uv);
+	return normalize(TBN * normal_pixel);
+}
+
+
 
 \light.fs
 
@@ -164,38 +196,29 @@ in vec3 v_normal;
 in vec2 v_uv;
 in vec4 v_color;
 
-const int MAX_LIGHTS = 4;
-uniform vec3 u_light_pos[MAX_LIGHTS];
-uniform vec3 u_light_color[MAX_LIGHTS];
-uniform int u_light_types[MAX_LIGHTS];
-uniform float u_light_max_distances[MAX_LIGHTS];
-uniform vec2 u_light_cones_info[MAX_LIGHTS];
-uniform vec3 u_light_fronts[MAX_LIGHTS];
-uniform int u_num_lights;
 
-uniform mat4 u_model;
 uniform vec4 u_color;
+
 uniform sampler2D u_texture;
-uniform sampler2D u_normal_texture;
+uniform sampler2D u_normalmap_texture;
 uniform sampler2D u_emissive_texture;
-uniform sampler2D u_occlusion_texture;
-uniform float u_time;
+uniform sampler2D u_metallic_roughness_texture;
+
 uniform float u_alpha_cutoff;
 uniform vec3 u_ambient_light;
-uniform vec3 u_emissive_factor;
+uniform vec3 u_emissivef;
 uniform vec3 u_light_position;
 uniform vec3 u_light_color_multi;
 uniform vec3 u_light_front;
-uniform vec3 eye;
+uniform vec3 u_camera_position;
 uniform float u_specular;
 uniform float u_light_max_distance;
 uniform int u_light_type;
 uniform vec2 u_light_cone_info;
-uniform float alpha;
+uniform float u_alpha;
 
 uniform int occlusion_option;
 uniform int normal_option;
-uniform int emissive_option;
 uniform int single_pass_option;
 uniform int specular_option;
 
@@ -204,16 +227,15 @@ uniform sampler2D u_shadowmap;
 uniform mat4 u_shadowmap_viewprojection;
 uniform float u_shadow_bias;
 
-uniform sampler2D u_shadow_textures[MAX_LIGHTS];
-uniform int u_light_cast_shadows_arr[MAX_LIGHTS];
-uniform mat4 u_light_shadowmap_viewprojections[MAX_LIGHTS];
-uniform float u_shadowmap_biases[MAX_LIGHTS];
 
 #define POINTLIGHT 1
 #define SPOTLIGHT 2
 #define DIRECTIONALLIGHT 3
 
 out vec4 FragColor;
+
+#include "functions"
+
 
 float computeShadow_multi(vec3 wp)
 {
@@ -250,71 +272,6 @@ float computeShadow_multi(vec3 wp)
 
 	return shadow_factor;
 }
-
-float computeShadow_single(vec3 wp, int pos)
-{
-	//project our 3D position to the shadowmap
-	mat4 m = u_light_shadowmap_viewprojections[pos];
-
-	vec4 proj_pos = u_light_shadowmap_viewprojections[pos] * vec4(wp,1.0);
-
-	//from homogeneus space to clip space
-	vec2 shadow_uv = proj_pos.xy / proj_pos.w;
-
-	//from clip space to uv space
-	shadow_uv = shadow_uv * 0.5 + vec2(0.5);
-
-	if (shadow_uv.x < 0.0 || shadow_uv.x > 1.0 ||
-		shadow_uv.y < 0.0 || shadow_uv.y > 1.0)
-		return 1.0;
-	//get point depth [-1 .. +1] in non-linear space
-	float real_depth = (proj_pos.z - u_shadowmap_biases[pos]) / proj_pos.w;
-
-	//normalize from [-1..+1] to [0..+1] still non-linear
-	real_depth = real_depth * 0.5 + 0.5;
-
-	//read depth from depth buffer in [0..+1] non-linear
-	float shadow_depth = texture( u_shadow_textures[pos], shadow_uv).x;
-
-	//compute final shadow factor by comparing
-	float shadow_factor = 1.0;
-
-	//we can compare them, even if they are not linear
-	if( shadow_depth < real_depth )
-		shadow_factor = 0.0;
-
-	return shadow_factor;
-}
-
-mat3 cotangent_frame(vec3 N, vec3 p, vec2 uv)
-{
-	// get edge vectors of the pixel triangle
-	vec3 dp1 = dFdx( p );
-	vec3 dp2 = dFdy( p );
-	vec2 duv1 = dFdx( uv );
-	vec2 duv2 = dFdy( uv );
-	
-	// solve the linear system
-	vec3 dp2perp = cross( dp2, N );
-	vec3 dp1perp = cross( N, dp1 );
-	vec3 T = dp2perp * duv1.x + dp1perp * duv2.x;
-	vec3 B = dp2perp * duv1.y + dp1perp * duv2.y;
- 
-	// construct a scale-invariant frame 
-	float invmax = inversesqrt( max( dot(T,T), dot(B,B) ) );
-	return mat3( T * invmax, B * invmax, N );
-}
-
-// assume N, the interpolated vertex normal and 
-// WP the world position
-//vec3 normal_pixel = texture2D( normalmap, uv ).xyz; 
-vec3 perturbNormal(vec3 N, vec3 WP, vec3 normal_pixel, vec2 uv)
-{
-	normal_pixel = normal_pixel * 255./127. - 128./127.;
-	mat3 TBN = cotangent_frame(N, WP, uv);
-	return normalize(TBN * normal_pixel);
-}
-
 vec3 multipass(vec3 N, vec3 light, vec4 color)
 {
 	//initialize further used variables
@@ -371,16 +328,142 @@ vec3 multipass(vec3 N, vec3 light, vec4 color)
 	if (specular_option == 1)
 	{
 		//view vector, from point being shaded on surface to camera (eye) 
-		vec3 V = normalize(eye-v_world_position);
+		vec3 V = normalize(u_camera_position-v_world_position);
 		//reflected light vector from L, hence the -L
 		vec3 R = normalize(reflect(-L, N));
 		//pow(dot(R, V), alpha) computes specular power
-		specular = factor*u_specular*(clamp(pow(dot(R, V), alpha), 0.0, 1.0))* NdotL * u_light_color_multi * color.xyz ;
+		specular = factor*u_specular*(clamp(pow(dot(R, V), u_alpha), 0.0, 1.0))* NdotL * u_light_color_multi * color.xyz ;
 	}
 
 	light += NdotL*u_light_color_multi * factor * shadow_factor + specular;
 
 	return light;
+}
+
+	
+void main()
+{
+	vec2 uv = v_uv;
+	vec4 color = u_color;
+	color *= texture( u_texture, uv );
+
+	if(color.a < u_alpha_cutoff)
+		discard;
+
+	vec3 N = normalize( v_normal );
+	vec3 light = u_ambient_light;
+
+	//calculate normal with normalmap if option activated
+	if(normal_option == 1){
+		vec3 normal_pixel = texture( u_normalmap_texture, uv ).xyz; 
+		N = normalize(perturbNormal( N, v_world_position, normal_pixel,v_uv));
+	}
+
+	
+	//add ambient occlusion if option activated
+	if (occlusion_option == 1)
+		light *= texture(u_metallic_roughness_texture,uv).x;
+
+	light = multipass(N, light, color);
+
+	//vec3 spec_diffuse_light= computeDiffuseSpecular(N,u_light_type,u_light_position, u_light_color_multi, u_light_max_distance,u_light_front,u_light_cast_shadows,u_light_cone_info.x,u_light_cone_info.y, 0);
+	//light+=spec_diffuse_light;
+	
+	vec3 total_emitted = texture(u_emissive_texture, v_uv).xyz * u_emissivef;
+
+	//calculate final colours
+	vec4 final_color;
+	final_color.xyz = color.xyz*light + total_emitted.xyz;
+
+	final_color.a = color.a;
+
+	FragColor = final_color;
+}
+   
+
+
+\alllights.fs
+
+#version 330 core
+
+in vec3 v_position;
+in vec3 v_world_position;
+in vec3 v_normal;
+in vec2 v_uv;
+in vec4 v_color;
+
+const int MAX_LIGHTS = 4;
+uniform vec3 u_light_pos[MAX_LIGHTS];
+uniform vec3 u_light_color[MAX_LIGHTS];
+uniform int u_light_types[MAX_LIGHTS];
+uniform float u_light_max_distances[MAX_LIGHTS];
+uniform vec2 u_light_cones_info[MAX_LIGHTS];
+uniform vec3 u_light_fronts[MAX_LIGHTS];
+uniform int u_num_lights;
+
+uniform vec4 u_color;
+uniform sampler2D u_texture;
+uniform sampler2D u_normalmap_texture;
+uniform sampler2D u_emissive_texture;
+uniform sampler2D u_metallic_roughness_texture;
+
+uniform float u_alpha_cutoff;
+uniform vec3 u_ambient_light;
+uniform vec3 u_emissivef;
+uniform vec3 u_camera_position;
+uniform float u_specular;
+uniform float u_alpha;
+
+uniform int occlusion_option;
+uniform int normal_option;
+uniform int single_pass_option;
+uniform int specular_option;
+
+uniform sampler2D u_shadow_textures[MAX_LIGHTS];
+uniform int u_light_cast_shadows_arr[MAX_LIGHTS];
+uniform mat4 u_light_shadowmap_viewprojections[MAX_LIGHTS];
+uniform float u_shadowmap_biases[MAX_LIGHTS];
+
+#define POINTLIGHT 1
+#define SPOTLIGHT 2
+#define DIRECTIONALLIGHT 3
+
+out vec4 FragColor;
+
+#include "functions"
+float computeShadow_single(vec3 wp, int pos)
+{
+	//project our 3D position to the shadowmap
+	mat4 m = u_light_shadowmap_viewprojections[pos];
+
+	vec4 proj_pos = u_light_shadowmap_viewprojections[pos] * vec4(wp,1.0);
+
+	//from homogeneus space to clip space
+	vec2 shadow_uv = proj_pos.xy / proj_pos.w;
+
+	//from clip space to uv space
+	shadow_uv = shadow_uv * 0.5 + vec2(0.5);
+
+	if (shadow_uv.x < 0.0 || shadow_uv.x > 1.0 ||
+		shadow_uv.y < 0.0 || shadow_uv.y > 1.0)
+		return 1.0;
+	//get point depth [-1 .. +1] in non-linear space
+	float real_depth = (proj_pos.z - u_shadowmap_biases[pos]) / proj_pos.w;
+
+	//normalize from [-1..+1] to [0..+1] still non-linear
+	real_depth = real_depth * 0.5 + 0.5;
+
+	//read depth from depth buffer in [0..+1] non-linear
+	float shadow_depth = texture( u_shadow_textures[pos], shadow_uv).x;
+
+	//compute final shadow factor by comparing
+	float shadow_factor = 1.0;
+
+	//we can compare them, even if they are not linear
+	if( shadow_depth < real_depth )
+		shadow_factor = 0.0;
+
+	return shadow_factor;
 }
 
 vec3 single_pass(vec3 N, vec3 light, vec4 color)
@@ -439,9 +522,9 @@ vec3 single_pass(vec3 N, vec3 light, vec4 color)
 			vec3 specular = vec3(0);
 			if (specular_option == 1)
 			{
-				vec3 V = normalize(eye-v_world_position);
+				vec3 V = normalize(u_camera_position-v_world_position);
 				vec3 R = normalize(reflect(-L, N));
-				specular = factor*u_specular*(clamp(pow(dot(R, V), alpha), 0.0, 1.0)) * NdotL * u_light_color[i] * color.xyz;
+				specular = factor*u_specular*(clamp(pow(dot(R, V), u_alpha), 0.0, 1.0)) * NdotL * u_light_color[i] * color.xyz;
 			}
 
 			//accumulate computed light into final light
@@ -451,57 +534,47 @@ vec3 single_pass(vec3 N, vec3 light, vec4 color)
 
 	return light;
 }
-
 void main()
 {
 	vec2 uv = v_uv;
 	vec4 color = u_color;
 	color *= texture( u_texture, uv );
 
+	if(color.a < u_alpha_cutoff)
+		discard;
+
 	vec3 N = normalize( v_normal );
-	vec4 final_color;
-
-	vec3 normal = N;
-
-	//calculate normal with normalmap if option activated
-	if (normal_option == 1)
-	{
-		//extract normal map from your texture
-		vec3 normalRGB = texture2D(u_normal_texture, uv).rgb;
-
-		//perturb the normal
-		normal = perturbNormal(N, v_world_position, normalRGB, uv);
-	}
-
 	vec3 light = u_ambient_light;
 
+	//calculate normal with normalmap if option activated
+	if(normal_option == 1){
+		vec3 normal_pixel = texture( u_normalmap_texture, uv ).xyz; 
+		N = normalize(perturbNormal( N, v_world_position, normal_pixel,v_uv));
+	}
+
+	
 	//add ambient occlusion if option activated
 	if (occlusion_option == 1)
-		light *= texture( u_occlusion_texture, uv ).x;
+		light *= texture(u_metallic_roughness_texture,uv).x;
 
-	//add emissive light if option activated
-	if (emissive_option == 1) 
-		light += u_emissive_factor*texture2D(u_emissive_texture, uv).rgb;	
+	light = single_pass(N, light, color);
 
-	if(color.a < u_alpha_cutoff)
-			discard;
-
-	//choose either single_pass or multipass
-	if (single_pass_option == 0)
-	{
-		light = multipass(normal, light, color);
-	}
-	else {
-		light = single_pass(normal, light, color);
-	}
+	//vec3 spec_diffuse_light= computeDiffuseSpecular(N,u_light_type,u_light_position, u_light_color_multi, u_light_max_distance,u_light_front,u_light_cast_shadows,u_light_cone_info.x,u_light_cone_info.y, 0);
+	//light+=spec_diffuse_light;
+	
+	vec3 total_emitted = texture(u_emissive_texture, v_uv).xyz * u_emissivef;
 
 	//calculate final colours
-	final_color.xyz = color.xyz*light;
+	vec4 final_color;
+	final_color.xyz = color.xyz*light + total_emitted.xyz;
 
 	final_color.a = color.a;
 
 	FragColor = final_color;
 }
+
+
+
 
 \gbuffers.fs
 
