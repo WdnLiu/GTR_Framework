@@ -277,7 +277,7 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 	if (!gbuffers)
 	{
 		gbuffers = new GFX::FBO();
-		gbuffers->create(size.x, size.y, 4, GL_RGBA, GL_UNSIGNED_BYTE, true);  //crea todas las texturas attached, true if we want depthbuffer in a texure (para poder leerlo)
+		gbuffers->create(size.x, size.y, 3, GL_RGBA, GL_UNSIGNED_BYTE, true);  //crea todas las texturas attached, true if we want depthbuffer in a texure (para poder leerlo)
 	}
 
 	gbuffers->bind();
@@ -309,6 +309,10 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 
 			if (light->light_type == eLightType::POINT || light->light_type == eLightType::SPOT)
 			{
+				
+				GFX::Mesh* sphere = new GFX::Mesh();
+				sphere->createSphere(light->max_distance, 10, 10);
+
 				//this deferred_ws shader uses the basic.vs instead of quad.vs
 				GFX::Shader* sh = GFX::Shader::Get("deferred_ws");
 				sh->enable();
@@ -318,13 +322,15 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 				sh->setUniform("u_color_texture", gbuffers->color_textures[0], texturePos++);
 				sh->setUniform("u_normal_texture", gbuffers->color_textures[1], texturePos++);
 				sh->setUniform("u_metal_roughness", gbuffers->color_textures[2], texturePos++);
-				sh->setUniform("u_emissive_texture", gbuffers->color_textures[3], texturePos++);
+				//sh->setUniform("u_emissive_texture", gbuffers->color_textures[3], texturePos++);
 				sh->setUniform("u_depth_texture", gbuffers->depth_texture, texturePos++);
 				sh->setUniform("u_iRes", vec2(1.0 / size.x, 1.0 / size.y));
 				sh->setUniform("u_inverse_viewprojection", camera->inverse_viewprojection_matrix);
+				sh->setUniform("u_camera_pos", camera->eye); 
+
 				sh->setUniform("u_camera_position", camera->eye);
 				sh->setUniform("u_ambient_light", vec3(0.0)); //also emissive is only in the first
-				sh->setUniform("u_emissivef", vec3(0.0)); //also emissive is only in the first
+				//sh->setUniform("u_emissivef", vec3(0.0)); //also emissive is only in the first
 				sh->setUniform("specular_option", (int)use_specular);
 
 				//basic.vs will need the model and the viewproj of the camera
@@ -332,8 +338,10 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 
 				vec3 pos = light->getGlobalPosition();
 				mat4 model;
+
 				//we must translate the model to the center of the light
 				model.setTranslation(pos.x, pos.y, pos.z);
+
 				//and scale it according to the max_distance of the light
 				model.scale(light->max_distance, light->max_distance, light->max_distance);
 
@@ -346,7 +354,9 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 				glFrontFace(GL_CW);
 
 				//and render the sphere
-				light->sphere->render(GL_TRIANGLES);
+				//light->sphere->render(GL_TRIANGLES);
+
+				sphere->render(GL_TRIANGLES);
 				sh->disable();
 				glFrontFace(GL_CCW);
 
@@ -363,14 +373,13 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 
 				deferred_global->setUniform("u_color_texture", gbuffers->color_textures[0], texturePos++);
 				deferred_global->setUniform("u_normal_texture", gbuffers->color_textures[1], texturePos++);
-				deferred_global->setUniform("u_metal_roughness", gbuffers->color_textures[2], texturePos++);
-				deferred_global->setUniform("u_emissive_texture", gbuffers->color_textures[3], texturePos++);
+				deferred_global->setUniform("u_extra_texture", gbuffers->color_textures[2], texturePos++);
+				//deferred_global->setUniform("u_emissive_texture", gbuffers->color_textures[3], texturePos++);
 				deferred_global->setUniform("u_depth_texture", gbuffers->depth_texture, texturePos++);
 				deferred_global->setUniform("u_ambient_light", scene->ambient_light);
 				deferred_global->setUniform("u_iRes", vec2(1.0 / size.x, 1.0 / size.y));
 				deferred_global->setUniform("u_inverse_viewprojection", camera->inverse_viewprojection_matrix);
 				deferred_global->setUniform("u_camera_position", camera->eye);
-				deferred_global->setUniform("u_emissivef",); //also emissive is only in the first
 				deferred_global->setUniform("specular_option", (int)use_specular);
 
 				lightToShader(light, deferred_global);
@@ -659,8 +668,6 @@ void Renderer::renderMeshWithMaterialLights(const Matrix44 model, GFX::Mesh* mes
 
 	//upload uniforms
 		
-					//float t = getTime(); no use
-					//shader->setUniform("u_time", t );
 	shader->setUniform("u_model", model);
 	cameraToShader(camera, shader);
 	
@@ -803,8 +810,15 @@ void Renderer::renderMeshWithMaterialGBuffers(const Matrix44 model, GFX::Mesh* m
 	//added
 	if(metallic_roughness_texture)
 		shader->setUniform("u_metallic_roughness_texture", metallic_roughness_texture, 1);
+
 	if(emissive_texture)
 		shader->setUniform("u_emissive_texture", emissive_texture,2);
+
+	shader->setUniform("u_emissivef", material->emissive_factor);
+
+	float specular_factor = material->metallic_factor;
+	shader->setUniform("u_metallic_factor", material->metallic_factor);
+
 
 	//this is used to say which is the alpha threshold to what we should not paint a pixel on the screen (to cut polygons according to texture alpha)
 	shader->setUniform("u_alpha_cutoff", material->alpha_mode == SCN::eAlphaMode::MASK ? material->alpha_cutoff : 0.001f);
