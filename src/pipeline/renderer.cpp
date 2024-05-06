@@ -330,37 +330,103 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 
 	quad->render(GL_TRIANGLES);
 
-	/*glDisable(GL_DEPTH_TEST);
+	glDisable(GL_DEPTH_TEST);
 	glDisable(GL_BLEND);
-
+/*
 	if (lights.size()) {
-		for (auto light : lights) {
-			lightToShader(mainLight, deferred_global);
-			if(light == light.type == eLIighEntity::DIRECTIONAL){
-			quad->render(GL_TRIANGLES);
+		for (LightEntity* light : lights) {
+
+			if (light->light_type == eLightType::POINT || light->light_type == eLightType::SPOT)
+			{
+				//this deferred_ws shader uses the basic.vs instead of quad.vs
+
+				GFX::Shader* sh = GFX::Shader::Get("deferred_ws");
+				sh->enable();
+
+				// remember to upload all the uniforms for gbuffers, ivp, etc...
+				int texturePos = 0;
+				sh->setUniform("u_color_texture", gbuffers->color_textures[0], texturePos++);
+				sh->setUniform("u_normal_texture", gbuffers->color_textures[1], texturePos++);
+				sh->setUniform("u_extra_texture", gbuffers->color_textures[2], texturePos++);
+				sh->setUniform("u_depth_texture", gbuffers->depth_texture, texturePos++);
+				sh->setUniform("u_iRes", vec2(1.0 / size.x, 1.0 / size.y));
+				sh->setUniform("u_inverse_viewprojection", camera->inverse_viewprojection_matrix);
+				sh->setUniform("u_camera_position", camera->eye);
+				sh->setUniform("u_ambient_light", vec3(0.0)); //also emissive is only in the first
+
+				//basic.vs will need the model and the viewproj of the camera
+				sh->setUniform("u_viewprojection", camera->viewprojection_matrix);
+
+				vec3 pos = light->getGlobalPosition();
+				mat4 model;
+				//we must translate the model to the center of the light
+				model.setTranslation(pos.x, pos.y, pos.z);
+				//and scale it according to the max_distance of the light
+				model.scale(light->max_distance, light->max_distance, light->max_distance);
+
+				sh->setUniform("u_model", model);
+
+				//pass all the info about this light…
+				lightToShader(light, sh);
+
+				//render only the backfacing triangles of the sphere
+				glFrontFace(GL_CW);
+
+				//and render the sphere
+				light->sphere->render(GL_TRIANGLES);
+				sh->disable();
+				glFrontFace(GL_CCW);
+
 
 			}
+			else if (light->light_type == eLightType::DIRECTIONAL && mainLight) {
+
+				GFX::Mesh* quad = GFX::Mesh::getQuad();
+				GFX::Shader* deferred_global = GFX::Shader::Get("deferred_global");
+				deferred_global->enable();
+
+				int texturePos = 0;
+				deferred_global->setUniform("u_color_texture", gbuffers->color_textures[0], texturePos++);
+				deferred_global->setUniform("u_normal_texture", gbuffers->color_textures[1], texturePos++);
+				deferred_global->setUniform("u_extra_texture", gbuffers->color_textures[2], texturePos++);
+				deferred_global->setUniform("u_depth_texture", gbuffers->depth_texture, texturePos++);
+				deferred_global->setUniform("u_ambient_light", scene->ambient_light);
+				deferred_global->setUniform("u_iRes", vec2(1.0 / size.x, 1.0 / size.y));
+				deferred_global->setUniform("u_inverse_viewprojection", camera->inverse_viewprojection_matrix);
+				deferred_global->setUniform("u_camera_position", camera->eye);
+				lightToShader(light, deferred_global);
+
+				quad->render(GL_TRIANGLES);
+
+				deferred_global->disable();
+				glDisable(GL_DEPTH_TEST);
+				glDisable(GL_BLEND);
+
+			}
+
+		}
+
+		//else
+			//deferred_global->setUniform("u_light_type", (int)0);
+
+		//}
+
+			
+		glEnable(GL_DEPTH_TEST);
+
+
+		
+		//alpha renderables
+		/*for (Renderable& re : alpha_renderables){
+		* 
+			//con forward
+
+
+		}*/
 			
 
-			if (light->light_type == eLightType::POINT) {
-				light_sphere->createSphere(light->max_distance); //incializar global
-				deferred_global->setUniform("u_viewprojection", camera->viewprojection_matrix);
-				mat4 m;
-				m.setTranslation(light->getGlobalPosition().)
-			}
-
-			deferred_global->setUniform("u_ambient_light", vec3(0.0));
-			glEnable(GL_BLEND);
-			glBlendFunc(GL_ONE, GL_ONE);
-
-
-		}
-
-		}
-	}
-	else
-			deferred_global->setUniform("u_light_type", (int)0);
-	*/
+	
+*/
 	glEnable(GL_DEPTH_TEST);
 
 	switch (gbuffer_show_mode) //debug
