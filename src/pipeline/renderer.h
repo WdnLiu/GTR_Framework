@@ -67,6 +67,7 @@ namespace SCN {
 
 		int shadowmap_size;
 
+		GFX::Mesh* light_sphere;
 		GFX::Texture* skybox_cubemap;
 
 		SCN::Scene* scene;

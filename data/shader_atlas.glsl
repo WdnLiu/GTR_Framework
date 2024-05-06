@@ -721,13 +721,82 @@ void main()
 	gl_Position = u_viewprojection * vec4( v_world_position, 1.0 );
 }
 
+
+\computeLight
+
+	//initialize further used variables
+	vec3 L;
+	vec3 factor = vec3(1.0f);
+	float NdotL;
+	float shadow_factor = 1.0f;
+
+	if (u_light_type == DIRECTIONALLIGHT)
+	{
+		//all rays are parallel, so using light front, and no attenuation
+		L = u_light_front;
+		NdotL = clamp(dot(N, L), 0.0, 1.0);
+
+		if ( u_light_cast_shadows == 1.0)
+			shadow_factor *= computeShadow(v_world_position);
+	}
+	else if (u_light_type == SPOTLIGHT  || u_light_type == POINTLIGHT)
+	{	//emitted from single point in all directions
+
+		//vector from point to light
+		L = u_light_position - v_world_position;
+		float dist = length(L);
+		//ignore light distance
+		L = L/dist;
+
+		NdotL = clamp(dot(N, L), 0.0, 1.0);
+
+		//calculate area affected by spotlight
+		if (u_light_type == SPOTLIGHT)
+		{
+			if ( u_light_cast_shadows == 1.0)
+				shadow_factor *= computeShadow(v_world_position);
+
+			float cos_angle = dot( u_light_front.xyz, L );
+			
+			if ( cos_angle < u_light_cone_info.x )
+				NdotL = 0.0f;
+			else if ( cos_angle < u_light_cone_info.y )
+				NdotL *= ( cos_angle - u_light_cone_info.x ) / ( u_light_cone_info.y - u_light_cone_info.x );
+		}
+
+		//Compute attenuation
+		float att_factor = u_light_max_distance - dist;
+		att_factor /= u_light_max_distance;
+		att_factor = max(att_factor, 0.0);
+
+		//accumulate light attributes in single factor
+		factor *= att_factor;
+	}
+	
+	//compute specular light if option activated, otherwise simply sum 0
+	vec3 specular = vec3(0);
+	if (specular_option == 1)
+	{
+		//view vector, from point being shaded on surface to camera (eye) 
+		vec3 V = normalize(u_camera_position-v_world_position);
+		//reflected light vector from L, hence the -L
+		vec3 R = normalize(reflect(-L, N));
+		//pow(dot(R, V), alpha) computes specular power
+		//specular = factor*u_specular*(clamp(pow(dot(R, V), u_alpha), 0.0, 1.0))* NdotL * u_light_color_multi * color.xyz ;
+	}
+
+	light += NdotL*u_light_color_multi * factor * shadow_factor; //+ specular;
+
+	
+
+
+
 \deferred_global.fs
 
 #version 330 core
 
 in vec3 v_position;
 in vec2 v_uv;
-
 
 
 uniform sampler2D u_color_texture;
@@ -740,27 +809,32 @@ uniform vec3 u_emissive_factor;
 uniform vec3 u_light_position;
 uniform vec3 u_light_color_multi;
 uniform vec3 u_light_front;
-uniform vec3 eye;
-uniform float u_specular;
 uniform float u_light_max_distance;
 uniform int u_light_type;
 uniform vec2 u_light_cone_info;
-uniform float alpha;
 
-uniform vec2 u_iRes;
+uniform float u_specular;
+uniform float alpha;
+uniform vec3 u_camera_position;
+uniform vec2 u_iRes; //inverse res
+uniform int specular_option;
+
 uniform mat4 u_inverse_viewprojection;
+
 
 #define POINTLIGHT 1
 #define SPOTLIGHT 2
 #define DIRECTIONALLIGHT 3
 
 #include "lights.fs"
+#include "computeShadow"
 
 out vec4 FragColor;
 
+
 void main()
 {
-	vec2 uv = v_uv;
+	vec2 uv = gl_FragCoord.xy * u_iRes;
 	vec4 color = texture(u_color_texture, uv);
 	vec3 N = texture( u_normal_texture, uv).xyz * 2 - vec3(1.0f);
 	float depth = texture(u_depth_texture, uv).x;
@@ -770,20 +844,22 @@ void main()
 
 	vec4 screen_pos = vec4(uv.x*2.0f-1.0f, uv.y*2.0f-1.0f, depth*2.0f-1.0f, 1.0);
 	vec4 proj_worldpos = u_inverse_viewprojection * screen_pos;
-	vec3 world_position = proj_worldpos.xyz / proj_worldpos.w;
+	vec3 v_world_position = proj_worldpos.xyz / proj_worldpos.w;
 
 	vec3 light = u_ambient_light;
 	N = normalize(N);
 
-	vec3 L = u_light_position - world_position;
-	float dist = length(L);
-	L = L / dist;
+	#include "computeLight"
 
-	float NdotL = 0.0f;
+	//vec3 L = u_light_position - world_position;
+	//float dist = length(L);
+	//L = L / dist;
+
+	//float NdotL = 0.0f;
 
 	vec3 final_color = vec3(0.0);
 
-	final_color = u_ambient_light*color.xyz;
+	final_color = light*color.xyz;
 
 	FragColor = vec4(final_color, 1.0);
 
