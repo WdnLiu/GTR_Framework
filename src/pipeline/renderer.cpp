@@ -277,7 +277,7 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 	if (!gbuffers)
 	{
 		gbuffers = new GFX::FBO();
-		gbuffers->create(size.x, size.y, 3, GL_RGBA, GL_UNSIGNED_BYTE, true);  //crea todas las texturas attached, true if we want depthbuffer in a texure (para poder leerlo)
+		gbuffers->create(size.x, size.y, 4, GL_RGBA, GL_UNSIGNED_BYTE, true);  //crea todas las texturas attached, true if we want depthbuffer in a texure (para poder leerlo)
 	}
 
 	gbuffers->bind();
@@ -317,12 +317,15 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 				int texturePos = 0;
 				sh->setUniform("u_color_texture", gbuffers->color_textures[0], texturePos++);
 				sh->setUniform("u_normal_texture", gbuffers->color_textures[1], texturePos++);
-				sh->setUniform("u_extra_texture", gbuffers->color_textures[2], texturePos++);
+				sh->setUniform("u_metal_roughness", gbuffers->color_textures[2], texturePos++);
+				sh->setUniform("u_emissive_texture", gbuffers->color_textures[3], texturePos++);
 				sh->setUniform("u_depth_texture", gbuffers->depth_texture, texturePos++);
 				sh->setUniform("u_iRes", vec2(1.0 / size.x, 1.0 / size.y));
 				sh->setUniform("u_inverse_viewprojection", camera->inverse_viewprojection_matrix);
 				sh->setUniform("u_camera_position", camera->eye);
 				sh->setUniform("u_ambient_light", vec3(0.0)); //also emissive is only in the first
+				sh->setUniform("u_emissivef", vec3(0.0)); //also emissive is only in the first
+				sh->setUniform("specular_option", (int)use_specular);
 
 				//basic.vs will need the model and the viewproj of the camera
 				sh->setUniform("u_viewprojection", camera->viewprojection_matrix);
@@ -356,14 +359,20 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 				deferred_global->enable();
 
 				int texturePos = 0;
+				deferred_global->setUniform("specular_option", (int)use_specular);
+
 				deferred_global->setUniform("u_color_texture", gbuffers->color_textures[0], texturePos++);
 				deferred_global->setUniform("u_normal_texture", gbuffers->color_textures[1], texturePos++);
-				deferred_global->setUniform("u_extra_texture", gbuffers->color_textures[2], texturePos++);
+				deferred_global->setUniform("u_metal_roughness", gbuffers->color_textures[2], texturePos++);
+				deferred_global->setUniform("u_emissive_texture", gbuffers->color_textures[3], texturePos++);
 				deferred_global->setUniform("u_depth_texture", gbuffers->depth_texture, texturePos++);
 				deferred_global->setUniform("u_ambient_light", scene->ambient_light);
 				deferred_global->setUniform("u_iRes", vec2(1.0 / size.x, 1.0 / size.y));
 				deferred_global->setUniform("u_inverse_viewprojection", camera->inverse_viewprojection_matrix);
 				deferred_global->setUniform("u_camera_position", camera->eye);
+				deferred_global->setUniform("u_emissivef",); //also emissive is only in the first
+				deferred_global->setUniform("specular_option", (int)use_specular);
+
 				lightToShader(light, deferred_global);
 
 				quad->render(GL_TRIANGLES);
@@ -582,7 +591,6 @@ void Renderer::renderMeshWithMaterial(const Matrix44 model, GFX::Mesh* mesh, SCN
 	shader->setUniform("u_color", material->color);
 	if(texture)
 		shader->setUniform("u_texture", texture, 0);
-
 	//this is used to say which is the alpha threshold to what we should not paint a pixel on the screen (to cut polygons according to texture alpha)
 	shader->setUniform("u_alpha_cutoff", material->alpha_mode == SCN::eAlphaMode::MASK ? material->alpha_cutoff : 0.001f);
 
@@ -754,6 +762,11 @@ void Renderer::renderMeshWithMaterialGBuffers(const Matrix44 model, GFX::Mesh* m
 	Camera* camera = Camera::current;
 
 	texture = material->textures[SCN::eTextureChannel::ALBEDO].texture;
+	GFX::Texture* metallic_roughness_texture = material->textures[eTextureChannel::METALLIC_ROUGHNESS].texture;
+	metallic_roughness_texture = (metallic_roughness_texture) ? metallic_roughness_texture : GFX::Texture::getWhiteTexture();
+	GFX::Texture* emissive_texture = material->textures[eTextureChannel::EMISSIVE].texture;
+	emissive_texture = (emissive_texture) ? emissive_texture : GFX::Texture::getWhiteTexture();
+
 
 	if (texture == NULL)
 		texture = GFX::Texture::getWhiteTexture(); //a 1x1 white texture
@@ -786,6 +799,12 @@ void Renderer::renderMeshWithMaterialGBuffers(const Matrix44 model, GFX::Mesh* m
 	shader->setUniform("u_color", material->color);
 	if (texture)
 		shader->setUniform("u_texture", texture, 0);
+
+	//added
+	if(metallic_roughness_texture)
+		shader->setUniform("u_metallic_roughness_texture", metallic_roughness_texture, 1);
+	if(emissive_texture)
+		shader->setUniform("u_emissive_texture", emissive_texture,2);
 
 	//this is used to say which is the alpha threshold to what we should not paint a pixel on the screen (to cut polygons according to texture alpha)
 	shader->setUniform("u_alpha_cutoff", material->alpha_mode == SCN::eAlphaMode::MASK ? material->alpha_cutoff : 0.001f);
