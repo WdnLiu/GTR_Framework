@@ -26,7 +26,7 @@ GFX::Mesh sphere;
 
 //added
 GFX::FBO* gbuffers = nullptr;
-GFX::Mesh* light_sphere =nullptr;
+//GFX::Mesh* light_sphere =nullptr;
 
 Renderer::Renderer(const char* shader_atlas_filename)
 {
@@ -265,11 +265,12 @@ void Renderer::renderSceneForward(SCN::Scene* scene, Camera* camera)
 		if (camera->testBoxInFrustum(re.bounding.center, re.bounding.halfsize))
 			renderMeshWithMaterialLights(re.model, re.mesh, re.material);
 	}
+
 }
 
 void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 {
-	
+
 	vec2 size = CORE::getWindowSize();
 
 	//generate gbuffers
@@ -297,49 +298,18 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 
 	glClearColor(scene->background_color.x, scene->background_color.y, scene->background_color.z, 1.0);
 	glClearColor(0, 0, 0, 1.0f);//set the clear color
-	
+
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	
+
 	if (skybox_cubemap)
 		renderSkybox(skybox_cubemap);
-	
-	//draw lights
-	GFX::Mesh* quad = GFX::Mesh::getQuad(); 
-	GFX::Shader* deferred_global = GFX::Shader::Get("deferred_global");
-	deferred_global->enable();
 
-	int texturePos = 0;
-	deferred_global->setUniform("u_color_texture", gbuffers->color_textures[0], texturePos++);
-	deferred_global->setUniform("u_normal_texture", gbuffers->color_textures[1], texturePos++);
-	deferred_global->setUniform("u_extra_texture", gbuffers->color_textures[2], texturePos++);
-	deferred_global->setUniform("u_depth_texture", gbuffers->depth_texture, texturePos++);
-	deferred_global->setUniform("u_ambient_light", scene->ambient_light);
-	deferred_global->setUniform("u_iRes", vec2(1.0 / size.x, 1.0 / size.y));
-	deferred_global->setUniform("u_inverse_viewprojection", camera->inverse_viewprojection_matrix);
-	deferred_global->setUniform("u_camera_position", camera->eye);
-
-
-	if (mainLight) {
-		deferred_global->setUniform("specular_option", (int) use_specular);
-		lightToShader(mainLight, deferred_global);
-		
-
-	}
-	else
-		deferred_global->setUniform("u_light_type", (int)0);
-
-	quad->render(GL_TRIANGLES);
-
-	glDisable(GL_DEPTH_TEST);
-	glDisable(GL_BLEND);
-/*
 	if (lights.size()) {
 		for (LightEntity* light : lights) {
 
 			if (light->light_type == eLightType::POINT || light->light_type == eLightType::SPOT)
 			{
 				//this deferred_ws shader uses the basic.vs instead of quad.vs
-
 				GFX::Shader* sh = GFX::Shader::Get("deferred_ws");
 				sh->enable();
 
@@ -405,14 +375,16 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 			}
 
 		}
+	}
+	else {
+		GFX::Shader* deferred_global = GFX::Shader::Get("deferred_global");
+		deferred_global->setUniform("u_light_type", (int)0);
 
-		//else
-			//deferred_global->setUniform("u_light_type", (int)0);
 
-		//}
 
-			
-		glEnable(GL_DEPTH_TEST);
+	}
+				
+	glEnable(GL_DEPTH_TEST);
 
 
 		
@@ -425,17 +397,15 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 		}*/
 			
 
-	
-*/
-	glEnable(GL_DEPTH_TEST);
-
-	switch (gbuffer_show_mode) //debug
-	{
-		case eShowGBuffer::COLOR : gbuffers->color_textures[0]->toViewport(); break;
+		switch (gbuffer_show_mode) //debug
+		{
+		case eShowGBuffer::COLOR: gbuffers->color_textures[0]->toViewport(); break;
 		case eShowGBuffer::NORMAL: gbuffers->color_textures[1]->toViewport(); break;
-		case eShowGBuffer::EXTRA : gbuffers->color_textures[2]->toViewport(); break;
-		case eShowGBuffer::DEPTH : gbuffers->depth_texture->toViewport(); break; //para visualizar depth usar depth.fs y funcion
-	}
+		case eShowGBuffer::EXTRA: gbuffers->color_textures[2]->toViewport(); break;
+		case eShowGBuffer::DEPTH: gbuffers->depth_texture->toViewport(); break; //para visualizar depth usar depth.fs y funcion
+		}
+
+	
 
 }
 
@@ -973,7 +943,10 @@ void Renderer::sendTexturestoShader(SCN::Material* material, GFX::Shader* shader
 
 	
 }
+/*void::Renderer::uploadFBO() {
+	
 
+}*/
 #ifndef SKIP_IMGUI
 
 void Renderer::showUI()
