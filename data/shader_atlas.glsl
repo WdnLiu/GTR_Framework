@@ -19,7 +19,7 @@ in vec3 a_normal;
 in vec2 a_coord;
 in vec4 a_color;
 
-uniform vec3 u_camera_pos;
+uniform vec3 u_camera_position;
 
 uniform mat4 u_model;
 uniform mat4 u_viewprojection;
@@ -186,6 +186,7 @@ vec3 perturbNormal(vec3 N, vec3 WP, vec3 normal_pixel, vec2 uv)
 }
 
 \multipass_functions
+
 float computeShadow_multi(vec3 wp)
 {
 	//project our 3D position to the shadowmap
@@ -725,65 +726,6 @@ void main()
 	//calcule the position of the vertex using the matrices
 	gl_Position = u_viewprojection * vec4( v_world_position, 1.0 );
 }
-\ComputeLight
-
-//initialize further used variables
-vec3 L;
-vec3 factor = vec3(1.0f);
-float NdotL = 0.0;
-
-if (u_light_type == DIRECTIONALLIGHT)
-{
-	//all rays are parallel, so using light front, and no attenuation
-	L = u_light_front;
-	NdotL = clamp(dot(N, L), 0.0, 1.0);
-
-}
-else if (u_light_type == SPOTLIGHT  || u_light_type == POINTLIGHT)
-{	//emitted from single point in all directions
-
-	//vector from point to light
-	L = u_light_position - world_position;
-	float dist = length(L);
-	//ignore light distance
-	L = L/dist;
-
-	NdotL = clamp(dot(N, L), 0.0, 1.0);
-
-	//calculate area affected by spotlight
-	if (u_light_type == SPOTLIGHT)
-	{
-	
-		float cos_angle = dot( u_light_front.xyz, L );
-			
-		if ( cos_angle < u_light_cone_info.x )
-			NdotL = 0.0f;
-		else if ( cos_angle < u_light_cone_info.y )
-			NdotL *= ( cos_angle - u_light_cone_info.x ) / ( u_light_cone_info.y - u_light_cone_info.x );
-	}
-
-	//Compute attenuation
-	float att_factor = u_light_max_distance - dist;
-	att_factor /= u_light_max_distance;
-	att_factor = max(att_factor, 0.0);
-
-	//accumulate light attributes in single factor
-	factor *= att_factor;
-}
-	
-//compute specular light if option activated, otherwise simply sum 0
-vec3 specular = vec3(0);
-if (specular_option == 1)
-{
-	//view vector, from point being shaded on surface to camera (eye) 
-	vec3 V = normalize(u_camera_pos-world_position);
-	//reflected light vector from L, hence the -L
-	vec3 R = normalize(reflect(-L, N));
-	//pow(dot(R, V), alpha) computes specular power
-	specular = factor*(clamp(pow(dot(R, V), u_alpha), 0.0, 1.0))* NdotL * u_light_color_multi * color.xyz ;//*u_specular
-}
-
-light += NdotL*u_light_color_multi * factor + specular;
 
 
 
@@ -806,6 +748,7 @@ uniform mat4 u_inverse_viewprojection;
 uniform float u_alpha_cutoff;
 uniform vec3 u_ambient_light;
 uniform vec3 u_emissivef;
+
 uniform vec3 u_light_position;
 uniform vec3 u_light_color_multi;
 uniform vec3 u_light_front;
@@ -820,9 +763,16 @@ uniform float u_alpha;
 uniform int occlusion_option;
 uniform int normal_option;
 uniform int single_pass_option;
-
+uniform vec3 u_camera_position;
 
 uniform int specular_option;
+
+
+uniform int u_light_cast_shadows;
+uniform sampler2D u_shadowmap;
+uniform mat4 u_shadowmap_viewprojection;
+uniform float u_shadow_bias;
+
 
 
 #define POINTLIGHT 1
@@ -831,18 +781,25 @@ uniform int specular_option;
 
 
 out vec4 FragColor;
+
+
+#include "multipass_functions"
+#include "functions"
 float u_specular;
 void main()
 {
 	vec2 uv = gl_FragCoord.xy * u_iRes.xy;
+
 	vec4 color = texture(u_color_texture, uv);
+
 	vec3 N = texture(u_normal_texture, uv).xyz * 2 - vec3(1.0f);
 	float depth = texture(u_depth_texture, uv).x;
+
+	if (depth == 1.0)
+		discard;
+
 	u_specular = texture(u_normal_texture, uv).a;
 	vec4 material_properties = texture(u_extra_texture, uv);
-
-	if (depth == 1)
-		discard;
 
 	vec4 screen_pos = vec4(uv.x*2.0f-1.0f, uv.y*2.0f-1.0f, depth*2.0f-1.0f, 1.0);
 	vec4 proj_worldpos = u_inverse_viewprojection * screen_pos;
@@ -851,77 +808,18 @@ void main()
 	vec3 light = u_ambient_light;
 	N = normalize(N);
 
-	//add ambient occlusion if option activated
-	if (occlusion_option == 1)
-	 	light *= material_properties.a;
-
-	
-	//OPTIMIZAR----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-	vec3 L;
-	vec3 factor = vec3(1.0f);
-	float NdotL = 0.0;
-
+	vec3 total_emitted = vec3(0.0);
 	if (u_light_type == DIRECTIONALLIGHT)
-	{
-		//all rays are parallel, so using light front, and no attenuation
-		L = u_light_front;
-		NdotL = clamp(dot(N, L), 0.0, 1.0);
-		light += NdotL*u_light_color_multi;
+		total_emitted= material_properties.xyz ; 
+		//add ambient occlusion if option activated
+		if (occlusion_option == 1)
+	 		light *= material_properties.a;
 
-	}
-
-	else if (u_light_type == SPOTLIGHT  || u_light_type == POINTLIGHT)
-	{	
-
-		//vector from point to light
-		L = u_light_position - world_position;
-		float dist = length(L);
-		//ignore light distance
-		L = L/dist;
-
-		NdotL = clamp(dot(N, L), 0.0, 1.0);
-
-		//calculate area affected by spotlight
-		if (u_light_type == SPOTLIGHT)
-		{
+	if(u_light_type != 0)
+		light += multipass(N, light, color, world_position);
 	
-			float cos_angle = dot( u_light_front.xyz, L );
-			
-			if ( cos_angle < u_light_cone_info.x )
-				NdotL = 0.0f;
-			else if ( cos_angle < u_light_cone_info.y )
-				NdotL *= ( cos_angle - u_light_cone_info.x ) / ( u_light_cone_info.y - u_light_cone_info.x );
-		}
-
-		//Compute attenuation
-		float att_factor = u_light_max_distance - dist;
-		att_factor /= u_light_max_distance;
-		att_factor = max(att_factor, 0.0);
-
-		//accumulate light attributes in single factor
-		factor *= att_factor;
-		light += NdotL*u_light_color_multi * factor;
-	}
 	
-	//compute specular light if option activated, otherwise simply sum 0
-	vec3 specular = vec3(0);
-	/*if (specular_option == 1) //codificar alpha! material->rougness
-	{
-		//view vector, from point being shaded on surface to camera (eye) 
-		vec3 V = normalize(u_camera_pos-world_position);
-		//reflected light vector from L, hence the -L
-		vec3 R = normalize(reflect(-L, N));
-		//pow(dot(R, V), alpha) computes specular power
-		specular = factor*(clamp(pow(dot(R, V), u_alpha), 0.0, 1.0))* NdotL * u_light_color_multi * color.xyz ;//*u_specular
-	}*/
-
-	//light += NdotL*u_light_color_multi * factor + specular;
-
-
-
-
-	//-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-	vec3 total_emitted =  material_properties.xyz ;
+	
 
 	//calculate final colours
 	vec4 final_color;

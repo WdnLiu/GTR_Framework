@@ -226,6 +226,7 @@ void Renderer::renderScene(SCN::Scene* scene, Camera* camera)
 	setupScene();
 	extractSceneInfo(scene, camera);
 	generateShadowMaps(camera);
+	camera->enable();
 
 	if (pipeline_mode == ePipelineMode::FORWARD)
 		renderSceneForward(scene, camera);
@@ -273,7 +274,11 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 
 	vec2 size = CORE::getWindowSize();
 
+	
+
+	//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	//generate gbuffers
+	
 	if (!gbuffers)
 	{
 		gbuffers = new GFX::FBO();
@@ -283,12 +288,11 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 	gbuffers->bind();
 
 	camera->enable();
-	glDisable(GL_BLEND);
-	glEnable(GL_DEPTH_TEST);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+	glEnable(GL_DEPTH_TEST);	
 	//set the clear color
 	glClearColor(0, 0, 0, 1.0f);
+
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	for (Renderable& re : opaque_renderables)
 		if (camera->testBoxInFrustum(re.bounding.center, re.bounding.halfsize))
@@ -298,45 +302,99 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 
 	glClearColor(scene->background_color.x, scene->background_color.y, scene->background_color.z, 1.0);
 	glClearColor(0, 0, 0, 1.0f);//set the clear color
-
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 
 	if (skybox_cubemap)
 		renderSkybox(skybox_cubemap);
 
+	//pintar luces
+	if (mainLight) {
+
+		GFX::Mesh* quad = GFX::Mesh::getQuad();
+
+		GFX::Shader* deferred_global = GFX::Shader::Get("deferred_global");
+		assert(deferred_global);
+		deferred_global->enable();
+
+		int texturePos = 0;
+		deferred_global->setUniform("specular_option", (int)use_specular);
+
+		//texturas
+		deferred_global->setUniform("u_color_texture", gbuffers->color_textures[0], texturePos++);
+		deferred_global->setUniform("u_normal_texture", gbuffers->color_textures[1], texturePos++);
+		deferred_global->setUniform("u_extra_texture", gbuffers->color_textures[2], texturePos++);
+		//deferred_global->setUniform("u_emissive_texture", gbuffers->color_textures[3], texturePos++);
+		deferred_global->setUniform("u_depth_texture", gbuffers->depth_texture, texturePos++);
+
+		//carac
+		deferred_global->setUniform("u_ambient_light", scene->ambient_light);
+		deferred_global->setUniform("u_iRes", vec2(1.0 / size.x, 1.0 / size.y));
+		deferred_global->setUniform("u_inverse_viewprojection", camera->inverse_viewprojection_matrix);
+		deferred_global->setUniform("u_camera_position", camera->eye);
+		deferred_global->setUniform("specular_option", (int)use_specular);
+		deferred_global->setUniform("occlusion_option", (int)use_occlusion);
+
+		//u_light_cast_shadows//rem:subir param sombras!
+		deferred_global->setUniform("u_light_cast_shadows", 0);
+
+		lightToShader(mainLight, deferred_global);
+
+		quad->render(GL_TRIANGLES);
+
+		deferred_global->disable();
+		glDisable(GL_BLEND);
+		glDisable(GL_DEPTH_TEST);
+
+
+	}
 	if (lights.size()) {
+
 		for (LightEntity* light : lights) {
 
 			if (light->light_type == eLightType::POINT || light->light_type == eLightType::SPOT)
 			{
 				
-				GFX::Mesh* sphere = new GFX::Mesh();
-				sphere->createSphere(light->max_distance, 10, 10);
+				GFX::Mesh sphere;
+				sphere.createSphere(light->max_distance, 12, 12);
 
 				//this deferred_ws shader uses the basic.vs instead of quad.vs
-				GFX::Shader* sh = GFX::Shader::Get("deferred_ws");
-				sh->enable();
+				GFX::Shader* deferred_ws = GFX::Shader::Get("deferred_ws");
+				assert(deferred_ws);
+
+				deferred_ws->enable();
 
 				// remember to upload all the uniforms for gbuffers, ivp, etc...
 				int texturePos = 0;
-				sh->setUniform("u_color_texture", gbuffers->color_textures[0], texturePos++);
-				sh->setUniform("u_normal_texture", gbuffers->color_textures[1], texturePos++);
-				sh->setUniform("u_metal_roughness", gbuffers->color_textures[2], texturePos++);
-				//sh->setUniform("u_emissive_texture", gbuffers->color_textures[3], texturePos++);
-				sh->setUniform("u_depth_texture", gbuffers->depth_texture, texturePos++);
-				sh->setUniform("u_iRes", vec2(1.0 / size.x, 1.0 / size.y));
-				sh->setUniform("u_inverse_viewprojection", camera->inverse_viewprojection_matrix);
-				sh->setUniform("u_camera_pos", camera->eye); 
 
-				sh->setUniform("u_ambient_light", vec3(0.0)); //also emissive is only in the first
-				//sh->setUniform("u_emissivef", vec3(0.0)); //also emissive is only in the first
-				sh->setUniform("specular_option", (int)use_specular);
+				//texturas
+				deferred_ws->setUniform("u_color_texture", gbuffers->color_textures[0], texturePos++);
+				deferred_ws->setUniform("u_normal_texture", gbuffers->color_textures[1], texturePos++);
+				//deferred_ws->setUniform("u_extra_texture", GFX::Texture::getWhiteTexture(), texturePos++);
+				//sh->setUniform("u_emissive_texture", gbuffers->color_textures[3], texturePos++);
+				deferred_ws->setUniform("u_depth_texture", gbuffers->depth_texture, texturePos++);
+
+				
+
+
+				deferred_ws->setUniform("u_iRes", vec2(1.0 / size.x, 1.0 / size.y));
+				deferred_ws->setUniform("u_inverse_viewprojection", camera->inverse_viewprojection_matrix);
+				deferred_ws->setUniform("u_camera_position", camera->eye);
+
+				deferred_ws->setUniform("u_ambient_light", vec3(0.0)); //also emissive is only in the first
+				deferred_ws->setUniform("specular_option", (int)use_specular);
+				deferred_ws->setUniform("occlusion_option", (int)use_occlusion);
 
 				//basic.vs will need the model and the viewproj of the camera
-				sh->setUniform("u_viewprojection", camera->viewprojection_matrix);
+				deferred_ws->setUniform("u_viewprojection", camera->viewprojection_matrix);
+
+
+				//u_light_cast_shadows//rem:subir param sombras!
+				deferred_ws->setUniform("u_light_cast_shadows", 0);
 
 				vec3 pos = light->getGlobalPosition();
 				mat4 model;
+
 
 				//we must translate the model to the center of the light
 				model.setTranslation(pos.x, pos.y, pos.z);
@@ -344,45 +402,51 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 				//and scale it according to the max_distance of the light
 				model.scale(light->max_distance, light->max_distance, light->max_distance);
 
-				sh->setUniform("u_model", model);
+				deferred_ws->setUniform("u_model", model);
 
 				//pass all the info about this light…
-				lightToShader(light, sh);
+				lightToShader(light, deferred_ws);
 
 				//render only the backfacing triangles of the sphere
 				glFrontFace(GL_CW);
 
 				//and render the sphere
 				//light->sphere->render(GL_TRIANGLES);
-<<<<<<< Updated upstream
+				sphere.render(GL_TRIANGLES);			
+				deferred_ws->disable();
 
-=======
->>>>>>> Stashed changes
-				sphere->render(GL_TRIANGLES);
-				sh->disable();
-				
+				glFrontFace(GL_CCW);
 
 
 			}
-			else if (light->light_type == eLightType::DIRECTIONAL && mainLight) {
+			/*else if (light->light_type == eLightType::DIRECTIONAL && mainLight) {
 
 				GFX::Mesh* quad = GFX::Mesh::getQuad();
+
 				GFX::Shader* deferred_global = GFX::Shader::Get("deferred_global");
+				assert(deferred_global);
 				deferred_global->enable();
 
 				int texturePos = 0;
 				deferred_global->setUniform("specular_option", (int)use_specular);
 
+				//texturas
 				deferred_global->setUniform("u_color_texture", gbuffers->color_textures[0], texturePos++);
 				deferred_global->setUniform("u_normal_texture", gbuffers->color_textures[1], texturePos++);
 				deferred_global->setUniform("u_extra_texture", gbuffers->color_textures[2], texturePos++);
 				//deferred_global->setUniform("u_emissive_texture", gbuffers->color_textures[3], texturePos++);
 				deferred_global->setUniform("u_depth_texture", gbuffers->depth_texture, texturePos++);
+
+				//carac
 				deferred_global->setUniform("u_ambient_light", scene->ambient_light);
 				deferred_global->setUniform("u_iRes", vec2(1.0 / size.x, 1.0 / size.y));
 				deferred_global->setUniform("u_inverse_viewprojection", camera->inverse_viewprojection_matrix);
 				deferred_global->setUniform("u_camera_position", camera->eye);
 				deferred_global->setUniform("specular_option", (int)use_specular);
+				deferred_global->setUniform("occlusion_option", (int)use_occlusion);
+
+				//u_light_cast_shadows//rem:subir param sombras!
+				deferred_global->setUniform("u_light_cast_shadows", 0);
 
 				lightToShader(light, deferred_global);
 
@@ -392,19 +456,42 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 				glDisable(GL_DEPTH_TEST);
 				glDisable(GL_BLEND);
 
-			}
-		glFrontFace(GL_CCW);
+			}*/
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_ONE,GL_ONE );
 		}
 	}
 	else {
+
+
 		GFX::Shader* deferred_global = GFX::Shader::Get("deferred_global");
+	
+		//texturas
+	
+		deferred_global->enable();
+
+		GFX::Mesh* quad1 = GFX::Mesh::getQuad();
+		assert(deferred_global);
+		deferred_global->enable();
+
+		int texturePos = 0;
+		
+		deferred_global->setUniform("u_color_texture", gbuffers->color_textures[0], texturePos++);
+		deferred_global->setUniform("u_normal_texture", gbuffers->color_textures[1], texturePos++);
+		deferred_global->setUniform("u_extra_texture", gbuffers->color_textures[2], texturePos++);
+		deferred_global->setUniform("u_depth_texture", gbuffers->depth_texture, texturePos++);
+
+		deferred_global->setUniform("u_ambient_light", scene->ambient_light);
+		deferred_global->setUniform("u_iRes", vec2(1.0 / size.x, 1.0 / size.y));
+		deferred_global->setUniform("u_inverse_viewprojection", camera->inverse_viewprojection_matrix);
+		deferred_global->setUniform("u_camera_position", camera->eye);
+		deferred_global->setUniform("occlusion_option", (int)use_occlusion);
 		deferred_global->setUniform("u_light_type", (int)0);
+		quad1->render(GL_TRIANGLES);
 
-
-
+		deferred_global->disable();
 	}
 				
-	glEnable(GL_DEPTH_TEST);
 
 
 		
@@ -415,15 +502,18 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 
 
 		}*/
-			
+		
 
-		switch (gbuffer_show_mode) //debug
-		{
-		case eShowGBuffer::COLOR: gbuffers->color_textures[0]->toViewport(); break;
-		case eShowGBuffer::NORMAL: gbuffers->color_textures[1]->toViewport(); break;
-		case eShowGBuffer::EXTRA: gbuffers->color_textures[2]->toViewport(); break;
-		case eShowGBuffer::DEPTH: gbuffers->depth_texture->toViewport(); break; //para visualizar depth usar depth.fs y funcion
-		}
+	//debug
+	glDisable(GL_DEPTH_TEST);
+
+	switch (gbuffer_show_mode) //debug
+	{
+	case eShowGBuffer::COLOR: gbuffers->color_textures[0]->toViewport(); break;
+	case eShowGBuffer::NORMAL: gbuffers->color_textures[1]->toViewport(); break;
+	case eShowGBuffer::EXTRA: gbuffers->color_textures[2]->toViewport(); break;
+	case eShowGBuffer::DEPTH: gbuffers->depth_texture->toViewport(); break; //para visualizar depth usar depth.fs y funcion
+	}
 
 	
 
@@ -793,7 +883,7 @@ void Renderer::renderMeshWithMaterialGBuffers(const Matrix44 model, GFX::Mesh* m
 
 	//chose a shader
 	shader = GFX::Shader::Get("gbuffers");
-
+	assert(shader);
 	assert(glGetError() == GL_NO_ERROR);
 
 	//no shader? then nothing to render
@@ -812,11 +902,18 @@ void Renderer::renderMeshWithMaterialGBuffers(const Matrix44 model, GFX::Mesh* m
 	//added
 	if(metallic_roughness_texture)
 		shader->setUniform("u_metallic_roughness_texture", metallic_roughness_texture, 1);
-
+	else
+		shader->setUniform("u_metallic_roughness_texture", GFX::Texture::getWhiteTexture(), 1);
+	
 	if(emissive_texture)
 		shader->setUniform("u_emissive_texture", emissive_texture,2);
+	else
+		shader->setUniform("u_emissive_texture", GFX::Texture::getWhiteTexture(), 2);
 
-	shader->setUniform("u_emissivef", material->emissive_factor);
+	if(use_emissive)
+		shader->setUniform("u_emissivef", material->emissive_factor);
+	else
+		shader->setUniform("u_emissivef", vec3(0.0));
 
 	float specular_factor = material->metallic_factor;
 	shader->setUniform("u_metallic_factor", material->metallic_factor);
