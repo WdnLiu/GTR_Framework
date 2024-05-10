@@ -328,7 +328,6 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 				sh->setUniform("u_inverse_viewprojection", camera->inverse_viewprojection_matrix);
 				sh->setUniform("u_camera_pos", camera->eye); 
 
-				sh->setUniform("u_camera_position", camera->eye);
 				sh->setUniform("u_ambient_light", vec3(0.0)); //also emissive is only in the first
 				//sh->setUniform("u_emissivef", vec3(0.0)); //also emissive is only in the first
 				sh->setUniform("specular_option", (int)use_specular);
@@ -355,10 +354,13 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 
 				//and render the sphere
 				//light->sphere->render(GL_TRIANGLES);
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
 				sphere->render(GL_TRIANGLES);
 				sh->disable();
-				glFrontFace(GL_CCW);
+				
 
 
 			}
@@ -391,7 +393,7 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 				glDisable(GL_BLEND);
 
 			}
-
+		glFrontFace(GL_CCW);
 		}
 	}
 	else {

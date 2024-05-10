@@ -48,7 +48,7 @@ void main()
 	v_uv = a_coord;
 
 	//calcule the position of the vertex using the matrices
-	gl_Position = u_viewprojection * vec4( v_world_position, 1.0 );
+	gl_Position = u_viewprojection * vec4( v_world_position, 1.0);
 }
 
 \quad.vs
@@ -588,6 +588,11 @@ uniform float u_alpha_cutoff;
 //added
 uniform sampler2D u_metallic_roughness_texture;
 uniform sampler2D u_emissive_texture;
+<<<<<<< Updated upstream
+=======
+uniform vec3 u_emissivef; 
+uniform float u_metallic_factor;
+>>>>>>> Stashed changes
 
 layout(location = 0) out vec4 FragColor;
 layout(location = 1) out vec4 NormalColor;
@@ -606,12 +611,21 @@ void main()
 	vec3 N = normalize(v_normal);
 
 	FragColor = color;
-	NormalColor = vec4(N*0.5 + vec3(0.5),1.0);
+	NormalColor = vec4(N*0.5 + vec3(0.5),u_metallic_factor);
 
+<<<<<<< Updated upstream
 	vec4 material_properties = texture(u_metallic_roughness_texture, uv );
 	vec4 emissive = texture(u_emissive_texture, uv );
 	ExtraColor = material_properties; 
 	EmiColor = emissive;
+=======
+	float oclusion_factor = texture(u_metallic_roughness_texture,uv).x;
+	
+	vec4 emissive = texture(u_emissive_texture, uv );
+	ExtraColor = vec4(emissive.xyz*u_emissivef,oclusion_factor);
+	
+	//EmiColor = vec4(u_metallic_factor,0.0,0.0,0.0); 
+>>>>>>> Stashed changes
 }
 
 \skybox.fs
@@ -722,7 +736,71 @@ void main()
 	//calcule the position of the vertex using the matrices
 	gl_Position = u_viewprojection * vec4( v_world_position, 1.0 );
 }
+\ComputeLight
 
+<<<<<<< Updated upstream
+=======
+//initialize further used variables
+vec3 L;
+vec3 factor = vec3(1.0f);
+float NdotL = 0.0;
+
+if (u_light_type == DIRECTIONALLIGHT)
+{
+	//all rays are parallel, so using light front, and no attenuation
+	L = u_light_front;
+	NdotL = clamp(dot(N, L), 0.0, 1.0);
+
+}
+else if (u_light_type == SPOTLIGHT  || u_light_type == POINTLIGHT)
+{	//emitted from single point in all directions
+
+	//vector from point to light
+	L = u_light_position - world_position;
+	float dist = length(L);
+	//ignore light distance
+	L = L/dist;
+
+	NdotL = clamp(dot(N, L), 0.0, 1.0);
+
+	//calculate area affected by spotlight
+	if (u_light_type == SPOTLIGHT)
+	{
+	
+		float cos_angle = dot( u_light_front.xyz, L );
+			
+		if ( cos_angle < u_light_cone_info.x )
+			NdotL = 0.0f;
+		else if ( cos_angle < u_light_cone_info.y )
+			NdotL *= ( cos_angle - u_light_cone_info.x ) / ( u_light_cone_info.y - u_light_cone_info.x );
+	}
+
+	//Compute attenuation
+	float att_factor = u_light_max_distance - dist;
+	att_factor /= u_light_max_distance;
+	att_factor = max(att_factor, 0.0);
+
+	//accumulate light attributes in single factor
+	factor *= att_factor;
+}
+	
+//compute specular light if option activated, otherwise simply sum 0
+vec3 specular = vec3(0);
+if (specular_option == 1)
+{
+	//view vector, from point being shaded on surface to camera (eye) 
+	vec3 V = normalize(u_camera_pos-world_position);
+	//reflected light vector from L, hence the -L
+	vec3 R = normalize(reflect(-L, N));
+	//pow(dot(R, V), alpha) computes specular power
+	specular = factor*(clamp(pow(dot(R, V), u_alpha), 0.0, 1.0))* NdotL * u_light_color_multi * color.xyz ;//*u_specular
+}
+
+light += NdotL*u_light_color_multi * factor + specular;
+
+
+
+>>>>>>> Stashed changes
 \deferred_global.fs
 
 #version 330 core
@@ -734,7 +812,7 @@ uniform sampler2D u_color_texture;
 uniform sampler2D u_normal_texture;
 uniform sampler2D u_metal_roughness;
 uniform sampler2D u_depth_texture;
-uniform sampler2D u_emissive_texture;
+//uniform sampler2D u_emissive_texture;
 
 uniform vec2 u_iRes;
 uniform mat4 u_inverse_viewprojection;
@@ -746,7 +824,7 @@ uniform vec3 u_emissivef;
 uniform vec3 u_light_position;
 uniform vec3 u_light_color_multi;
 uniform vec3 u_light_front;
-uniform vec3 u_camera_position;
+uniform vec3 u_camera_pos;
 
 
 uniform float u_light_max_distance;
@@ -758,10 +836,9 @@ uniform int occlusion_option;
 uniform int normal_option;
 uniform int single_pass_option;
 
-uniform int u_light_cast_shadows;
-uniform sampler2D u_shadowmap;
-uniform mat4 u_shadowmap_viewprojection;
-uniform float u_shadow_bias;
+
+uniform int specular_option;
+
 
 uniform int specular_option;
 
@@ -773,14 +850,14 @@ uniform int specular_option;
 #include "multipass_functions"
 
 out vec4 FragColor;
-
+float u_specular;
 void main()
 {
-	vec2 uv = v_uv;
+	vec2 uv = gl_FragCoord.xy * u_iRes.xy;
 	vec4 color = texture(u_color_texture, uv);
 	vec3 N = texture(u_normal_texture, uv).xyz * 2 - vec3(1.0f);
 	float depth = texture(u_depth_texture, uv).x;
-
+	u_specular = texture(u_normal_texture, uv).a;
 	vec4 material_properties = texture(u_extra_texture, uv);
 
 	if (depth == 1)
@@ -794,12 +871,18 @@ void main()
 	N = normalize(N);
 
 	//add ambient occlusion if option activated
-	// if (occlusion_option == 1)
-	// 	light *= texture(u_metallic_roughness_texture,uv).x;
+	if (occlusion_option == 1)
+	 	light *= material_properties.a;
 
+<<<<<<< Updated upstream
 	light = multipass(N, light, color, world_position);
 	
 	vec3 total_emitted = texture(u_emissive_texture, v_uv).xyz * u_emissivef;
+=======
+	
+	#include "ComputeLight"
+	vec3 total_emitted =  material_properties.xyz ;
+>>>>>>> Stashed changes
 
 	//calculate final colours
 	vec4 final_color;
