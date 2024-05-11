@@ -27,7 +27,7 @@ Application::Application()
 	// Create camera
 	camera = new Camera();
 	camera->lookAt(vec3(-150.f, 150.0f, 250.f), vec3(0.f, 0.0f, 0.f), vec3(0.f, 1.f, 0.f));
-	camera->setPerspective( 45.f, window_width/(float)window_height, 1.0f, 10000.f);
+	camera->setPerspective(45.f, window_width / (float)window_height, 1.0f, 10000.f);
 
 	//load scene
 	scene = new SCN::Scene();
@@ -69,11 +69,11 @@ void Application::render(void)
 	//Draw the floor grid, helpful to have a reference point
 	if (render_debug)
 	{
-		GFX::drawGrid();
+		//GFX::drawGrid();
 
 		//render debug points 
 		glDisable(GL_DEPTH_TEST);
-		GFX::drawPoints(debug_points, Vector4f(1, 1, 0, 1),4);
+		GFX::drawPoints(debug_points, Vector4f(1, 1, 0, 1), 4);
 	}
 
 	glDisable(GL_DEPTH_TEST);
@@ -84,7 +84,7 @@ void Application::update(double seconds_elapsed)
 {
 	float speed = seconds_elapsed * cam_speed; //the speed is defined by the seconds_elapsed so it goes constant
 	float orbit_speed = seconds_elapsed * 0.5f;
-	
+
 	//async input to move the camera around
 	if (Input::isKeyPressed(SDL_SCANCODE_LSHIFT)) speed *= 10; //move faster with left shift
 	if (!Input::isKeyPressed(SDL_SCANCODE_LCTRL))
@@ -96,10 +96,10 @@ void Application::update(double seconds_elapsed)
 	}
 
 	//mouse input to rotate the cam
-	#ifndef SKIP_IMGUI
+#ifndef SKIP_IMGUI
 	bool mouse_in_ui = ImGui::IsAnyItemHovered() || ImGui::IsAnyItemHovered() || ImGui::IsAnyItemActive();
 	if (!ImGuizmo::IsUsing() && !mouse_in_ui)
-	#endif
+#endif
 	{
 		if (mouse_locked || Input::mouse_state & SDL_BUTTON(SDL_BUTTON_LEFT)) //move in first person view
 		{
@@ -108,16 +108,16 @@ void Application::update(double seconds_elapsed)
 			camera->rotate(-Input::mouse_delta.y * orbit_speed * 0.5f, right);
 		}
 	}
-	
+
 	//move up or down the camera using Q and E
 	if (Input::isKeyPressed(SDL_SCANCODE_Q)) camera->moveGlobal(vec3(0.0f, -1.0f, 0.0f) * speed);
 	if (Input::isKeyPressed(SDL_SCANCODE_E)) camera->moveGlobal(vec3(0.0f, 1.0f, 0.0f) * speed);
 
 	//to navigate with the mouse fixed in the middle
 	CORE::showCursor(!mouse_locked);
-	#ifndef SKIP_IMGUI
-		ImGui::SetMouseCursor(mouse_locked ? ImGuiMouseCursor_None : ImGuiMouseCursor_Arrow);
-	#endif
+#ifndef SKIP_IMGUI
+	ImGui::SetMouseCursor(mouse_locked ? ImGuiMouseCursor_None : ImGuiMouseCursor_Arrow);
+#endif
 	if (mouse_locked)
 	{
 		Input::centerMouse();
@@ -131,7 +131,7 @@ void Application::renderUI(void)
 }
 
 //Keyboard event handler (sync input)
-void Application::onKeyDown( SDL_KeyboardEvent event )
+void Application::onKeyDown(SDL_KeyboardEvent event)
 {
 	if (render_ui)
 	{
@@ -140,8 +140,10 @@ void Application::onKeyDown( SDL_KeyboardEvent event )
 			return;
 	}
 
-	switch(event.keysym.sym)
+	switch (event.keysym.sym)
 	{
+		case SDLK_1: renderer->pipeline_mode = ePipelineMode::DEFERRED; break;
+		case SDLK_2: renderer->pipeline_mode = ePipelineMode::FORWARD ; break;
 		case SDLK_ESCAPE: must_exit = true; break; //ESC key, kill the app
 		case SDLK_TAB: render_ui = !render_ui; break;
 		case SDLK_F5: GFX::Shader::ReloadAll(); break;
@@ -151,7 +153,7 @@ void Application::onKeyDown( SDL_KeyboardEvent event )
 			camera->lookAt(scene->main_camera.eye, scene->main_camera.center, Vector3f(0, 1, 0));
 			camera->fov = scene->main_camera.fov;
 			break;
-	}
+		}
 }
 
 void Application::onKeyUp(SDL_KeyboardEvent event)
@@ -168,7 +170,7 @@ void Application::onGamepadButtonUp(SDL_JoyButtonEvent event)
 
 }
 
-void Application::onMouseButtonDown( SDL_MouseButtonEvent event )
+void Application::onMouseButtonDown(SDL_MouseButtonEvent event)
 {
 	editor->onMouseButtonDown(event);
 
@@ -189,21 +191,21 @@ void Application::onMouseWheel(SDL_MouseWheelEvent event)
 {
 	bool mouse_blocked = false;
 
-	#ifndef SKIP_IMGUI
-		ImGuiIO& io = ImGui::GetIO();
-		if(!mouse_locked)
+#ifndef SKIP_IMGUI
+	ImGuiIO& io = ImGui::GetIO();
+	if (!mouse_locked)
 		switch (event.type)
 		{
-			case SDL_MOUSEWHEEL:
-			{
-				if (event.x > 0) io.MouseWheelH += 1;
-				if (event.x < 0) io.MouseWheelH -= 1;
-				if (event.y > 0) io.MouseWheel += 1;
-				if (event.y < 0) io.MouseWheel -= 1;
-			}
+		case SDL_MOUSEWHEEL:
+		{
+			if (event.x > 0) io.MouseWheelH += 1;
+			if (event.x < 0) io.MouseWheelH -= 1;
+			if (event.y > 0) io.MouseWheel += 1;
+			if (event.y < 0) io.MouseWheel -= 1;
 		}
-		mouse_blocked = ImGui::IsAnyItemHovered();
-	#endif
+		}
+	mouse_blocked = ImGui::IsAnyItemHovered();
+#endif
 
 	if (!mouse_blocked && event.y)
 		cam_speed *= 1.0f + (event.y * 0.1f);
@@ -211,9 +213,9 @@ void Application::onMouseWheel(SDL_MouseWheelEvent event)
 
 void Application::onResize(int width, int height)
 {
-    std::cout << "window resized: " << width << "," << height << std::endl;
-	glViewport( 0,0, width, height );
-	camera->aspect =  width / (float)height;
+	std::cout << "window resized: " << width << "," << height << std::endl;
+	glViewport(0, 0, width, height);
+	camera->aspect = width / (float)height;
 	window_width = width;
 	window_height = height;
 }
@@ -222,6 +224,5 @@ void Application::onFileDrop(std::string filename, std::string relative, SDL_Eve
 {
 	editor->onFileDrop(filename, relative, event);
 }
-
 
 
