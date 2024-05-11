@@ -356,6 +356,7 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 
 				//render only the backfacing triangles of the sphere
 				glFrontFace(GL_CW);
+				//glDepthFunc(GL_GREATER);
 
 				//and render the sphere
 				light->sphere->render(GL_TRIANGLES);
@@ -380,6 +381,15 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 
 		shader->disable();
 	}
+	glDepthFunc(GL_LEQUAL);
+
+	/*glEnable(GL_BLEND);
+
+	sort(alpha_renderables.begin(), alpha_renderables.end(), renderableComparator);
+	for (Renderable& re : alpha_renderables)
+	{
+		renderMeshWithMaterial(re.model, re.mesh, re.material);
+	}*/
 
 	glDisable(GL_DEPTH_TEST);
 	switch (gbuffer_show_mode) //debug
@@ -462,11 +472,12 @@ void Renderer::renderMeshWithMaterialGBuffers(const Matrix44 model, GFX::Mesh* m
 	GFX::Texture* texture = material->textures[SCN::eTextureChannel::ALBEDO].texture;
 	GFX::Texture* metallic_roughness_texture = material->textures[eTextureChannel::METALLIC_ROUGHNESS].texture;
 	GFX::Texture* emissive_texture = material->textures[eTextureChannel::EMISSIVE].texture;
+	GFX::Texture* normal_texture = material->textures[eTextureChannel::NORMALMAP].texture;
 
 	emissive_texture = (emissive_texture) ? emissive_texture : GFX::Texture::getWhiteTexture();
 	metallic_roughness_texture = (metallic_roughness_texture) ? metallic_roughness_texture : GFX::Texture::getWhiteTexture();
 
-	if (texture == NULL)
+	if (texture == NULL || use_no_texture)
 		texture = GFX::Texture::getWhiteTexture(); //a 1x1 white texture
 
 	glDisable(GL_BLEND);
@@ -510,6 +521,13 @@ void Renderer::renderMeshWithMaterialGBuffers(const Matrix44 model, GFX::Mesh* m
 	float specular_factor = material->metallic_factor;
 	shader->setUniform("u_metallic_factor", material->metallic_factor);
 
+	if (!normal_texture)
+		shader->setUniform("normal_option", 0);
+	else
+	{
+		shader->setUniform("u_normal_texture", normal_texture, texturePosition++);
+		shader->setUniform("normal_option", (int) use_normal_map);
+	}
 
 	//this is used to say which is the alpha threshold to what we should not paint a pixel on the screen (to cut polygons according to texture alpha)
 	shader->setUniform("u_alpha_cutoff", material->alpha_mode == SCN::eAlphaMode::MASK ? material->alpha_cutoff : 0.001f);
@@ -540,7 +558,7 @@ void Renderer::renderMeshWithMaterial(const Matrix44 model, GFX::Mesh* mesh, SCN
 	//texture = material->metallic_roughness_texture;
 	//texture = material->normal_texture;
 	//texture = material->occlusion_texture;
-	if (texture == NULL)
+	if (texture == NULL || use_no_texture)
 		texture = GFX::Texture::getWhiteTexture(); //a 1x1 white texture
 
 	//select the blending
@@ -743,7 +761,7 @@ void Renderer::renderMeshWithMaterialLights(const Matrix44 model, GFX::Mesh* mes
 	shader->setUniform("u_emissive_texture", emissiveTex, texPosition++);
 	shader->setUniform("emissive_option", (int) use_emissive);
 
-	shader->setUniform("u_occlusion_texture", occlusionTex, texPosition++);
+	shader->setUniform("u_metallic_roughness_texture", occlusionTex, texPosition++);
 	shader->setUniform("occlusion_option", (int) use_occlusion);
 		
 	//this is used to say which is the alpha threshold to what we should not paint a pixel on the screen (to cut polygons according to texture alpha)

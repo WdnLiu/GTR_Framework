@@ -593,12 +593,17 @@ uniform float u_alpha_cutoff;
 //added
 uniform sampler2D u_metallic_roughness_texture;
 uniform sampler2D u_emissive_texture;
+uniform sampler2D u_normal_texture;
 
 uniform vec3 u_emissive_factor;
+
+uniform int normal_option;
 
 layout(location = 0) out vec4 FragColor;
 layout(location = 1) out vec4 NormalColor;
 layout(location = 2) out vec4 ExtraColor;
+
+#include "functions"
 
 void main()
 {
@@ -609,7 +614,16 @@ void main()
 	if(color.a < u_alpha_cutoff)
 		discard;
 
-	vec3 N = normalize(v_normal);
+	vec3 N;
+
+	if(normal_option == 1){
+		vec3 normal_pixel = texture( u_normal_texture, uv ).xyz; 
+		N = (perturbNormal( N, v_world_position, normal_pixel,v_uv));
+		// N = mix(N, v_normal, 0.5);
+	}
+	else N = v_normal;
+
+	N = normalize(v_normal);
 
 	FragColor = color;
 	NormalColor = vec4(N*0.5 + vec3(0.5),1.0);
@@ -872,7 +886,7 @@ out vec4 FragColor;
 
 void main()
 {
-	vec2 uv = (u_light_type != DIRECTIONALLIGHT) ? (u_iRes*gl_FragCoord.xy) : v_uv;
+	vec2 uv = (u_light_type != DIRECTIONALLIGHT) ? (gl_FragCoord.xy * u_iRes) : v_uv;
 
 	vec4 color = texture(u_color_texture, uv);
 	
@@ -892,8 +906,7 @@ void main()
 	
 	int factor = (u_light_type == DIRECTIONALLIGHT) ? 1 : 0;
 
-	vec3 light = (u_light_type == DIRECTIONALLIGHT) ? u_ambient_light*material_properties.a : u_ambient_light;
-
+	vec3 light = u_ambient_light*material_properties.a;
 	light = multipass(N, light, color, world_position);
 	
 	//calculate final colours
