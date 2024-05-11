@@ -592,6 +592,7 @@ uniform sampler2D u_metallic_roughness_texture;
 uniform sampler2D u_emissive_texture;
 uniform vec3 u_emissivef; 
 uniform float u_metallic_factor;
+uniform float u_alpha;
 
 layout(location = 0) out vec4 FragColor;
 layout(location = 1) out vec4 NormalColor;
@@ -608,7 +609,7 @@ void main()
 
 	vec3 N = normalize(v_normal);
 
-	FragColor = color;
+	FragColor = vec4(color.xyz,u_alpha);
 	NormalColor = vec4(N*0.5 + vec3(0.5),u_metallic_factor);
 
 	float oclusion_factor = texture(u_metallic_roughness_texture,uv).x;
@@ -758,7 +759,6 @@ uniform vec3 u_camera_pos;
 uniform float u_light_max_distance;
 uniform int u_light_type;
 uniform vec2 u_light_cone_info;
-uniform float u_alpha;
 
 uniform int occlusion_option;
 uniform int normal_option;
@@ -782,15 +782,21 @@ uniform float u_shadow_bias;
 
 out vec4 FragColor;
 
+float u_specular;
+float u_alpha;
+
 
 #include "multipass_functions"
 #include "functions"
-float u_specular;
+
+
+
 void main()
 {
 	vec2 uv = gl_FragCoord.xy * u_iRes.xy;
 
-	vec4 color = texture(u_color_texture, uv);
+	vec4 color = vec4(texture(u_color_texture, uv).xyz,1.0);
+	u_alpha = texture(u_color_texture, uv).a;
 
 	vec3 N = texture(u_normal_texture, uv).xyz * 2 - vec3(1.0f);
 	float depth = texture(u_depth_texture, uv).x;
@@ -812,8 +818,9 @@ void main()
 	if (u_light_type == DIRECTIONALLIGHT)
 		total_emitted= material_properties.xyz ; 
 		//add ambient occlusion if option activated
+
 		if (occlusion_option == 1)
-	 		light *= material_properties.a;
+			light *= material_properties.a;
 
 	if(u_light_type != 0)
 		light += multipass(N, light, color, world_position);
@@ -825,7 +832,12 @@ void main()
 	vec4 final_color;
 	final_color.xyz = color.xyz*light + total_emitted.xyz;
 
-	final_color.a = color.a;
+	final_color.a = 1.0;//color.a;
 
 	FragColor = final_color;
+
+	gl_FragDepth= depth;
+
 }
+
+

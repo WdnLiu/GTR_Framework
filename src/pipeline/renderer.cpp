@@ -43,6 +43,7 @@ Renderer::Renderer(const char* shader_atlas_filename)
 	use_occlusion = false;
 	shadowmap_size = 1024;
 	mainLight = nullptr;
+	use_phong = true;
 
 
 	if (!GFX::Shader::LoadAtlas(shader_atlas_filename))
@@ -309,54 +310,71 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 		renderSkybox(skybox_cubemap);
 
 	//pintar luces
-	if (mainLight) {
-
-		GFX::Mesh* quad = GFX::Mesh::getQuad();
-
-		GFX::Shader* deferred_global = GFX::Shader::Get("deferred_global");
-		assert(deferred_global);
-		deferred_global->enable();
-
-		int texturePos = 0;
-		deferred_global->setUniform("specular_option", (int)use_specular);
-
-		//texturas
-		deferred_global->setUniform("u_color_texture", gbuffers->color_textures[0], texturePos++);
-		deferred_global->setUniform("u_normal_texture", gbuffers->color_textures[1], texturePos++);
-		deferred_global->setUniform("u_extra_texture", gbuffers->color_textures[2], texturePos++);
-		//deferred_global->setUniform("u_emissive_texture", gbuffers->color_textures[3], texturePos++);
-		deferred_global->setUniform("u_depth_texture", gbuffers->depth_texture, texturePos++);
-
-		//carac
-		deferred_global->setUniform("u_ambient_light", scene->ambient_light);
-		deferred_global->setUniform("u_iRes", vec2(1.0 / size.x, 1.0 / size.y));
-		deferred_global->setUniform("u_inverse_viewprojection", camera->inverse_viewprojection_matrix);
-		deferred_global->setUniform("u_camera_position", camera->eye);
-		deferred_global->setUniform("specular_option", (int)use_specular);
-		deferred_global->setUniform("occlusion_option", (int)use_occlusion);
-
-		//u_light_cast_shadows//rem:subir param sombras!
-		deferred_global->setUniform("u_light_cast_shadows", 0);
-
-		lightToShader(mainLight, deferred_global);
-
-		quad->render(GL_TRIANGLES);
-
-		deferred_global->disable();
-		glDisable(GL_BLEND);
-		glDisable(GL_DEPTH_TEST);
 
 
-	}
 	if (lights.size()) {
+		if (mainLight) {
+
+		
+
+			GFX::Mesh* quad = GFX::Mesh::getQuad();
+
+			GFX::Shader* deferred_global = GFX::Shader::Get("deferred_global");
+			assert(deferred_global);
+			deferred_global->enable();
+
+			int texturePos = 0;
+			deferred_global->setUniform("specular_option", (int)use_specular);
+
+			//texturas
+			deferred_global->setUniform("u_color_texture", gbuffers->color_textures[0], texturePos++);
+			deferred_global->setUniform("u_normal_texture", gbuffers->color_textures[1], texturePos++);
+			deferred_global->setUniform("u_extra_texture", gbuffers->color_textures[2], texturePos++);
+			//deferred_global->setUniform("u_emissive_texture", gbuffers->color_textures[3], texturePos++);
+			deferred_global->setUniform("u_depth_texture", gbuffers->depth_texture, texturePos++);
+
+			//carac
+			deferred_global->setUniform("u_ambient_light", scene->ambient_light);
+			deferred_global->setUniform("u_iRes", vec2(1.0 / size.x, 1.0 / size.y));
+			deferred_global->setUniform("u_inverse_viewprojection", camera->inverse_viewprojection_matrix);
+			deferred_global->setUniform("u_camera_position", camera->eye);
+			deferred_global->setUniform("specular_option", (int)use_specular);
+			deferred_global->setUniform("occlusion_option", (int)use_occlusion);
+
+			//u_light_cast_shadows//rem:subir param sombras!
+			deferred_global->setUniform("u_light_cast_shadows", 0);
+
+			lightToShader(mainLight, deferred_global);
+
+
+			glDisable(GL_BLEND);
+			glEnable(GL_DEPTH_TEST);
+			glDepthFunc(GL_ALWAYS);
+
+
+			quad->render(GL_TRIANGLES);
+
+			deferred_global->disable();
+		
+			glDepthFunc(GL_LESS);
+
+		}
+
+		
+		//COPIAR de gbufeer depth a illumination fbo
 
 		for (LightEntity* light : lights) {
+			
+			glEnable(GL_BLEND);
+			glBlendFunc(GL_ONE, GL_ONE);
 
+			glDisable(GL_DEPTH_TEST);
+						
 			if (light->light_type == eLightType::POINT || light->light_type == eLightType::SPOT)
 			{
 				
 				GFX::Mesh sphere;
-				sphere.createSphere(light->max_distance, 12, 12);
+				sphere.createSphere(light->max_distance, 12, 12); //u_alpha no hemos pasado en gbuffer!!!!!!!!!!!!!!!!
 
 				//this deferred_ws shader uses the basic.vs instead of quad.vs
 				GFX::Shader* deferred_ws = GFX::Shader::Get("deferred_ws");
@@ -370,11 +388,8 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 				//texturas
 				deferred_ws->setUniform("u_color_texture", gbuffers->color_textures[0], texturePos++);
 				deferred_ws->setUniform("u_normal_texture", gbuffers->color_textures[1], texturePos++);
-				//deferred_ws->setUniform("u_extra_texture", GFX::Texture::getWhiteTexture(), texturePos++);
-				//sh->setUniform("u_emissive_texture", gbuffers->color_textures[3], texturePos++);
-				deferred_ws->setUniform("u_depth_texture", gbuffers->depth_texture, texturePos++);
-
 				
+				deferred_ws->setUniform("u_depth_texture", gbuffers->depth_texture, texturePos++);
 
 
 				deferred_ws->setUniform("u_iRes", vec2(1.0 / size.x, 1.0 / size.y));
@@ -417,7 +432,6 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 
 				glFrontFace(GL_CCW);
 
-
 			}
 			/*else if (light->light_type == eLightType::DIRECTIONAL && mainLight) {
 
@@ -458,7 +472,9 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 
 			}*/
 		glEnable(GL_BLEND);
-		glBlendFunc(GL_ONE,GL_ONE );
+		glBlendFunc(GL_ONE, GL_ONE); 
+
+		glDisable(GL_DEPTH_TEST); //para el forward alpha
 		}
 	}
 	else {
@@ -467,7 +483,6 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 		GFX::Shader* deferred_global = GFX::Shader::Get("deferred_global");
 	
 		//texturas
-	
 		deferred_global->enable();
 
 		GFX::Mesh* quad1 = GFX::Mesh::getQuad();
@@ -487,6 +502,9 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 		deferred_global->setUniform("u_camera_position", camera->eye);
 		deferred_global->setUniform("occlusion_option", (int)use_occlusion);
 		deferred_global->setUniform("u_light_type", (int)0);
+
+		
+
 		quad1->render(GL_TRIANGLES);
 
 		deferred_global->disable();
@@ -494,14 +512,15 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 				
 
 
-		
-		//alpha renderables
-		/*for (Renderable& re : alpha_renderables){
-		* 
-			//con forward
+	//alpha renderablesç
+	for (Renderable& re : alpha_renderables){
+	 
+		//con forward
+		if (camera->testBoxInFrustum(re.bounding.center, re.bounding.halfsize))
+			renderMeshWithMaterialLights(re.model, re.mesh, re.material);
 
 
-		}*/
+	}
 		
 
 	//debug
@@ -917,7 +936,7 @@ void Renderer::renderMeshWithMaterialGBuffers(const Matrix44 model, GFX::Mesh* m
 
 	float specular_factor = material->metallic_factor;
 	shader->setUniform("u_metallic_factor", material->metallic_factor);
-
+	shader->setUniform("u_aplha", material->roughness_factor);
 
 	//this is used to say which is the alpha threshold to what we should not paint a pixel on the screen (to cut polygons according to texture alpha)
 	shader->setUniform("u_alpha_cutoff", material->alpha_mode == SCN::eAlphaMode::MASK ? material->alpha_cutoff : 0.001f);
