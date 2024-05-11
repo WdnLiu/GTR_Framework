@@ -888,14 +888,17 @@ void main()
 
 	vec4 material_properties = texture(u_extra_texture, uv);
 
-	vec3 light = u_ambient_light*material_properties.a;
 	N = normalize(N);
 	
+	int factor = (u_light_type == DIRECTIONALLIGHT) ? 1 : 0;
+
+	vec3 light = (u_light_type == DIRECTIONALLIGHT) ? u_ambient_light*material_properties.a : u_ambient_light;
+
 	light = multipass(N, light, color, world_position);
 	
 	//calculate final colours
 	vec4 final_color = vec4(0.0f);
-	final_color.xyz = light*color.xyz + material_properties.xyz;
+	final_color.xyz = light*color.xyz + factor*material_properties.xyz;
 
 	final_color.a = color.a;
 
