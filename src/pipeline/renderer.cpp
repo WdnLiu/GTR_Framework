@@ -25,6 +25,7 @@ using namespace SCN;
 //some globals
 GFX::Mesh sphere;
 GFX::FBO* gbuffers = nullptr;
+GFX::FBO* illumination_fbo = nullptr;
 
 void Renderer::extractRenderables(SCN::Node* node, Camera* camera)
 {
@@ -259,6 +260,7 @@ void Renderer::gbufferToShader(GFX::Shader* shader, vec2 size, Camera* camera)
 	shader->setUniform("u_normal_texture", gbuffers->color_textures[1], texturePos++);
 	shader->setUniform("u_extra_texture",  gbuffers->color_textures[2], texturePos++);
 	shader->setUniform("u_depth_texture",  gbuffers->depth_texture,		texturePos++);
+	shader->setUniform("u_cube_texture",   skybox_cubemap,				texturePos++);
 	cameraToShader(camera, shader);
 	shader->setUniform("u_iRes", vec2(1.0 / size.x, 1.0 / size.y));
 	shader->setUniform("u_inverse_viewprojection", camera->inverse_viewprojection_matrix);
@@ -266,16 +268,83 @@ void Renderer::gbufferToShader(GFX::Shader* shader, vec2 size, Camera* camera)
 	shader->setUniform("occlusion_option", (int)use_occlusion);
 }
 
-void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
+void Renderer::lightsDeferred(Camera* camera)
 {
 	int shadowMapPos = 8;
 	vec2 size = CORE::getWindowSize();
+
+	GFX::Mesh* quad = GFX::Mesh::getQuad();
+	GFX::Shader* shader = GFX::Shader::Get("deferred_global");
+
+	glDisable(GL_BLEND);
+	glDisable(GL_DEPTH_TEST);
+	shader->enable();
+
+	if (mainLight->cast_shadows && mainLight->shadowMapFBO)
+	{
+		shadowToShader(mainLight, shadowMapPos, shader);
+	}
+	else
+		shader->setUniform("u_light_cast_shadows", 0);
+
+	gbufferToShader(shader, size, camera);
+	cameraToShader(camera, shader);
+
+	shader->setUniform("u_ambient_light", scene->ambient_light);
+
+	lightToShader(mainLight, shader);
+
+	quad->render(GL_TRIANGLES);
+
+	shader = GFX::Shader::Get("deferred_ws");
+	shader->enable();
+
+	gbufferToShader(shader, size, camera);
+
+	glDepthFunc(GL_GREATER);
+	glEnable(GL_BLEND);
+	glEnable(GL_CULL_FACE);
+	glFrontFace(GL_CW);
+	glBlendFunc(GL_ONE, GL_ONE);
+	glDepthMask(false);
+	for (auto light : lights) {
+		if (light->light_type == eLightType::POINT || light->light_type == eLightType::SPOT) {
+			if (light->cast_shadows)
+			{
+				shadowToShader(light, shadowMapPos, shader);
+			}
+			else shader->setUniform("u_light_cast_shadows", 0);
+
+			Matrix44 model;
+			vec3 lightpos = light->getGlobalPosition();
+			model.translate(lightpos.x, lightpos.y, lightpos.z);
+			model.scale(light->max_distance, light->max_distance, light->max_distance);
+			shader->setUniform("u_model", model);
+			
+			lightToShader(light, shader);
+			sphere.render(GL_TRIANGLES);
+		}
+	}
+	shader->disable();
+	glDisable(GL_BLEND);
+	glFrontFace(GL_CCW);
+	glDisable(GL_CULL_FACE);
+	glDepthFunc(GL_LESS);
+	glDepthMask(true);
+}
+
+void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
+{
+	vec2 size = CORE::getWindowSize();
+	int shadowMapPos = 8;
 
 	//generate gbuffers
 	if (!gbuffers)
 	{
 		gbuffers = new GFX::FBO();
 		gbuffers->create(size.x, size.y, 3, GL_RGBA, GL_UNSIGNED_BYTE, true);  //crea todas las texturas attached, true if we want depthbuffer in a texure (para poder leerlo)
+		illumination_fbo = new GFX::FBO();
+		illumination_fbo->create(size.x, size.y, 3, GL_RGB, GL_HALF_FLOAT, false);
 	}
 
 	gbuffers->bind();
@@ -293,103 +362,33 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 
 	gbuffers->unbind();
 
+	illumination_fbo->bind();
 	glClearColor(scene->background_color.x, scene->background_color.y, scene->background_color.z, 1.0);
 	glClearColor(0, 0, 0, 1.0f);//set the clear color
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	
-	GFX::Shader* shader = GFX::Shader::Get("deferred_global");
-	GFX::Mesh* quad = GFX::Mesh::getQuad();
 
 	if (skybox_cubemap)
 		renderSkybox(skybox_cubemap);
 
-	glDisable(GL_BLEND);
-	glDisable(GL_DEPTH_TEST);
-	if (mainLight) {
-		assert(deferred_global);
-		shader->enable();
+	GFX::Mesh* quad = GFX::Mesh::getQuad();
+	GFX::Shader* shader = GFX::Shader::Get("deferred_global");
+	shader->enable();
+	//assert(shader);
+	gbufferToShader(shader, size, camera);
 
-		if (mainLight->cast_shadows && mainLight->shadowMapFBO)
-		{
-			shadowToShader(mainLight, shadowMapPos, shader);
-		}
-		else
-			shader->setUniform("u_light_cast_shadows", 0);
+	lightsDeferred(camera);
 
-		gbufferToShader(shader, size, camera);
-		cameraToShader(camera, shader);
+	illumination_fbo->unbind();
 
-		shader->setUniform("u_ambient_light", scene->ambient_light);
+	illumination_fbo->color_textures[0]->toViewport();
 
-		lightToShader(mainLight, shader);
+	//sort(alpha_renderables.begin(), alpha_renderables.end(), renderableComparator);
+	//for (Renderable& re : alpha_renderables)
+	//{
+	//	if (camera->testBoxInFrustum(re.bounding.center, re.bounding.halfsize))
+	//		renderMeshWithMaterialLights(re.model, re.mesh, re.material);
+	//}
 
-		quad->render(GL_TRIANGLES);
-	}
-
-	glDisable(GL_BLEND);
-	glDisable(GL_DEPTH_TEST);
-
-	if (lights.size()) {
-		shader = GFX::Shader::Get("deferred_ws");
-		shader->enable();
-		for (LightEntity* light : lights) {
-
-			if (light->light_type == eLightType::SPOT || light->light_type == eLightType::POINT)
-			{
-				// remember to upload all the uniforms for gbuffers, ivp, etc...
-				gbufferToShader(shader, size, camera);
-				shader->setUniform("u_ambient_light", vec3(0.0f)); //also emissive is only in the first
-
-				vec3 pos = light->getGlobalPosition();
-				mat4 model;
-
-				//we must translate the model to the center of the light
-				model.setTranslation(pos.x, pos.y, pos.z);
-
-				//and scale it according to the max_distance of the light
-				model.scale(light->max_distance, light->max_distance, light->max_distance);
-
-				shader->setUniform("u_model", model);
-
-				//pass all the info about this light
-				lightToShader(light, shader);
-
-				//render only the backfacing triangles of the sphere
-				glFrontFace(GL_CW);
-				//glDepthFunc(GL_GREATER);
-
-				//and render the sphere
-				light->sphere->render(GL_TRIANGLES);
-
-				glFrontFace(GL_CCW);
-				glEnable(GL_BLEND);
-				glBlendFunc(GL_ONE, GL_ONE);
-			}
-			else
-				shader->setUniform("u_light_type", 0);
-		}
-	}
-	else {
-		//texturas
-		shader->enable();
-		gbufferToShader(shader, size, camera);
-		shader->setUniform("u_ambient_light", scene->ambient_light);
-
-		shader->setUniform("occlusion_option", (int)use_occlusion);
-		shader->setUniform("u_light_type", 0);
-		quad->render(GL_TRIANGLES);
-
-		shader->disable();
-	}
-	glDepthFunc(GL_LEQUAL);
-
-	/*glEnable(GL_BLEND);
-
-	sort(alpha_renderables.begin(), alpha_renderables.end(), renderableComparator);
-	for (Renderable& re : alpha_renderables)
-	{
-		renderMeshWithMaterial(re.model, re.mesh, re.material);
-	}*/
 
 	glDisable(GL_DEPTH_TEST);
 	switch (gbuffer_show_mode) //debug

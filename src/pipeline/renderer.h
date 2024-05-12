@@ -97,6 +97,7 @@ namespace SCN {
 		void renderSceneForward(SCN::Scene* scene, Camera* camera);
 		void renderSceneDeferred(SCN::Scene* scene, Camera* camera);
 		void gbufferToShader(GFX::Shader* shader, vec2 size, Camera* camera);
+		void lightsDeferred(Camera* camera);
 		//render the skybox
 		void renderSkybox(GFX::Texture* cubemap);
 
