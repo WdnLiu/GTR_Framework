@@ -15,6 +15,24 @@ namespace GFX {
 	class FBO;
 }
 
+enum ePipelineMode
+{
+	FLAT,
+	FORWARD,
+	DEFERRED,
+	PIPELINECOUNT
+};
+
+enum eShowGBuffer
+{
+	NONE,
+	COLOR,
+	NORMAL,
+	EXTRA,
+	DEPTH,
+	SHOW_BUFFER_COUNT
+};
+
 namespace SCN {
 
 	class Prefab;
@@ -43,10 +61,13 @@ namespace SCN {
 		bool use_emissive;
 		bool use_specular;
 		bool use_occlusion;
-		bool use_single_pass;
+
+		ePipelineMode pipeline_mode;
+		eShowGBuffer gbuffer_show_mode;
 
 		int shadowmap_size;
 
+		GFX::Mesh* light_sphere;
 		GFX::Texture* skybox_cubemap;
 
 		SCN::Scene* scene;
@@ -63,7 +84,7 @@ namespace SCN {
 		void extractRenderables(SCN::Node* node, Camera* camera);
 
 		//updated every frame
-		Renderer(const char* shaders_atlas_filename );
+		Renderer(const char* shaders_atlas_filename);
 
 		//just to be sure we have everything ready for the rendering
 		void setupScene();
@@ -73,10 +94,13 @@ namespace SCN {
 		static bool renderableComparator(const Renderable& a, const Renderable& b);
 		//renders several elements of the scene
 		void renderScene(SCN::Scene* scene, Camera* camera);
-
+		void renderSceneForward(SCN::Scene* scene, Camera* camera);
+		void renderSceneDeferred(SCN::Scene* scene, Camera* camera);
+		void gbufferToShader(GFX::Shader* shader, vec2 size, Camera* camera);
+		void lightsDeferred(Camera* camera);
 		//render the skybox
 		void renderSkybox(GFX::Texture* cubemap);
-	
+
 		//to render one node from the prefab and its children
 		void renderNode(SCN::Node* node, Camera* camera);
 
@@ -84,10 +108,12 @@ namespace SCN {
 
 		//to render one mesh given its material and transformation matrix
 		void renderMeshWithMaterial(const Matrix44 model, GFX::Mesh* mesh, SCN::Material* material);
-		
+
 		void renderMeshWithMaterialPlain(const Matrix44 model, GFX::Mesh* mesh, SCN::Material* material);
 
 		void renderMeshWithMaterialLights(const Matrix44 model, GFX::Mesh* mesh, SCN::Material* material);
+
+		void renderMeshWithMaterialGBuffers(const Matrix44 model, GFX::Mesh* mesh, SCN::Material* material);
 
 		void showUI();
 
@@ -97,6 +123,7 @@ namespace SCN {
 		void cameraToShader(Camera* camera, GFX::Shader* shader); //sends camera uniforms to shader
 		void lightToShader(LightEntity* light, GFX::Shader* shader); //sends light uniforms to shader	
 		void lightToShader(GFX::Shader* shader);
+		void texturesToShader(SCN::Material* material, GFX::Shader* shader) const;
 	};
 
 };
