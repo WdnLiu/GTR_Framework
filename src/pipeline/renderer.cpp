@@ -77,10 +77,10 @@ Renderer::Renderer(const char* shader_atlas_filename)
 
 	use_multipass_lights = true;
 	use_no_texture = false;
-	use_normal_map = false;
-	use_emissive   = false;
-	use_specular   = false;
-	use_occlusion  = false;
+	use_normal_map = true;
+	use_emissive   = true;
+	use_specular   = true;
+	use_occlusion  = true;
 
 	sphere.createSphere(1.0f);
 	sphere.uploadToVRAM();
@@ -256,16 +256,16 @@ void Renderer::renderSceneForward(SCN::Scene* scene, Camera* camera)
 void Renderer::gbufferToShader(GFX::Shader* shader, vec2 size, Camera* camera)
 {
 	int texturePos = 0;
-	shader->setUniform("u_color_texture",  gbuffers->color_textures[0], texturePos++);
-	shader->setUniform("u_normal_texture", gbuffers->color_textures[1], texturePos++);
-	shader->setUniform("u_extra_texture",  gbuffers->color_textures[2], texturePos++);
-	shader->setUniform("u_depth_texture",  gbuffers->depth_texture,		texturePos++);
-	shader->setUniform("u_cube_texture",   skybox_cubemap,				texturePos++);
+	shader->setUniform("u_color_texture",    gbuffers->color_textures[0], texturePos++);
+	shader->setUniform("u_normal_texture",	 gbuffers->color_textures[1], texturePos++);
+	shader->setUniform("u_extra_texture",    gbuffers->color_textures[2], texturePos++);
+	shader->setUniform("u_metallic_texture", gbuffers->color_textures[3], texturePos++);
+	shader->setUniform("u_depth_texture",    gbuffers->depth_texture,	  texturePos++);
+	shader->setUniform("u_cube_texture",     skybox_cubemap,			  texturePos++);
 	cameraToShader(camera, shader);
 	shader->setUniform("u_iRes", vec2(1.0 / size.x, 1.0 / size.y));
 	shader->setUniform("u_inverse_viewprojection", camera->inverse_viewprojection_matrix);
-	shader->setUniform("specular_option", (int)use_specular);
-	shader->setUniform("occlusion_option", (int)use_occlusion);
+	shader->setUniform("specular_option",  (int) use_specular);
 }
 
 void Renderer::lightsDeferred(Camera* camera)
@@ -342,9 +342,9 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 	if (!gbuffers)
 	{
 		gbuffers = new GFX::FBO();
-		gbuffers->create(size.x, size.y, 3, GL_RGBA, GL_UNSIGNED_BYTE, true);  //crea todas las texturas attached, true if we want depthbuffer in a texure (para poder leerlo)
+		gbuffers->create(size.x, size.y, 4, GL_RGBA, GL_UNSIGNED_BYTE, true);  //crea todas las texturas attached, true if we want depthbuffer in a texure (para poder leerlo)
 		illumination_fbo = new GFX::FBO();
-		illumination_fbo->create(size.x, size.y, 3, GL_RGB, GL_HALF_FLOAT, false);
+		illumination_fbo->create(size.x, size.y, 1, GL_RGB, GL_HALF_FLOAT, false);
 	}
 
 	gbuffers->bind();
@@ -363,18 +363,13 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 	gbuffers->unbind();
 
 	illumination_fbo->bind();
+
 	glClearColor(scene->background_color.x, scene->background_color.y, scene->background_color.z, 1.0);
 	glClearColor(0, 0, 0, 1.0f);//set the clear color
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	if (skybox_cubemap)
 		renderSkybox(skybox_cubemap);
-
-	GFX::Mesh* quad = GFX::Mesh::getQuad();
-	GFX::Shader* shader = GFX::Shader::Get("deferred_global");
-	shader->enable();
-	//assert(shader);
-	gbufferToShader(shader, size, camera);
 
 	lightsDeferred(camera);
 
@@ -519,6 +514,7 @@ void Renderer::renderMeshWithMaterialGBuffers(const Matrix44 model, GFX::Mesh* m
 
 	float specular_factor = material->metallic_factor;
 	shader->setUniform("u_metallic_factor", material->metallic_factor);
+	shader->setUniform("u_metallic_roughness", material->roughness_factor);
 
 	if (!normal_texture)
 		shader->setUniform("normal_option", 0);
@@ -527,6 +523,9 @@ void Renderer::renderMeshWithMaterialGBuffers(const Matrix44 model, GFX::Mesh* m
 		shader->setUniform("u_normal_texture", normal_texture, texturePosition++);
 		shader->setUniform("normal_option", (int) use_normal_map);
 	}
+
+	shader->setUniform("occlusion_option", (int)use_occlusion);
+	shader->setUniform("emissive_option",  (int)use_emissive);
 
 	//this is used to say which is the alpha threshold to what we should not paint a pixel on the screen (to cut polygons according to texture alpha)
 	shader->setUniform("u_alpha_cutoff", material->alpha_mode == SCN::eAlphaMode::MASK ? material->alpha_cutoff : 0.001f);

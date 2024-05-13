@@ -598,12 +598,16 @@ uniform sampler2D u_normal_texture;
 
 uniform vec3 u_emissive_factor;
 uniform float u_metallic_factor;
+uniform float u_metallic_roughness;
 
 uniform int normal_option;
+uniform int emissive_option;
+uniform int occlusion_option;
 
 layout(location = 0) out vec4 FragColor;
 layout(location = 1) out vec4 NormalColor;
 layout(location = 2) out vec4 ExtraColor;
+layout(location = 3) out vec4 MetalnessColor;
 
 #include "functions"
 
@@ -616,25 +620,23 @@ void main()
     if(color.a < u_alpha_cutoff)
         discard;
 
-    vec3 N;
-
+    vec3 N = normalize(v_normal);
     if(normal_option == 1){
-        vec3 normal_pixel = texture( u_normal_texture, uv ).xyz; 
-        N = (perturbNormal( N, v_world_position, normal_pixel,v_uv));
-        N = mix(N, v_normal, 0.5);
+        vec3 normal_pixel = texture( u_normal_texture, uv ).xyz;
+        N = perturbNormal(N,v_world_position, normal_pixel, uv);
     }
-    else N = v_normal;
-
-    N = normalize(N);
 
     FragColor = color;
     NormalColor = vec4(N*0.5 + vec3(0.5),1.0);
     NormalColor.a = u_metallic_factor;
 
     vec4 material_properties = texture(u_metallic_roughness_texture, uv );
-    vec3 emissive = texture(u_emissive_texture, uv ).xyz*u_emissive_factor;
+    material_properties.y = pow(material_properties.y, material_properties.x);
+    material_properties.z = pow(material_properties.z, material_properties.y);
+    vec3 emissive = (emissive_option == 1) ? texture(u_emissive_texture, uv ).xyz*u_emissive_factor : vec3(0);
     ExtraColor.xyz = emissive;
-    ExtraColor.a = material_properties.x;
+    ExtraColor.a = (occlusion_option == 1) ? material_properties.x : 1;
+    MetalnessColor = vec4(u_metallic_roughness, u_metallic_factor, 0, 0);
 }
 
 \skybox.fs
@@ -811,6 +813,17 @@ const in vec3 f0)
     return f0 + (vec3(1.0) - f0) * f;
 }
 
+// Diffuse Reflections: Disney BRDF using retro-reflections using F term, this is much more complex!!
+// float Fd_Burley ( const in float NoV, const in float NoL,
+// const in float LoH, 
+// const in float linearRoughness)
+// {
+//         float f90 = 0.5 + 2.0 * linearRoughness * LoH * LoH;
+//         float lightScatter = F_Schlick(NoL, 1.0, f90);
+//         float viewScatter  = F_Schlick(NoV, 1.0, f90);
+//         return lightScatter * viewScatter * RECIPROCAL_PI;
+// }
+
 // Normal Distribution Function using GGX Distribution
 float D_GGX (   const in float NoH, 
 const in float linearRoughness )
@@ -851,6 +864,14 @@ vec3 multipass(vec3 N, vec3 light, vec4 color, vec3 world_position)
     float NdotL;
     float shadow_factor = 1.0f;
 
+    vec2 uv = (gl_FragCoord.xy * u_iRes);
+    vec4 metallic_roughness = texture(u_metallic_texture, uv);
+
+    //we compute the reflection in base to the color and the metalness
+    vec3 f0 = mix( vec3(0.5), color.xyz, metallic_roughness.y );
+    //metallic materials do not have diffuse
+    vec3 diffuseColor = (1.0 - metallic_roughness.y) * color.xyz;
+
     if (u_light_type == DIRECTIONALLIGHT)
     {
         //all rays are parallel, so using light front, and no attenuation
@@ -858,13 +879,13 @@ vec3 multipass(vec3 N, vec3 light, vec4 color, vec3 world_position)
         NdotL = clamp(dot(N, L), 0.0, 1.0);
 
         vec3 L = u_light_front;
-        vec3 V = normalize(u_camera_position-world_position);
+        vec3 V = normalize(u_camera_pos-world_position);
         //reflected light vector from L, hence the -L
         vec3 R = normalize(reflect(N, V));
         vec4 cubeColor = textureCube( u_cube_texture, R );
 
         // color.rgb = (color.rgb*color.a) + (cubeColor.rgb * (1 - color.a));
-        color = mix(color, cubeColor, u_alpha);
+        // color = mix(color, cubeColor, metallic_roughness.x);
         // color = cubeColor;
 
         if ( u_light_cast_shadows == 1.0)
@@ -905,20 +926,30 @@ vec3 multipass(vec3 N, vec3 light, vec4 color, vec3 world_position)
     }
     
     //compute specular light if option activated, otherwise simply sum 0
-    vec3 specular = vec3(0);
+    vec3 lightParams = vec3(0);
     if (specular_option == 1)
     {
-        vec4 tmp = texture(u_normal_texture, v_uv);
-        //view vector, from point being shaded on surface to camera (eye) 
-        vec3 V = normalize(u_camera_position-world_position);
-        //reflected light vector from L, hence the -L
-        vec3 R = normalize(reflect(-L, N));
+        vec3 V = normalize(u_camera_pos - world_position);
+        vec3 H = (V + L) / 2;
+		float NdotV = dot(N, V);
+		float NdotH = dot(N, H);
+		float LdotH = dot(L, H);
 
-        //pow(dot(R, V), alpha) computes specular power
-        specular = factor*tmp.a*(clamp(pow(dot(R, V), u_alpha), 0.0, 1.0))* NdotL * u_light_color * color.xyz;
+        //compute the specular
+        vec3 Fr_d = specularBRDF(metallic_roughness.x, f0, NdotH, NdotV, NdotL, LdotH);
+        // Here we use the Burley, but you can replace it by the Lambert.
+        // linearRoughness = squared roughness
+        float linearRoughness = metallic_roughness.x*metallic_roughness.x;
+        vec3 Fd_d = diffuseColor * color.xyz/PI; 
+
+        //add diffuse and specular reflection
+        vec3 direct = Fr_d + Fd_d;
+
+        //compute how much light received the pixel
+        lightParams = max(0.0f, NdotL) * u_light_color * factor * shadow_factor;// * direct;
     }
 
-    light += NdotL*u_light_color * factor * shadow_factor;
+    light += NdotL*u_light_color * factor * shadow_factor + lightParams;
     light *= color.xyz;
 
     return light;
@@ -934,6 +965,7 @@ in vec2 v_uv;
 uniform sampler2D u_color_texture;
 uniform sampler2D u_normal_texture;
 uniform sampler2D u_extra_texture;
+uniform sampler2D u_metallic_texture;
 uniform sampler2D u_depth_texture;
 
 uniform vec2 u_iRes;
@@ -944,12 +976,11 @@ uniform vec3 u_ambient_light;
 uniform vec3 u_light_position;
 uniform vec3 u_light_color;
 uniform vec3 u_light_front;
-uniform vec3 u_camera_position;
+uniform vec3 u_camera_pos;
 
 uniform float u_light_max_distance;
 uniform int u_light_type;
 uniform vec2 u_light_cone_info;
-uniform float u_alpha;
 
 uniform int occlusion_option;
 uniform int normal_option;
@@ -1001,15 +1032,11 @@ void main()
     light = multipass(N, light, color, world_position);
     
     //calculate final colours
-    vec4 final_color = vec4(color.rgb, 0);
+    vec4 final_color = vec4(0);
 
     final_color.a = color.a;
 
     vec4 cubeColor;
-
-    if (u_light_type == DIRECTIONALLIGHT){
-
-    }
     
     final_color.xyz = light + factor*material_properties.xyz;
 
