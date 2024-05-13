@@ -369,7 +369,6 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 
 	glClearColor(scene->background_color.x, scene->background_color.y, scene->background_color.z, 1.0);
 	glClearColor(0, 0, 0, 1.0f);//set the clear color
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	if (skybox_cubemap)
 		renderSkybox(skybox_cubemap);
