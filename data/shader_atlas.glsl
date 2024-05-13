@@ -308,6 +308,7 @@ uniform sampler2D u_texture;
 uniform sampler2D u_normal_texture;
 uniform sampler2D u_emissive_texture;
 uniform sampler2D u_metallic_roughness_texture;
+uniform sampler2D u_depth_texture;
 
 uniform float u_alpha_cutoff;
 uniform vec3 u_ambient_light;
@@ -327,6 +328,7 @@ uniform int normal_option;
 uniform int single_pass_option;
 uniform int specular_option;
 uniform int emissive_option;
+uniform int deferred_option;
 
 uniform int u_light_cast_shadows;
 uniform sampler2D u_shadowmap;
@@ -351,6 +353,12 @@ void main()
 
     if(color.a < u_alpha_cutoff)
         discard;
+
+    // if (deferred_option == 1.0)
+    // {
+    //     float depth = texture2D(u_depth_texture, uv).x;
+    //     gl_FragDepth = depth;
+    // }
 
     vec3 N = normalize( v_normal );
     vec3 light = u_ambient_light;
@@ -511,6 +519,7 @@ uniform sampler2D u_texture;
 uniform sampler2D u_normal_texture;
 uniform sampler2D u_emissive_texture;
 uniform sampler2D u_metallic_roughness_texture;
+uniform sampler2D u_depth_texture;
 
 uniform float u_alpha_cutoff;
 uniform vec3 u_ambient_light;
@@ -524,6 +533,7 @@ uniform int normal_option;
 uniform int single_pass_option;
 uniform int specular_option;
 uniform int emissive_option;
+uniform int deferred_option;
 
 uniform sampler2D u_shadow_texture[MAX_LIGHTS];
 uniform int u_light_cast_shadows[MAX_LIGHTS];
@@ -556,7 +566,12 @@ void main()
         vec3 normal_pixel = texture( u_normal_texture, uv ).xyz; 
         N = normalize(perturbNormal( N, v_world_position, normal_pixel,v_uv));
     }
-
+    
+    // if (deferred_option == 1.0)
+    // {
+    //     float depth = texture2D(u_depth_texture, uv).x;
+    //     gl_FragDepth = depth;
+    // }
     
     //add ambient occlusion if option activated
     if (occlusion_option == 1)

@@ -26,7 +26,6 @@ namespace SCN {
 		vec2 cone_info;
 		float area; //for direct;
 
-		GFX::Mesh* sphere;
 		GFX::FBO* shadowMapFBO;
 		mat4 shadowMap_viewProjection;
 

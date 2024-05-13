@@ -307,7 +307,7 @@ void Renderer::lightsDeferred(Camera* camera)
 	glFrontFace(GL_CW);
 	glBlendFunc(GL_ONE, GL_ONE);
 	glDepthMask(false);
-	for (auto light : lights) {
+	for (LightEntity* light : lights) {
 		if (light->light_type == eLightType::POINT || light->light_type == eLightType::SPOT) {
 			if (light->cast_shadows)
 			{
@@ -364,6 +364,9 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 
 	illumination_fbo->bind();
 
+	gbuffers->depth_texture->copyTo(NULL);
+	glClear(GL_COLOR_BUFFER_BIT);
+
 	glClearColor(scene->background_color.x, scene->background_color.y, scene->background_color.z, 1.0);
 	glClearColor(0, 0, 0, 1.0f);//set the clear color
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -373,16 +376,16 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 
 	lightsDeferred(camera);
 
+	sort(alpha_renderables.begin(), alpha_renderables.end(), renderableComparator);
+	for (Renderable& re : alpha_renderables)
+	{
+		if (camera->testBoxInFrustum(re.bounding.center, re.bounding.halfsize))
+			renderMeshWithMaterialLights(re.model, re.mesh, re.material);
+	}
+
 	illumination_fbo->unbind();
 
 	illumination_fbo->color_textures[0]->toViewport();
-
-	//sort(alpha_renderables.begin(), alpha_renderables.end(), renderableComparator);
-	//for (Renderable& re : alpha_renderables)
-	//{
-	//	if (camera->testBoxInFrustum(re.bounding.center, re.bounding.halfsize))
-	//		renderMeshWithMaterialLights(re.model, re.mesh, re.material);
-	//}
 
 
 	glDisable(GL_DEPTH_TEST);
@@ -730,7 +733,7 @@ void Renderer::renderMeshWithMaterialLights(const Matrix44 model, GFX::Mesh* mes
 
 	//uniforms to calculate specular: camera position, alpha shininess, specular factor
 	shader->setUniform("eye", camera->eye);
-	shader->setUniform("alpha", material->roughness_factor);
+	shader->setUniform("u_alpha", material->roughness_factor);
 	float specular_factor = material->metallic_factor;
 	shader->setUniform("u_specular", material->metallic_factor);
 	shader->setUniform("specular_option", use_specular && specular_factor>0.0f);
@@ -755,12 +758,17 @@ void Renderer::renderMeshWithMaterialLights(const Matrix44 model, GFX::Mesh* mes
 		shader->setUniform("normal_option", (int) use_normal_map);
 	}
 
+	if (illumination_fbo->color_textures[0] && (int)pipeline_mode == ePipelineMode::DEFERRED)
+		shader->setUniform("u_depth_texture", illumination_fbo->color_textures[0], texPosition++);
+
+
 	shader->setUniform("u_emissive_factor", material->emissive_factor);
 	shader->setUniform("u_emissive_texture", emissiveTex, texPosition++);
 	shader->setUniform("emissive_option", (int) use_emissive);
 
 	shader->setUniform("u_metallic_roughness_texture", occlusionTex, texPosition++);
 	shader->setUniform("occlusion_option", (int) use_occlusion);
+	shader->setUniform("u_deferred_option", (int)pipeline_mode == ePipelineMode::DEFERRED);
 		
 	//this is used to say which is the alpha threshold to what we should not paint a pixel on the screen (to cut polygons according to texture alpha)
 	shader->setUniform("u_alpha_cutoff", material->alpha_mode == SCN::eAlphaMode::MASK ? material->alpha_cutoff : 0.001f);
