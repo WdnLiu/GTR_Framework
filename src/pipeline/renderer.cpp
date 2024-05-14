@@ -26,6 +26,9 @@ using namespace SCN;
 GFX::Mesh sphere;
 GFX::FBO* gbuffers = nullptr;
 GFX::FBO* illumination_fbo = nullptr;
+GFX::FBO* ssao_fbo = nullptr;
+GFX::FBO* final_fbo = nullptr;
+GFX::FBO* blur_fbo = nullptr;
 
 void Renderer::extractRenderables(SCN::Node* node, Camera* camera)
 {
@@ -78,9 +81,14 @@ Renderer::Renderer(const char* shader_atlas_filename)
 	use_multipass_lights = true;
 	use_no_texture = false;
 	use_normal_map = true;
-	use_emissive   = true;
-	use_specular   = true;
-	use_occlusion  = true;
+	use_emissive = true;
+	use_specular = true;
+	use_occlusion = true;
+	view_ssao = false;
+	use_ssao = false;
+	use_degamma = false;
+	view_blur = false;
+	use_blur = false;
 	use_dithering  = true;
 
 	sphere.createSphere(1.0f);
@@ -91,6 +99,10 @@ Renderer::Renderer(const char* shader_atlas_filename)
 
 	pipeline_mode = ePipelineMode::DEFERRED;
 	gbuffer_show_mode = eShowGBuffer::NONE;
+
+	ssao_radius = 11.0f;
+	ssao_max_distance = 0.1f;
+	random_points = generateSpherePoints(64, 1, false);
 }
 
 void Renderer::extractSceneInfo(SCN::Scene* scene, Camera* camera)
@@ -206,6 +218,8 @@ void Renderer::generateShadowMaps(Camera* camera)
 	}
 }
 
+
+
 void Renderer::renderScene(SCN::Scene* scene, Camera* camera)
 {
 	this->scene = scene;
@@ -267,6 +281,13 @@ void Renderer::gbufferToShader(GFX::Shader* shader, vec2 size, Camera* camera)
 	shader->setUniform("u_iRes", vec2(1.0 / size.x, 1.0 / size.y));
 	shader->setMatrix44("u_inverse_viewprojection", camera->inverse_viewprojection_matrix);
 	shader->setUniform("specular_option",  (int) use_specular);
+	shader->setUniform("u_use_ssao", (use_ssao || use_blur));
+
+	if (use_ssao)
+		shader->setUniform("u_ao_texture", ssao_fbo->color_textures[0], texturePos++);
+	else if (use_blur)
+		shader->setUniform("u_ao_texture", blur_fbo->color_textures[0], texturePos++);
+	
 	shader->setUniform("dithering_option", (int)use_dithering);
 }
 
@@ -336,6 +357,80 @@ void Renderer::lightsDeferred(Camera* camera)
 	glDepthMask(true);
 }
 
+void Renderer::ssaoBlur(Camera* camera)
+{
+	vec2 size = CORE::getWindowSize();
+	GFX::Mesh* quad = GFX::Mesh::getQuad();
+
+	//ssao
+	if (!ssao_fbo) {
+		ssao_fbo = new GFX::FBO();
+		ssao_fbo->create(size.x, size.y, 1, GL_RGB, GL_UNSIGNED_BYTE, true);
+		ssao_fbo->color_textures[0]->setName("SSAO");
+	}
+
+	ssao_fbo->bind();
+	glClearColor(1, 1, 1, 1); //fondo blanco
+	glClear(GL_COLOR_BUFFER_BIT);
+	glDisable(GL_DEPTH_TEST);
+	glDisable(GL_BLEND);
+
+	GFX::Shader* sh_ssao = GFX::Shader::Get("ssao");
+	assert(sh_ssao);
+
+	//bind the texture we want to change 
+	gbuffers->depth_texture->bind();
+	//disable using mipmaps
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	//enable bilinear filtering
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	sh_ssao->enable();
+
+	sh_ssao->setUniform("u_depth_texture", gbuffers->depth_texture, 0);
+
+	sh_ssao->setUniform("u_radius", ssao_radius);
+	sh_ssao->setUniform("far", ssao_max_distance);
+	sh_ssao->setUniform("near", (float)0.0001f);
+
+	//to reconstruct world position
+	sh_ssao->setUniform("u_iRes", vec2(1.0 / ssao_fbo->color_textures[0]->width, 1.0 / ssao_fbo->color_textures[0]->height));
+	sh_ssao->setUniform("u_inverse_viewprojection", camera->inverse_viewprojection_matrix);
+	sh_ssao->setUniform3Array("u_points", (float*)&random_points[0], random_points.size());
+	sh_ssao->setUniform("u_viewprojection", camera->viewprojection_matrix);
+
+	quad->render(GL_TRIANGLES);
+
+	ssao_fbo->unbind();
+
+	//blur
+	if (!blur_fbo) {
+		blur_fbo = new GFX::FBO();
+		blur_fbo->create(size.x, size.y, 1, GL_RGB, GL_UNSIGNED_BYTE, false);
+		blur_fbo->color_textures[0]->setName("blur");
+	}
+
+
+	blur_fbo->bind();
+
+	glClearColor(1, 1, 1, 1); //fondo blanco
+	glClear(GL_COLOR_BUFFER_BIT);
+	glDisable(GL_DEPTH_TEST);
+	glDisable(GL_BLEND);
+
+	GFX::Shader* sh_blur = GFX::Shader::Get("blur");
+	assert(sh_blur);
+
+	sh_blur->enable();
+
+	sh_blur->setUniform("u_ssao_texture", ssao_fbo->color_textures[0], 1);
+	sh_blur->setUniform("u_iRes", vec2(1.0 / blur_fbo->color_textures[0]->width, 1.0 / blur_fbo->color_textures[0]->height));
+
+	quad->render(GL_TRIANGLES);
+
+	blur_fbo->unbind();
+}
+
 void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 {
 	vec2 size = CORE::getWindowSize();
@@ -345,9 +440,7 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 	if (!gbuffers)
 	{
 		gbuffers = new GFX::FBO();
-		gbuffers->create(size.x, size.y, 4, GL_RGBA, GL_UNSIGNED_BYTE, true);  //crea todas las texturas attached, true if we want depthbuffer in a texure (para poder leerlo)
-		illumination_fbo = new GFX::FBO();
-		illumination_fbo->create(size.x, size.y, 1, GL_RGB, GL_HALF_FLOAT, false);
+		gbuffers->create(size.x / 2, size.y / 2, 4, GL_RGBA, GL_UNSIGNED_BYTE, true);  //crea todas las texturas attached, true if we want depthbuffer in a texure (para poder leerlo)
 	}
 
 	gbuffers->bind();
@@ -364,6 +457,14 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 			renderMeshWithMaterialGBuffers(re.model, re.mesh, re.material);
 
 	gbuffers->unbind();
+
+	ssaoBlur(camera);
+
+	if (!illumination_fbo)
+	{
+		illumination_fbo = new GFX::FBO();
+		illumination_fbo->create(size.x, size.y, 1, GL_RGB, GL_FLOAT, false);
+	}
 
 	illumination_fbo->bind();
 
@@ -387,8 +488,30 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 
 	illumination_fbo->unbind();
 
-	illumination_fbo->color_textures[0]->toViewport();
+	if (!final_fbo) {
+		final_fbo = new GFX::FBO();
+		final_fbo->create(size.x, size.y, 1, GL_RGB, GL_FLOAT, false);
+		final_fbo->color_textures[0]->setName("final_fbo");
+	}
 
+
+	final_fbo->bind();
+
+	GFX::Shader* sh_gamma = GFX::Shader::Get("gamma");
+	assert(sh_gamma);
+	sh_gamma->enable();
+	sh_gamma->setUniform("u_texture", illumination_fbo->color_textures[0], 1);
+
+	GFX::Mesh* quad = GFX::Mesh::getQuad();
+
+	quad->render(GL_TRIANGLES);
+
+	final_fbo->unbind();
+
+	if (use_degamma)
+		final_fbo->color_textures[0]->toViewport();
+	else
+		illumination_fbo->color_textures[0]->toViewport();
 
 	glDisable(GL_DEPTH_TEST);
 	switch (gbuffer_show_mode) //debug
@@ -398,6 +521,11 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 		case eShowGBuffer::EXTRA:  gbuffers->color_textures[2]->toViewport(); break;
 		case eShowGBuffer::DEPTH:  gbuffers->depth_texture->toViewport();	  break; //para visualizar depth usar depth.fs y funcion
 	}
+
+	if (view_ssao)
+		ssao_fbo->color_textures[0]->toViewport();
+	if (view_blur)
+		blur_fbo->color_textures[0]->toViewport();
 }
 
 void Renderer::renderSkybox(GFX::Texture* cubemap)
@@ -963,6 +1091,15 @@ void Renderer::showUI()
 	ImGui::Checkbox("Specular light", &use_specular);
 	ImGui::Checkbox("Occlusion light", &use_occlusion);
 	ImGui::Checkbox("Dithering", &use_dithering);
+
+	ImGui::Checkbox("Use SSAO", &use_ssao);
+	ImGui::Checkbox("Use blur", &use_blur);
+
+	ImGui::DragFloat("ssao radius", &ssao_radius, 0.01f, 0.0f);
+	ImGui::DragFloat("ssao max distance", &ssao_max_distance, 0.01f, 0.0f);
+	ImGui::Checkbox("View ssao", &view_ssao);
+	ImGui::Checkbox("View blur", &view_blur);
+	ImGui::Checkbox("Use degamma", &use_degamma);
 
 	if (ImGui::Button("ShadowMap 256"))
 		shadowmap_size = 256;

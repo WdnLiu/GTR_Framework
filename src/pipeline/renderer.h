@@ -61,7 +61,18 @@ namespace SCN {
 		bool use_emissive;
 		bool use_specular;
 		bool use_occlusion;
+		bool view_ssao;
+		bool use_ssao;
+		bool use_degamma;
+		bool view_blur;
+		bool use_blur;
 		bool use_dithering;
+
+
+		float ssao_radius;
+		float ssao_max_distance;
+
+		std::vector<vec3> random_points;
 
 		ePipelineMode pipeline_mode;
 		eShowGBuffer gbuffer_show_mode;
@@ -99,6 +110,7 @@ namespace SCN {
 		void renderSceneDeferred(SCN::Scene* scene, Camera* camera);
 		void gbufferToShader(GFX::Shader* shader, vec2 size, Camera* camera);
 		void lightsDeferred(Camera* camera);
+		void ssaoBlur(Camera* camera);
 		//render the skybox
 		void renderSkybox(GFX::Texture* cubemap);
 
