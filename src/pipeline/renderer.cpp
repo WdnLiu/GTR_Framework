@@ -264,7 +264,7 @@ void Renderer::gbufferToShader(GFX::Shader* shader, vec2 size, Camera* camera)
 	shader->setUniform("u_cube_texture",     skybox_cubemap,			  texturePos++);
 	cameraToShader(camera, shader);
 	shader->setUniform("u_iRes", vec2(1.0 / size.x, 1.0 / size.y));
-	shader->setUniform("u_inverse_viewprojection", camera->inverse_viewprojection_matrix);
+	shader->setMatrix44("u_inverse_viewprojection", camera->inverse_viewprojection_matrix);
 	shader->setUniform("specular_option",  (int) use_specular);
 }
 
@@ -280,19 +280,20 @@ void Renderer::lightsDeferred(Camera* camera)
 	glDisable(GL_DEPTH_TEST);
 	shader->enable();
 
-	if (mainLight->cast_shadows && mainLight->shadowMapFBO)
-	{
-		shadowToShader(mainLight, shadowMapPos, shader);
+	if (mainLight) {
+		if (mainLight->cast_shadows && mainLight->shadowMapFBO)
+		{
+			shadowToShader(mainLight, shadowMapPos, shader);
+		}
+		else
+			shader->setUniform("u_light_cast_shadows", 0);
+
+		lightToShader(mainLight, shader);
 	}
-	else
-		shader->setUniform("u_light_cast_shadows", 0);
+	else shader->setUniform("u_light_type", 0);
 
 	gbufferToShader(shader, size, camera);
-	cameraToShader(camera, shader);
-
 	shader->setUniform("u_ambient_light", scene->ambient_light);
-
-	lightToShader(mainLight, shader);
 
 	quad->render(GL_TRIANGLES);
 
@@ -307,7 +308,7 @@ void Renderer::lightsDeferred(Camera* camera)
 	glFrontFace(GL_CW);
 	glBlendFunc(GL_ONE, GL_ONE);
 	glDepthMask(false);
-	for (LightEntity* light : lights) {
+	for (auto light : lights) {
 		if (light->light_type == eLightType::POINT || light->light_type == eLightType::SPOT) {
 			if (light->cast_shadows)
 			{
@@ -320,7 +321,7 @@ void Renderer::lightsDeferred(Camera* camera)
 			model.translate(lightpos.x, lightpos.y, lightpos.z);
 			model.scale(light->max_distance, light->max_distance, light->max_distance);
 			shader->setUniform("u_model", model);
-			
+
 			lightToShader(light, shader);
 			sphere.render(GL_TRIANGLES);
 		}
@@ -365,10 +366,10 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 	illumination_fbo->bind();
 
 	gbuffers->depth_texture->copyTo(NULL);
-	glClear(GL_COLOR_BUFFER_BIT);
 
 	glClearColor(scene->background_color.x, scene->background_color.y, scene->background_color.z, 1.0);
 	glClearColor(0, 0, 0, 1.0f);//set the clear color
+	glClear(GL_COLOR_BUFFER_BIT);
 
 	if (skybox_cubemap)
 		renderSkybox(skybox_cubemap);

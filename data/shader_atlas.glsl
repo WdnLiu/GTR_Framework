@@ -858,6 +858,42 @@ float D = D_GGX( NoH, a );
     return spec;
 }
 
+vec3 computeSpecular(vec4 color, vec3 L, vec3 N, float shadow_factor, vec3 factor, vec3 world_position, float NdotL)
+{
+    vec2 uv = (gl_FragCoord.xy * u_iRes);
+    vec4 metallic_roughness = texture(u_metallic_texture, uv);
+
+    //we compute the reflection in base to the color and the metalness
+    vec3 f0 = mix( vec3(0.5), color.xyz, metallic_roughness.y );
+    //metallic materials do not have diffuse
+    vec3 diffuseColor = (1.0 - metallic_roughness.y) * color.xyz;
+
+    vec3 V = normalize(u_camera_pos - world_position);
+
+    //compute specular light if option activated, otherwise simply sum 0
+    vec3 lightParams = vec3(0);
+    if (specular_option == 1)
+    {
+        vec3 H = normalize( L + V );
+        float NdotH = clamp(dot(N, H), 0.0f, 1.0f);
+        float NdotV = clamp(dot(N, V), 0.0f, 1.0f);
+        float LdotH = clamp(dot(L, H), 0.0f, 1.0f);
+        
+        //compute the specular
+        vec3 specular = specularBRDF(metallic_roughness.x, f0, NdotH, NdotV, NdotL, LdotH);
+        // Here we use the Burley, but you can replace it by the Lambert.
+        // linearRoughness = squared roughness
+        float linearRoughness = metallic_roughness.x*metallic_roughness.x;
+        vec3 diffuse  = diffuseColor * NdotL * u_light_color * color.xyz; 
+
+        //add diffuse and specular reflection
+        vec3 direct = diffuse + specular;
+
+        //compute how much light received the pixel
+        lightParams = u_light_color * factor * shadow_factor * direct;
+    }
+    return lightParams;
+}
 
 vec3 multipass(vec3 N, vec3 light, vec4 color, vec3 world_position)
 {
@@ -867,13 +903,7 @@ vec3 multipass(vec3 N, vec3 light, vec4 color, vec3 world_position)
     float NdotL;
     float shadow_factor = 1.0f;
 
-    vec2 uv = (gl_FragCoord.xy * u_iRes);
-    vec4 metallic_roughness = texture(u_metallic_texture, uv);
-
-    //we compute the reflection in base to the color and the metalness
-    vec3 f0 = mix( vec3(0.5), color.xyz, metallic_roughness.y );
-    //metallic materials do not have diffuse
-    vec3 diffuseColor = (1.0 - metallic_roughness.y) * color.xyz;
+    vec3 V = normalize(u_camera_pos - world_position);
 
     if (u_light_type == DIRECTIONALLIGHT)
     {
@@ -882,10 +912,9 @@ vec3 multipass(vec3 N, vec3 light, vec4 color, vec3 world_position)
         NdotL = clamp(dot(N, L), 0.0, 1.0);
 
         vec3 L = u_light_front;
-        vec3 V = normalize(u_camera_pos-world_position);
         //reflected light vector from L, hence the -L
         vec3 R = normalize(reflect(N, V));
-        vec4 cubeColor = textureCube( u_cube_texture, R );
+        // vec4 cubeColor = textureCube( u_cube_texture, R );
 
         // color.rgb = (color.rgb*color.a) + (cubeColor.rgb * (1 - color.a));
         // color = mix(color, cubeColor, metallic_roughness.x);
@@ -893,6 +922,8 @@ vec3 multipass(vec3 N, vec3 light, vec4 color, vec3 world_position)
 
         if ( u_light_cast_shadows == 1.0)
             shadow_factor *= computeShadow(world_position);
+
+        light += computeSpecular(color, L, N, shadow_factor, factor, world_position, NdotL);
     }
     else if (u_light_type == SPOTLIGHT  || u_light_type == POINTLIGHT)
     {   //emitted from single point in all directions
@@ -905,20 +936,6 @@ vec3 multipass(vec3 N, vec3 light, vec4 color, vec3 world_position)
 
         NdotL = clamp(dot(N, L), 0.0, 1.0);
 
-        //calculate area affected by spotlight
-        if (u_light_type == SPOTLIGHT)
-        {
-            if ( u_light_cast_shadows == 1.0)
-                shadow_factor *= computeShadow(world_position);
-
-            float cos_angle = dot( u_light_front.xyz, L );
-            
-            if ( cos_angle < u_light_cone_info.x )
-                NdotL = 0.0f;
-            else if ( cos_angle < u_light_cone_info.y )
-                NdotL *= ( cos_angle - u_light_cone_info.x ) / ( u_light_cone_info.y - u_light_cone_info.x );
-        }
-
         //Compute attenuation
         float att_factor = u_light_max_distance - dist;
         att_factor /= u_light_max_distance;
@@ -926,33 +943,27 @@ vec3 multipass(vec3 N, vec3 light, vec4 color, vec3 world_position)
 
         //accumulate light attributes in single factor
         factor *= att_factor;
+
+
+        //calculate area affected by spotlight
+        if (u_light_type == SPOTLIGHT)
+        {
+            if ( u_light_cast_shadows == 1.0)
+                shadow_factor *= computeShadow(world_position);
+
+            float cos_angle = dot( u_light_front.xyz, L );
+
+            if ( cos_angle < u_light_cone_info.x )
+                NdotL = 0.0f;
+            else if ( cos_angle < u_light_cone_info.y )
+                NdotL *= ( cos_angle - u_light_cone_info.x ) / ( u_light_cone_info.y - u_light_cone_info.x );
+        }
+
+        light += computeSpecular(color, L, N, shadow_factor, factor, world_position, NdotL);
+
     }
     
-    //compute specular light if option activated, otherwise simply sum 0
-    vec3 lightParams = vec3(0);
-    if (specular_option == 1)
-    {
-        vec3 V = normalize(u_camera_pos - world_position);
-        vec3 H = (V + L) / 2;
-		float NdotV = dot(N, V);
-		float NdotH = dot(N, H);
-		float LdotH = dot(L, H);
-
-        //compute the specular
-        vec3 Fr_d = specularBRDF(metallic_roughness.x, f0, NdotH, NdotV, NdotL, LdotH);
-        // Here we use the Burley, but you can replace it by the Lambert.
-        // linearRoughness = squared roughness
-        float linearRoughness = metallic_roughness.x*metallic_roughness.x;
-        vec3 Fd_d = diffuseColor * color.xyz/PI; 
-
-        //add diffuse and specular reflection
-        vec3 direct = Fr_d + Fd_d;
-
-        //compute how much light received the pixel
-        lightParams = max(0.0f, NdotL) * u_light_color * factor * shadow_factor;// * direct;
-    }
-
-    light += NdotL*u_light_color * factor * shadow_factor + lightParams;
+    light += NdotL*u_light_color * factor * shadow_factor;
     light *= color.xyz;
 
     return light;
