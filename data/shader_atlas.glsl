@@ -1022,12 +1022,12 @@ void main()
 
     vec4 color = texture(u_color_texture, uv);
     
-    if (use_degamma == 1)
-        color = vec4(degamma(color.xyz), 1.0);
-    
-
     vec3 N = texture(u_normal_texture, uv).xyz * 2 - vec3(1.0f);
     float depth = texture(u_depth_texture, uv).x;
+
+    if (use_degamma == 1)
+        N = degamma(texture(u_normal_texture, uv).xyz) * 2  - vec3(1.0f);
+        color = vec4(degamma(color.xyz), 1.0);
 
     if (depth == 1.0f)
         discard;

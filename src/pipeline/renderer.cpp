@@ -281,7 +281,10 @@ void Renderer::gbufferToShader(GFX::Shader* shader, vec2 size, Camera* camera)
 	shader->setUniform("u_iRes", vec2(1.0 / size.x, 1.0 / size.y));
 	shader->setUniform("u_inverse_viewprojection", camera->inverse_viewprojection_matrix);
 	shader->setUniform("specular_option",  (int) use_specular);
-	shader->setUniform("u_use_ssao", (int)use_ssao);
+	if (use_ssao || use_blur) 
+		shader->setUniform("u_use_ssao", (int)1);
+	else
+		shader->setUniform("u_use_ssao", (int)0);
 	if (use_ssao)
 		shader->setUniform("u_ao_texture", ssao_fbo->color_textures[0], texturePos++);
 	else if (use_blur)
@@ -480,24 +483,34 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 	glDepthMask(true);
 	illumination_fbo->unbind();
 
-	illumination_fbo->color_textures[0]->toViewport();
 
 	//degamma final pass
-	/*if (!final_fbo) {
+	if (!final_fbo) {
 		final_fbo = new GFX::FBO();
 		final_fbo->create(size.x, size.y, 1, GL_RGB, GL_FLOAT, false);
+		final_fbo->color_textures[0]->setName("final_fbo");
+
 	}
+
+
+	final_fbo->bind();
 
 	GFX::Shader* sh_gamma = GFX::Shader::Get("gamma");
 	assert(sh_gamma);
+	sh_gamma->enable();
+	sh_gamma->setUniform("u_texture", illumination_fbo->color_textures[0], 1);
 
-	final_fbo->bind();
-	sh_gamma->setUniform("u_texture", illumination_fbo->color_textures[0], 0);
-	//quad->render(GL_TRIANGLES);
+	quad->render(GL_TRIANGLES);
+
 	final_fbo->unbind();
 
-	final_fbo->color_textures[0]->toViewport();
-	*/
+	if(use_degamma)
+		final_fbo->color_textures[0]->toViewport();
+	else
+		illumination_fbo->color_textures[0]->toViewport();
+
+
+
 
 
 	//alpha renderables
@@ -1086,9 +1099,7 @@ void Renderer::showUI()
 	ImGui::DragFloat("ssao max distance", &ssao_max_distance, 0.01f, 0.0f);
 	ImGui::Checkbox("View ssao", &view_ssao);
 	ImGui::Checkbox("View blur", &view_blur);
-
-
-	ImGui::Checkbox("View degamma", &use_degamma);
+	ImGui::Checkbox("Use degamma", &use_degamma);
 
 
 	
