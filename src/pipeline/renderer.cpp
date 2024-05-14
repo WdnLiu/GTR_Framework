@@ -81,6 +81,7 @@ Renderer::Renderer(const char* shader_atlas_filename)
 	use_emissive   = true;
 	use_specular   = true;
 	use_occlusion  = true;
+	use_dithering  = true;
 
 	sphere.createSphere(1.0f);
 	sphere.uploadToVRAM();
@@ -266,6 +267,7 @@ void Renderer::gbufferToShader(GFX::Shader* shader, vec2 size, Camera* camera)
 	shader->setUniform("u_iRes", vec2(1.0 / size.x, 1.0 / size.y));
 	shader->setMatrix44("u_inverse_viewprojection", camera->inverse_viewprojection_matrix);
 	shader->setUniform("specular_option",  (int) use_specular);
+	shader->setUniform("dithering_option", (int)use_dithering);
 }
 
 void Renderer::lightsDeferred(Camera* camera)
@@ -529,6 +531,10 @@ void Renderer::renderMeshWithMaterialGBuffers(const Matrix44 model, GFX::Mesh* m
 
 	shader->setUniform("occlusion_option", (int)use_occlusion);
 	shader->setUniform("emissive_option",  (int)use_emissive);
+	if (use_dithering && material->alpha_mode == eAlphaMode::BLEND)
+		shader->setUniform("dithering_option", 1);
+	else
+		shader->setUniform("dithering_option", 0);
 
 	//this is used to say which is the alpha threshold to what we should not paint a pixel on the screen (to cut polygons according to texture alpha)
 	shader->setUniform("u_alpha_cutoff", material->alpha_mode == SCN::eAlphaMode::MASK ? material->alpha_cutoff : 0.001f);
@@ -956,6 +962,7 @@ void Renderer::showUI()
 	ImGui::Checkbox("Normal map", &use_normal_map);
 	ImGui::Checkbox("Specular light", &use_specular);
 	ImGui::Checkbox("Occlusion light", &use_occlusion);
+	ImGui::Checkbox("Dithering", &use_dithering);
 
 	if (ImGui::Button("ShadowMap 256"))
 		shadowmap_size = 256;
