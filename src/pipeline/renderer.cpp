@@ -264,7 +264,7 @@ void Renderer::gbufferToShader(GFX::Shader* shader, vec2 size, Camera* camera)
 	shader->setUniform("u_cube_texture",     skybox_cubemap,			  texturePos++);
 	cameraToShader(camera, shader);
 	shader->setUniform("u_iRes", vec2(1.0 / size.x, 1.0 / size.y));
-	shader->setUniform("u_inverse_viewprojection", camera->inverse_viewprojection_matrix);
+	shader->setMatrix44("u_inverse_viewprojection", camera->inverse_viewprojection_matrix);
 	shader->setUniform("specular_option",  (int) use_specular);
 }
 
@@ -280,19 +280,20 @@ void Renderer::lightsDeferred(Camera* camera)
 	glDisable(GL_DEPTH_TEST);
 	shader->enable();
 
-	if (mainLight->cast_shadows && mainLight->shadowMapFBO)
-	{
-		shadowToShader(mainLight, shadowMapPos, shader);
+	if (mainLight) {
+		if (mainLight->cast_shadows && mainLight->shadowMapFBO)
+		{
+			shadowToShader(mainLight, shadowMapPos, shader);
+		}
+		else
+			shader->setUniform("u_light_cast_shadows", 0);
+
+		lightToShader(mainLight, shader);
 	}
-	else
-		shader->setUniform("u_light_cast_shadows", 0);
+	else shader->setUniform("u_light_type", 0);
 
 	gbufferToShader(shader, size, camera);
-	cameraToShader(camera, shader);
-
 	shader->setUniform("u_ambient_light", scene->ambient_light);
-
-	lightToShader(mainLight, shader);
 
 	quad->render(GL_TRIANGLES);
 
@@ -320,7 +321,7 @@ void Renderer::lightsDeferred(Camera* camera)
 			model.translate(lightpos.x, lightpos.y, lightpos.z);
 			model.scale(light->max_distance, light->max_distance, light->max_distance);
 			shader->setUniform("u_model", model);
-			
+
 			lightToShader(light, shader);
 			sphere.render(GL_TRIANGLES);
 		}
@@ -364,25 +365,27 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 
 	illumination_fbo->bind();
 
+	gbuffers->depth_texture->copyTo(NULL);
+
 	glClearColor(scene->background_color.x, scene->background_color.y, scene->background_color.z, 1.0);
 	glClearColor(0, 0, 0, 1.0f);//set the clear color
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glClear(GL_COLOR_BUFFER_BIT);
 
 	if (skybox_cubemap)
 		renderSkybox(skybox_cubemap);
 
 	lightsDeferred(camera);
 
+	sort(alpha_renderables.begin(), alpha_renderables.end(), renderableComparator);
+	for (Renderable& re : alpha_renderables)
+	{
+		if (camera->testBoxInFrustum(re.bounding.center, re.bounding.halfsize))
+			renderMeshWithMaterialLights(re.model, re.mesh, re.material);
+	}
+
 	illumination_fbo->unbind();
 
 	illumination_fbo->color_textures[0]->toViewport();
-
-	//sort(alpha_renderables.begin(), alpha_renderables.end(), renderableComparator);
-	//for (Renderable& re : alpha_renderables)
-	//{
-	//	if (camera->testBoxInFrustum(re.bounding.center, re.bounding.halfsize))
-	//		renderMeshWithMaterialLights(re.model, re.mesh, re.material);
-	//}
 
 
 	glDisable(GL_DEPTH_TEST);
@@ -730,7 +733,7 @@ void Renderer::renderMeshWithMaterialLights(const Matrix44 model, GFX::Mesh* mes
 
 	//uniforms to calculate specular: camera position, alpha shininess, specular factor
 	shader->setUniform("eye", camera->eye);
-	shader->setUniform("alpha", material->roughness_factor);
+	shader->setUniform("u_alpha", material->roughness_factor);
 	float specular_factor = material->metallic_factor;
 	shader->setUniform("u_specular", material->metallic_factor);
 	shader->setUniform("specular_option", use_specular && specular_factor>0.0f);
@@ -755,12 +758,17 @@ void Renderer::renderMeshWithMaterialLights(const Matrix44 model, GFX::Mesh* mes
 		shader->setUniform("normal_option", (int) use_normal_map);
 	}
 
+	if (illumination_fbo->color_textures[0] && (int)pipeline_mode == ePipelineMode::DEFERRED)
+		shader->setUniform("u_depth_texture", illumination_fbo->color_textures[0], texPosition++);
+
+
 	shader->setUniform("u_emissive_factor", material->emissive_factor);
 	shader->setUniform("u_emissive_texture", emissiveTex, texPosition++);
 	shader->setUniform("emissive_option", (int) use_emissive);
 
 	shader->setUniform("u_metallic_roughness_texture", occlusionTex, texPosition++);
 	shader->setUniform("occlusion_option", (int) use_occlusion);
+	shader->setUniform("u_deferred_option", (int)pipeline_mode == ePipelineMode::DEFERRED);
 		
 	//this is used to say which is the alpha threshold to what we should not paint a pixel on the screen (to cut polygons according to texture alpha)
 	shader->setUniform("u_alpha_cutoff", material->alpha_mode == SCN::eAlphaMode::MASK ? material->alpha_cutoff : 0.001f);

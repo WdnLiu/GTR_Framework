@@ -16,7 +16,6 @@ SCN::LightEntity::LightEntity()
 	area = 1000;
 
 	shadowMapFBO = nullptr;
-	sphere = new GFX::Mesh();
 }
 
 void SCN::LightEntity::configure(cJSON* json)
@@ -40,9 +39,6 @@ void SCN::LightEntity::configure(cJSON* json)
 		light_type = eLightType::DIRECTIONAL;
 
 	shadowMapFBO = nullptr;
-
-	if (this->light_type == eLightType::SPOT || this->light_type == eLightType::POINT)
-		this->sphere->createSphere(this->max_distance, 12, 12);
 }
 
 void SCN::LightEntity::serialize(cJSON* json)
