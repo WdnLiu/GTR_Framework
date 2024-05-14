@@ -491,7 +491,6 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 	if (!final_fbo) {
 		final_fbo = new GFX::FBO();
 		final_fbo->create(size.x, size.y, 1, GL_RGB, GL_FLOAT, false);
-		final_fbo->color_textures[0]->setName("final_fbo");
 	}
 
 
@@ -509,7 +508,7 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 	final_fbo->unbind();
 
 	if (use_degamma)
-		final_fbo->color_textures[0]->toViewport();
+		illumination_fbo->color_textures[0]->toViewport(sh_gamma);
 	else
 		illumination_fbo->color_textures[0]->toViewport();
 
