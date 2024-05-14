@@ -1106,7 +1106,7 @@ void main()
         //we could play with the curve to have more control
         ao_factor = pow( ao_factor, 3.0 );
         //weight the ambient light by it
-        ambient= u_ambient_light * ao_factor ;
+        ambient = u_ambient_light * ao_factor ;
     }
     else
     {    
@@ -1120,8 +1120,6 @@ void main()
     vec4 final_color = vec4(0);
 
     final_color.a = color.a;
-
-    vec4 cubeColor;
     
     final_color.xyz = light + factor*material_properties.xyz;
 

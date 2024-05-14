@@ -447,7 +447,7 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 	if (!gbuffers)
 	{
 		gbuffers = new GFX::FBO();
-		gbuffers->create(size.x / 2, size.y / 2, 4, GL_RGBA, GL_UNSIGNED_BYTE, true);  //crea todas las texturas attached, true if we want depthbuffer in a texure (para poder leerlo)
+		gbuffers->create(size.x, size.y, 4, GL_RGBA, GL_UNSIGNED_BYTE, true);  //crea todas las texturas attached, true if we want depthbuffer in a texure (para poder leerlo)
 	}
 
 	gbuffers->bind();
