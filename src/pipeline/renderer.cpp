@@ -452,7 +452,9 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 	//set the clear color
 	glClearColor(0, 0, 0, 1.0f);
 
-	for (Renderable& re : opaque_renderables)
+	std::vector<Renderable> toRender = (use_dithering) ? renderables : opaque_renderables;
+
+	for (Renderable& re : toRender)
 		if (camera->testBoxInFrustum(re.bounding.center, re.bounding.halfsize))
 			renderMeshWithMaterialGBuffers(re.model, re.mesh, re.material);
 
@@ -479,11 +481,13 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 
 	lightsDeferred(camera);
 
-	sort(alpha_renderables.begin(), alpha_renderables.end(), renderableComparator);
-	for (Renderable& re : alpha_renderables)
-	{
-		if (camera->testBoxInFrustum(re.bounding.center, re.bounding.halfsize))
-			renderMeshWithMaterialLights(re.model, re.mesh, re.material);
+	if (!use_dithering) {
+		sort(alpha_renderables.begin(), alpha_renderables.end(), renderableComparator);
+		for (Renderable& re : alpha_renderables)
+		{
+			if (camera->testBoxInFrustum(re.bounding.center, re.bounding.halfsize))
+				renderMeshWithMaterialLights(re.model, re.mesh, re.material);
+		}
 	}
 
 	illumination_fbo->unbind();
