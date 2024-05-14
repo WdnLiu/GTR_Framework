@@ -16,6 +16,7 @@ gamma quad.vs gamma.fs
 
 \basic.vs
 
+
 #version 330 core
 
 in vec3 a_vertex;

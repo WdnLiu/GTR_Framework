@@ -283,6 +283,13 @@ void Renderer::gbufferToShader(GFX::Shader* shader, vec2 size, Camera* camera)
 	shader->setUniform("specular_option",  (int) use_specular);
 	shader->setUniform("u_use_ssao", (use_ssao || use_blur));
 
+<<<<<<< Updated upstream
+=======
+	if (use_ssao || use_blur)
+		shader->setUniform("u_use_ssao", (int)1);
+	else
+		shader->setUniform("u_use_ssao", (int)0);
+>>>>>>> Stashed changes
 	if (use_ssao)
 		shader->setUniform("u_ao_texture", ssao_fbo->color_textures[0], texturePos++);
 	else if (use_blur)
@@ -460,6 +467,11 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 
 	ssaoBlur(camera);
 
+<<<<<<< Updated upstream
+=======
+
+	//ilumination pass
+>>>>>>> Stashed changes
 	if (!illumination_fbo)
 	{
 		illumination_fbo = new GFX::FBO();
@@ -479,6 +491,10 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 
 	lightsDeferred(camera);
 
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
 	sort(alpha_renderables.begin(), alpha_renderables.end(), renderableComparator);
 	for (Renderable& re : alpha_renderables)
 	{
@@ -488,6 +504,12 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 
 	illumination_fbo->unbind();
 
+<<<<<<< Updated upstream
+=======
+
+
+	//degamma final pass
+>>>>>>> Stashed changes
 	if (!final_fbo) {
 		final_fbo = new GFX::FBO();
 		final_fbo->create(size.x, size.y, 1, GL_RGB, GL_FLOAT, false);
@@ -1028,8 +1050,24 @@ void SCN::Renderer::lightToShader(LightEntity* light, GFX::Shader* shader)
 	shader->setUniform("u_light_type"        , (int) light->light_type                    );
 	shader->setUniform("u_light_position"    , light->root.model.getTranslation()         );
 	shader->setUniform("u_light_front"       , light->root.model.frontVector().normalize());
+<<<<<<< Updated upstream
 	shader->setUniform("u_light_color"       , light->color*light->intensity              );
 	shader->setUniform("u_light_max_distance", light->max_distance                        );
+=======
+	
+	if (use_degamma) {
+
+		vec3 fcolor = light->color * light->intensity;
+		vec3 correctedColor = vec3(pow(fcolor.x, 2.2), pow(fcolor.y, 2.2), pow(fcolor.z, 2.2));
+		shader->setUniform("u_light_color", correctedColor);
+
+	}
+
+	else
+		shader->setUniform("u_light_color", light->color * light->intensity);
+
+	shader->setUniform("u_light_max_distance", light->max_distance );
+>>>>>>> Stashed changes
 	shader->setUniform("u_light_cone_info"   , cone_info);
 }
 
