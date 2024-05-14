@@ -893,6 +893,7 @@ vec3 multipass(vec3 N, vec3 light, vec4 color, vec3 world_position)
 
         if ( u_light_cast_shadows == 1.0)
             shadow_factor *= computeShadow(world_position);
+
     }
     else if (u_light_type == SPOTLIGHT  || u_light_type == POINTLIGHT)
     {   //emitted from single point in all directions
@@ -1047,7 +1048,7 @@ void main()
     if(u_use_ssao == 1)
     {
         //read the ao_factor for this pixel
-        float ao_factor = texture( u_ao_texture, uv ).x;
+        float ao_factor = (use_degamma == 1) ? degamma(texture( u_ao_texture, uv ).xyz).x : texture( u_ao_texture, uv ).x;
         //we could play with the curve to have more control
         ao_factor = pow( ao_factor, 3.0 );
         //weight the ambient light by it
@@ -1071,8 +1072,8 @@ void main()
     final_color.a = color.a;
 
     vec4 cubeColor;
-    
-    final_color.xyz = light + factor*material_properties.xyz;
+    vec3 emitted = (use_degamma == 1) ? degamma(material_properties.xyz) : material_properties.xyz;
+    final_color.xyz = light + factor*emitted;
 
     FragColor = final_color;
 }

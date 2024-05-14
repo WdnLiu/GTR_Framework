@@ -1,6 +1,7 @@
 #include "renderer.h"
 
 #include <algorithm> //sort
+#include <cmath>
 
 #include "camera.h"
 #include "../gfx/gfx.h"
@@ -439,6 +440,7 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 	shader->setUniform("use_degamma", (int)use_degamma);
 
 	lightToShader(mainLight, shader);
+
 
 	quad->render(GL_TRIANGLES);
 
@@ -1030,8 +1032,19 @@ void SCN::Renderer::lightToShader(LightEntity* light, GFX::Shader* shader)
 	shader->setUniform("u_light_type"        , (int) light->light_type                    );
 	shader->setUniform("u_light_position"    , light->root.model.getTranslation()         );
 	shader->setUniform("u_light_front"       , light->root.model.frontVector().normalize());
-	shader->setUniform("u_light_color"       , light->color*light->intensity              );
-	shader->setUniform("u_light_max_distance", light->max_distance                        );
+
+	if (use_degamma) {
+
+		vec3 fcolor = light->color * light->intensity;
+		vec3 correctedColor = vec3(pow(fcolor.x, 2.2), pow(fcolor.y, 2.2), pow(fcolor.z, 2.2));
+		shader->setUniform("u_light_color", correctedColor);
+
+	}
+		
+	else
+		shader->setUniform("u_light_color"       , light->color*light->intensity   );
+
+	shader->setUniform("u_light_max_distance", light->max_distance );
 	shader->setUniform("u_light_cone_info"   , cone_info);
 }
 
