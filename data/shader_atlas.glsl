@@ -11,6 +11,7 @@ gbuffers basic.vs gbuffers.fs
 deferred_global quad.vs deferred_global.fs
 deferred_ws basic.vs deferred_global.fs
 ssao quad.vs ssao.fs
+blur quad.vs blur.fs
 gamma quad.vs gamma.fs
 
 \basic.vs
@@ -1127,7 +1128,7 @@ void main()
 
     
     for(int i = 0; i < samples; ++i) {
-        vec3 random_point = u_points[i]; //vec?
+        vec3 random_point = u_points[i]; 
 
         //check in which side of the normal
         if(dot(N, random_point) < 0.0)
@@ -1165,6 +1166,39 @@ void main()
 
 
 }
+
+\blur.fs
+
+#version 330 core
+  
+in vec2 v_uv;
+  
+uniform sampler2D u_ssao_texture;
+uniform vec2 u_iRes;
+
+out vec4 FragColor;
+
+void main() {
+    
+   vec4 blur_color = vec4(0.0);
+    for (int x = -4; x < 4; ++x) 
+    {
+        for (int y = -4; y < 4; ++y) 
+        {
+            vec2 offset = vec2(float(x), float(y)) * u_iRes;
+            blur_color += texture(u_ssao_texture, v_uv + offset);
+        }
+    }
+    FragColor = blur_color / (8.0 * 8.0);
+}  
+
+
+
+
+
+
+
+
 
 \gamma.fs
 #version 330 core

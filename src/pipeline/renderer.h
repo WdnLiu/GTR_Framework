@@ -64,6 +64,9 @@ namespace SCN {
 		bool view_ssao;
 		bool use_ssao;
 		bool use_degamma;
+		bool view_blur;
+		bool use_blur;
+
 
 		float ssao_radius;
 		float ssao_max_distance;

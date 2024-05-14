@@ -28,6 +28,7 @@ GFX::FBO* gbuffers = nullptr;
 GFX::FBO* illumination_fbo = nullptr;
 GFX::FBO*  ssao_fbo = nullptr;
 GFX::FBO* final_fbo = nullptr;
+GFX::FBO* blur_fbo = nullptr;
 
 Renderer::Renderer(const char* shader_atlas_filename)
 {
@@ -49,6 +50,8 @@ Renderer::Renderer(const char* shader_atlas_filename)
 	view_ssao = false;
 	use_ssao = false;
 	use_degamma = false;
+	view_blur = false;
+	use_blur = false;
 
 	sphere.createSphere(1.0f);
 	sphere.uploadToVRAM();
@@ -281,6 +284,10 @@ void Renderer::gbufferToShader(GFX::Shader* shader, vec2 size, Camera* camera)
 	shader->setUniform("u_use_ssao", (int)use_ssao);
 	if (use_ssao)
 		shader->setUniform("u_ao_texture", ssao_fbo->color_textures[0], texturePos++);
+	else if (use_blur)
+		shader->setUniform("u_ao_texture", blur_fbo->color_textures[0], texturePos++);
+
+
 }
 
 
@@ -318,7 +325,7 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 	//ssao
 	if (!ssao_fbo) {
 		ssao_fbo = new GFX::FBO();
-		ssao_fbo->create(size.x, size.y, 1, GL_RGB, GL_UNSIGNED_BYTE, false);
+		ssao_fbo->create(size.x, size.y, 1, GL_RGB, GL_UNSIGNED_BYTE, true);
 		ssao_fbo->color_textures[0]->setName("SSAO");
 	}
 
@@ -330,7 +337,18 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 
 	GFX::Shader* sh_ssao = GFX::Shader::Get("ssao");
 	assert(sh_ssao);
+	
+	//bind the texture we want to change 
+	gbuffers->depth_texture->bind();
+	//disable using mipmaps
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	//enable bilinear filtering
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	
+
 	sh_ssao->enable();
+
+	
 	sh_ssao->setUniform("u_depth_texture", gbuffers->depth_texture, 0);
 
 	sh_ssao->setUniform("u_radius", ssao_radius);
@@ -343,20 +361,44 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 	sh_ssao->setUniform3Array("u_points", (float*)&random_points[0], random_points.size());
 	sh_ssao->setUniform("u_viewprojection", camera->viewprojection_matrix);
 
+	
 	quad->render(GL_TRIANGLES);
 
 
 	ssao_fbo->unbind();
 
-	//interpolacion
-	//bind the texture we want to change 
-	ssao_fbo->color_textures[0]->bind();
-	//disable using mipmaps
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	//enable bilinear filtering
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	
 
-	ssao_fbo->color_textures[0]->unbind();
+
+
+	//blur
+	if (!blur_fbo) {
+		blur_fbo = new GFX::FBO();
+		blur_fbo->create(size.x, size.y, 1, GL_RGB, GL_UNSIGNED_BYTE, false);
+		blur_fbo->color_textures[0]->setName("blur");
+	}
+
+	
+	blur_fbo->bind();
+	
+	glClearColor(1, 1, 1, 1); //fondo blanco
+	glClear(GL_COLOR_BUFFER_BIT);
+	glDisable(GL_DEPTH_TEST);
+	glDisable(GL_BLEND);
+
+	GFX::Shader* sh_blur = GFX::Shader::Get("blur");
+	assert(sh_blur);
+
+	sh_blur->enable();
+
+	sh_blur->setUniform("u_ssao_texture", ssao_fbo->color_textures[0], 1);
+	sh_blur->setUniform("u_iRes", vec2(1.0 / blur_fbo->color_textures[0]->width, 1.0 / blur_fbo->color_textures[0]->height));
+	 
+	quad->render(GL_TRIANGLES);
+
+	blur_fbo->unbind();
+
+
 
 
 	//ilumination pass
@@ -478,6 +520,9 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 
 	if (view_ssao)
 		ssao_fbo->color_textures[0]->toViewport();
+	if(view_blur)
+		blur_fbo->color_textures[0]->toViewport();
+
 }
 
 void Renderer::renderSkybox(GFX::Texture* cubemap)
@@ -1034,10 +1079,14 @@ void Renderer::showUI()
 	ImGui::Checkbox("Specular light", &use_specular);
 	ImGui::Checkbox("Occlusion light", &use_occlusion);
 
-	ImGui::Checkbox("Use SSAO+", &use_ssao);
+	ImGui::Checkbox("Use SSAO", &use_ssao);
+	ImGui::Checkbox("Use blur", &use_blur);
+
 	ImGui::DragFloat("ssao radius", &ssao_radius,0.01f,0.0f);
 	ImGui::DragFloat("ssao max distance", &ssao_max_distance, 0.01f, 0.0f);
 	ImGui::Checkbox("View ssao", &view_ssao);
+	ImGui::Checkbox("View blur", &view_blur);
+
 
 	ImGui::Checkbox("View degamma", &use_degamma);
 
