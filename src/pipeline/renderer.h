@@ -68,7 +68,6 @@ namespace SCN {
 		bool use_blur;
 		bool use_dithering;
 
-
 		float ssao_radius;
 		float ssao_max_distance;
 
