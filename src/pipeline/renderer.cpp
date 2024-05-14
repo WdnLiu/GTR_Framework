@@ -26,7 +26,45 @@ using namespace SCN;
 GFX::Mesh sphere;
 GFX::FBO* gbuffers = nullptr;
 GFX::FBO* illumination_fbo = nullptr;
+GFX::FBO*  ssao_fbo = nullptr;
+GFX::FBO* final_fbo = nullptr;
 
+Renderer::Renderer(const char* shader_atlas_filename)
+{
+	render_wireframe = false;
+	render_boundaries = false;
+	scene = nullptr;
+	skybox_cubemap = nullptr;
+
+	if (!GFX::Shader::LoadAtlas(shader_atlas_filename))
+		exit(1);
+	GFX::checkGLErrors();
+
+	use_multipass_lights = true;
+	use_no_texture = false;
+	use_normal_map = true;
+	use_emissive   = true;
+	use_specular   = true;
+	use_occlusion  = true;
+	view_ssao = false;
+	use_ssao = false;
+	use_degamma = false;
+
+	sphere.createSphere(1.0f);
+	sphere.uploadToVRAM();
+
+	shadowmap_size = 1024;
+
+	shadowmap_size = 1024;
+	mainLight = nullptr;
+
+	pipeline_mode = ePipelineMode::DEFERRED;
+	gbuffer_show_mode = eShowGBuffer::NONE;
+
+	ssao_radius = 11.0f;
+	ssao_max_distance = 0.1f;
+	random_points = generateSpherePoints(64, 1, false);
+}
 void Renderer::extractRenderables(SCN::Node* node, Camera* camera)
 {
 	if (!node->visible)
@@ -64,33 +102,7 @@ void Renderer::extractRenderables(SCN::Node* node, Camera* camera)
 		extractRenderables(node->children[i], camera);
 }
 
-Renderer::Renderer(const char* shader_atlas_filename)
-{
-	render_wireframe = false;
-	render_boundaries = false;
-	scene = nullptr;
-	skybox_cubemap = nullptr;
 
-	if (!GFX::Shader::LoadAtlas(shader_atlas_filename))
-		exit(1);
-	GFX::checkGLErrors();
-
-	use_multipass_lights = true;
-	use_no_texture = false;
-	use_normal_map = true;
-	use_emissive   = true;
-	use_specular   = true;
-	use_occlusion  = true;
-
-	sphere.createSphere(1.0f);
-	sphere.uploadToVRAM();
-
-	shadowmap_size = 1024;
-	mainLight = nullptr;
-
-	pipeline_mode = ePipelineMode::DEFERRED;
-	gbuffer_show_mode = eShowGBuffer::NONE;
-}
 
 void Renderer::extractSceneInfo(SCN::Scene* scene, Camera* camera)
 {
@@ -266,85 +278,24 @@ void Renderer::gbufferToShader(GFX::Shader* shader, vec2 size, Camera* camera)
 	shader->setUniform("u_iRes", vec2(1.0 / size.x, 1.0 / size.y));
 	shader->setUniform("u_inverse_viewprojection", camera->inverse_viewprojection_matrix);
 	shader->setUniform("specular_option",  (int) use_specular);
+	shader->setUniform("u_use_ssao", (int)use_ssao);
+	if (use_ssao)
+		shader->setUniform("u_ao_texture", ssao_fbo->color_textures[0], texturePos++);
 }
 
-void Renderer::lightsDeferred(Camera* camera)
-{
-	int shadowMapPos = 8;
-	vec2 size = CORE::getWindowSize();
-
-	GFX::Mesh* quad = GFX::Mesh::getQuad();
-	GFX::Shader* shader = GFX::Shader::Get("deferred_global");
-
-	glDisable(GL_BLEND);
-	glDisable(GL_DEPTH_TEST);
-	shader->enable();
-
-	if (mainLight->cast_shadows && mainLight->shadowMapFBO)
-	{
-		shadowToShader(mainLight, shadowMapPos, shader);
-	}
-	else
-		shader->setUniform("u_light_cast_shadows", 0);
-
-	gbufferToShader(shader, size, camera);
-	cameraToShader(camera, shader);
-
-	shader->setUniform("u_ambient_light", scene->ambient_light);
-
-	lightToShader(mainLight, shader);
-
-	quad->render(GL_TRIANGLES);
-
-	shader = GFX::Shader::Get("deferred_ws");
-	shader->enable();
-
-	gbufferToShader(shader, size, camera);
-
-	glDepthFunc(GL_GREATER);
-	glEnable(GL_BLEND);
-	glEnable(GL_CULL_FACE);
-	glFrontFace(GL_CW);
-	glBlendFunc(GL_ONE, GL_ONE);
-	glDepthMask(false);
-	for (auto light : lights) {
-		if (light->light_type == eLightType::POINT || light->light_type == eLightType::SPOT) {
-			if (light->cast_shadows)
-			{
-				shadowToShader(light, shadowMapPos, shader);
-			}
-			else shader->setUniform("u_light_cast_shadows", 0);
-
-			Matrix44 model;
-			vec3 lightpos = light->getGlobalPosition();
-			model.translate(lightpos.x, lightpos.y, lightpos.z);
-			model.scale(light->max_distance, light->max_distance, light->max_distance);
-			shader->setUniform("u_model", model);
-			
-			lightToShader(light, shader);
-			sphere.render(GL_TRIANGLES);
-		}
-	}
-	shader->disable();
-	glDisable(GL_BLEND);
-	glFrontFace(GL_CCW);
-	glDisable(GL_CULL_FACE);
-	glDepthFunc(GL_LESS);
-	glDepthMask(true);
-}
 
 void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 {
 	vec2 size = CORE::getWindowSize();
 	int shadowMapPos = 8;
+	GFX::Mesh* quad = GFX::Mesh::getQuad();
 
 	//generate gbuffers
 	if (!gbuffers)
 	{
 		gbuffers = new GFX::FBO();
-		gbuffers->create(size.x, size.y, 4, GL_RGBA, GL_UNSIGNED_BYTE, true);  //crea todas las texturas attached, true if we want depthbuffer in a texure (para poder leerlo)
-		illumination_fbo = new GFX::FBO();
-		illumination_fbo->create(size.x, size.y, 1, GL_RGB, GL_HALF_FLOAT, false);
+		gbuffers->create(size.x/2, size.y/2, 4, GL_RGBA, GL_UNSIGNED_BYTE, true);  //crea todas las texturas attached, true if we want depthbuffer in a texure (para poder leerlo)
+		
 	}
 
 	gbuffers->bind();
@@ -362,6 +313,58 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 
 	gbuffers->unbind();
 
+
+
+	//ssao
+	if (!ssao_fbo) {
+		ssao_fbo = new GFX::FBO();
+		ssao_fbo->create(size.x, size.y, 1, GL_RGB, GL_UNSIGNED_BYTE, false);
+		ssao_fbo->color_textures[0]->setName("SSAO");
+	}
+
+	ssao_fbo->bind();
+	glClearColor(1, 1, 1, 1); //fondo blanco
+	glClear(GL_COLOR_BUFFER_BIT);
+	glDisable(GL_DEPTH_TEST);
+	glDisable(GL_BLEND);
+
+	GFX::Shader* sh_ssao = GFX::Shader::Get("ssao");
+	assert(sh_ssao);
+	sh_ssao->enable();
+	sh_ssao->setUniform("u_depth_texture", gbuffers->depth_texture, 0);
+
+	sh_ssao->setUniform("u_radius", ssao_radius);
+	sh_ssao->setUniform("far", ssao_max_distance);
+	sh_ssao->setUniform("near", (float)0.0001f);
+
+	//to reconstruct world position
+	sh_ssao->setUniform("u_iRes", vec2(1.0 / ssao_fbo->color_textures[0]->width, 1.0 / ssao_fbo->color_textures[0]->height));
+	sh_ssao->setUniform("u_inverse_viewprojection", camera->inverse_viewprojection_matrix);
+	sh_ssao->setUniform3Array("u_points", (float*)&random_points[0], random_points.size());
+	sh_ssao->setUniform("u_viewprojection", camera->viewprojection_matrix);
+
+	quad->render(GL_TRIANGLES);
+
+
+	ssao_fbo->unbind();
+
+	//interpolacion
+	//bind the texture we want to change 
+	ssao_fbo->color_textures[0]->bind();
+	//disable using mipmaps
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	//enable bilinear filtering
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	ssao_fbo->color_textures[0]->unbind();
+
+
+	//ilumination pass
+	if (!illumination_fbo) {
+		illumination_fbo = new GFX::FBO();
+		illumination_fbo->create(size.x, size.y, 1, GL_RGB, GL_FLOAT, false);
+	}
+	
 	illumination_fbo->bind();
 
 	glClearColor(scene->background_color.x, scene->background_color.y, scene->background_color.z, 1.0);
@@ -371,12 +374,91 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 	if (skybox_cubemap)
 		renderSkybox(skybox_cubemap);
 
-	lightsDeferred(camera);
 
+	GFX::Shader* shader = GFX::Shader::Get("deferred_global");
+
+	glDisable(GL_BLEND);
+	glDisable(GL_DEPTH_TEST);
+	shader->enable();
+
+	if (mainLight->cast_shadows && mainLight->shadowMapFBO)
+	{
+		shadowToShader(mainLight, shadowMapPos, shader);
+	}
+	else
+		shader->setUniform("u_light_cast_shadows", 0);
+
+	gbufferToShader(shader, size, camera);
+
+	shader->setUniform("u_ambient_light", scene->ambient_light);
+	shader->setUniform("use_degamma", (int)use_degamma);
+
+	lightToShader(mainLight, shader);
+
+	quad->render(GL_TRIANGLES);
+
+	shader = GFX::Shader::Get("deferred_ws");
+	shader->enable();
+
+	gbufferToShader(shader, size, camera);
+	shader->setUniform("use_degamma", (int)use_degamma);
+
+
+	glDepthFunc(GL_GREATER);
+	glEnable(GL_BLEND);
+	glEnable(GL_CULL_FACE);
+	glFrontFace(GL_CW);
+	glBlendFunc(GL_ONE, GL_ONE);
+	glDepthMask(false);
+
+	for (auto light : lights) {
+		if (light->light_type == eLightType::POINT || light->light_type == eLightType::SPOT) {
+			if (light->cast_shadows)
+			{
+				shadowToShader(light, shadowMapPos, shader);
+			}
+			else shader->setUniform("u_light_cast_shadows", 0);
+
+			Matrix44 model;
+			vec3 lightpos = light->getGlobalPosition();
+			model.translate(lightpos.x, lightpos.y, lightpos.z);
+			model.scale(light->max_distance, light->max_distance, light->max_distance);
+			shader->setUniform("u_model", model);
+
+			lightToShader(light, shader);
+			sphere.render(GL_TRIANGLES);
+		}
+	}
+
+	shader->disable();
+	glDisable(GL_BLEND);
+	glFrontFace(GL_CCW);
+	glDisable(GL_CULL_FACE);
+	glDepthFunc(GL_LESS);
+	glDepthMask(true);
 	illumination_fbo->unbind();
 
 	illumination_fbo->color_textures[0]->toViewport();
 
+	//degamma final pass
+	/*if (!final_fbo) {
+		final_fbo = new GFX::FBO();
+		final_fbo->create(size.x, size.y, 1, GL_RGB, GL_FLOAT, false);
+	}
+
+	GFX::Shader* sh_gamma = GFX::Shader::Get("gamma");
+	assert(sh_gamma);
+
+	final_fbo->bind();
+	sh_gamma->setUniform("u_texture", illumination_fbo->color_textures[0], 0);
+	//quad->render(GL_TRIANGLES);
+	final_fbo->unbind();
+
+	final_fbo->color_textures[0]->toViewport();
+	*/
+
+
+	//alpha renderables
 	//sort(alpha_renderables.begin(), alpha_renderables.end(), renderableComparator);
 	//for (Renderable& re : alpha_renderables)
 	//{
@@ -393,6 +475,9 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 		case eShowGBuffer::EXTRA:  gbuffers->color_textures[2]->toViewport(); break;
 		case eShowGBuffer::DEPTH:  gbuffers->depth_texture->toViewport();	  break; //para visualizar depth usar depth.fs y funcion
 	}
+
+	if (view_ssao)
+		ssao_fbo->color_textures[0]->toViewport();
 }
 
 void Renderer::renderSkybox(GFX::Texture* cubemap)
@@ -949,6 +1034,15 @@ void Renderer::showUI()
 	ImGui::Checkbox("Specular light", &use_specular);
 	ImGui::Checkbox("Occlusion light", &use_occlusion);
 
+	ImGui::Checkbox("Use SSAO+", &use_ssao);
+	ImGui::DragFloat("ssao radius", &ssao_radius,0.01f,0.0f);
+	ImGui::DragFloat("ssao max distance", &ssao_max_distance, 0.01f, 0.0f);
+	ImGui::Checkbox("View ssao", &view_ssao);
+
+	ImGui::Checkbox("View degamma", &use_degamma);
+
+
+	
 	if (ImGui::Button("ShadowMap 256"))
 		shadowmap_size = 256;
 	if (ImGui::Button("ShadowMap 512"))

@@ -61,6 +61,14 @@ namespace SCN {
 		bool use_emissive;
 		bool use_specular;
 		bool use_occlusion;
+		bool view_ssao;
+		bool use_ssao;
+		bool use_degamma;
+
+		float ssao_radius;
+		float ssao_max_distance;
+
+		std::vector<vec3> random_points;
 
 		ePipelineMode pipeline_mode;
 		eShowGBuffer gbuffer_show_mode;
