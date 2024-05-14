@@ -1078,14 +1078,12 @@ void main()
     vec3 N = texture(u_normal_texture, uv).xyz * 2 - vec3(1.0f);
     float depth = texture(u_depth_texture, uv).x;
 
-    if (depth == 1.0f)
-        discard;
-
     if (use_degamma == 1)
-    {
         N = degamma(texture(u_normal_texture, uv).xyz) * 2  - vec3(1.0f);
         color = vec4(degamma(color.xyz), 1.0);
-    }
+
+    if (depth == 1.0f)
+        discard;
 
     vec4 screen_pos = vec4(uv.x*2.0f-1.0f, uv.y*2.0f-1.0f, depth*2.0f-1.0f, 1.0);
     vec4 proj_worldpos = u_inverse_viewprojection * screen_pos;
@@ -1096,8 +1094,8 @@ void main()
     N = normalize(N);
     
     int factor = (u_light_type == DIRECTIONALLIGHT) ? 1 : 0;
-
-    vec3 ambient;
+    
+    vec3 ambient = vec3(0);
 
     if(u_use_ssao == 1)
     {
@@ -1110,21 +1108,25 @@ void main()
     }
     else
     {    
-        ambient= u_ambient_light*material_properties.a;
+        ambient = u_ambient_light*material_properties.a;
     }
 
     vec3 light = ambient;
+
     light = multipass(N, light, color, world_position);
     
     //calculate final colours
     vec4 final_color = vec4(0);
 
     final_color.a = color.a;
-    
-    final_color.xyz = light + factor*material_properties.xyz;
+
+    vec4 cubeColor;
+    vec3 emitted = (use_degamma == 1) ? degamma(material_properties.xyz) : material_properties.xyz;
+    final_color.xyz = light + factor*emitted;
 
     FragColor = final_color;
 }
+
 
 \ssao.fs
 

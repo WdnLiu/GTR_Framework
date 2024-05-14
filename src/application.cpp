@@ -18,6 +18,7 @@ Application::Application()
 	instance = this;
 	mouse_locked = false;
 
+	scene_option = false;
 	//define valid entities (DO IT BEFORE LOADING ANY SCENE!!!)
 	REGISTER_ENTITY_TYPE(SCN::PrefabEntity);
 	//add here your own entities
@@ -31,7 +32,11 @@ Application::Application()
 
 	//load scene
 	scene = new SCN::Scene();
+	scene2 = new SCN::Scene();
 	if (!scene->load("data/scene.json"))
+		exit(1);
+
+	if (!scene2->load("data/scene2.json"))
 		exit(1);
 
 	camera->lookAt(scene->main_camera.eye, scene->main_camera.center, vec3(0, 1, 0));
@@ -144,6 +149,7 @@ void Application::onKeyDown(SDL_KeyboardEvent event)
 	{
 		case SDLK_1: renderer->pipeline_mode = ePipelineMode::DEFERRED; break;
 		case SDLK_2: renderer->pipeline_mode = ePipelineMode::FORWARD ; break;
+		case SDLK_t: std::swap(scene, scene2); break;
 		case SDLK_ESCAPE: must_exit = true; break; //ESC key, kill the app
 		case SDLK_TAB: render_ui = !render_ui; break;
 		case SDLK_F5: GFX::Shader::ReloadAll(); break;

@@ -19,7 +19,6 @@
 
 #define N_LIGHTS 4
 
-
 using namespace SCN;
 
 //some globals
@@ -344,6 +343,7 @@ void Renderer::lightsDeferred(Camera* camera)
 			model.translate(lightpos.x, lightpos.y, lightpos.z);
 			model.scale(light->max_distance, light->max_distance, light->max_distance);
 			shader->setUniform("u_model", model);
+			shader->setUniform("u_ambient_light", vec3(0));
 
 			lightToShader(light, shader);
 			sphere.render(GL_TRIANGLES);
@@ -488,27 +488,8 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 
 	illumination_fbo->unbind();
 
-	//degamma final pass
-	if (!final_fbo) {
-		final_fbo = new GFX::FBO();
-		final_fbo->create(size.x, size.y, 1, GL_RGB, GL_FLOAT, false);
-	}
-
-	final_fbo->bind();
-
-	GFX::Shader* sh_gamma = GFX::Shader::Get("gamma");
-	assert(sh_gamma);
-	sh_gamma->enable();
-	sh_gamma->setUniform("u_texture", illumination_fbo->color_textures[0], 1);
-
-	GFX::Mesh* quad = GFX::Mesh::getQuad();
-
-	quad->render(GL_TRIANGLES);
-
-	final_fbo->unbind();
-
 	if (use_degamma)
-		illumination_fbo->color_textures[0]->toViewport(sh_gamma);
+		illumination_fbo->color_textures[0]->toViewport(GFX::Shader::Get("gamma"));
 	else
 		illumination_fbo->color_textures[0]->toViewport();
 
