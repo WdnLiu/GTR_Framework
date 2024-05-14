@@ -61,6 +61,7 @@ namespace SCN {
 		bool use_emissive;
 		bool use_specular;
 		bool use_occlusion;
+		bool use_dithering;
 
 		ePipelineMode pipeline_mode;
 		eShowGBuffer gbuffer_show_mode;
