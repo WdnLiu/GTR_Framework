@@ -10,7 +10,7 @@
 #include <ostream>
 
 #ifndef PI
-	#define PI 3.14159265359
+#define PI 3.14159265359
 #endif
 #define DEG2RAD 0.0174532925
 #define RAD2DEG 57.295779513
@@ -28,7 +28,7 @@ typedef float f32;
 typedef double f64;
 
 inline float clamp(float v, float a, float b) { return v < a ? a : (v > b ? b : v); }
-inline float lerp(float a, float b, float v ) { return a*(1.0f-v) + b*v; }
+inline float lerp(float a, float b, float v) { return a * (1.0f - v) + b * v; }
 
 enum {
 	CLIP_OUTSIDE = 0,
@@ -44,7 +44,7 @@ class Vector2
 public:
 	union
 	{
-		struct { T x,y; };
+		struct { T x, y; };
 		T value[2];
 	};
 
@@ -52,11 +52,11 @@ public:
 	Vector2(T x, T y) { this->x = x; this->y = y; }
 	template<typename S> Vector2(const Vector2<S>& v) { this->x = (T)v.x; this->y = (T)v.y; }
 
-	T length() { return sqrt(x*x + y*y); }
-	T length() const { return sqrt(x*x + y*y); }
+	T length() { return sqrt(x * x + y * y); }
+	T length() const { return sqrt(x * x + y * y); }
 
-	T dot( const Vector2<T>& v ) { return x * v.x + y * v.y; }
-	T perpdot( const Vector2<T>& v ) { return y * v.x + -x * v.y; }
+	T dot(const Vector2<T>& v) { return x * v.x + y * v.y; }
+	T perpdot(const Vector2<T>& v) { return y * v.x + -x * v.y; }
 
 	void set(T x, T y) { this->x = x; this->y = y; }
 
@@ -66,7 +66,7 @@ public:
 	void random(T range);
 	void parseFromText(const char* text);
 
-	void operator *= (T v) { x*=v; y*=v; }
+	void operator *= (T v) { x *= v; y *= v; }
 };
 
 template<typename T> inline Vector2<T> operator * (const Vector2<T>& a, T v) { return Vector2<T>(a.x * v, a.y * v); };
@@ -74,7 +74,7 @@ template<typename T> inline Vector2<T> operator + (const Vector2<T>& a, const Ve
 template<typename T> inline Vector2<T> operator - (const Vector2<T>& a, const Vector2<T>& b) { return Vector2<T>(a.x - b.x, a.y - b.y); }
 
 template<typename T> Vector2<T> normalize(const Vector2<T>& n);
-template<typename T> inline Vector2<T> lerp(const Vector2<T>& a, const Vector2<T>& b, T v) { return a*((T)(1.0) - v) + b*v; }
+template<typename T> inline Vector2<T> lerp(const Vector2<T>& a, const Vector2<T>& b, T v) { return a * ((T)(1.0) - v) + b * v; }
 
 typedef Vector2<float> Vector2f;
 typedef Vector2<unsigned int> Vector2ui;
@@ -87,30 +87,30 @@ class Vector3
 public:
 	union
 	{
-		struct { T x,y,z; };
+		struct { T x, y, z; };
 		T v[3];
 	};
 
 	Vector3() { x = y = z = (T)0.0; }
 	Vector3(T v) { x = y = z = v; }
-	Vector3(T x, T y, T z) { this->x = x; this->y = y; this->z = z;	}
+	Vector3(T x, T y, T z) { this->x = x; this->y = y; this->z = z; }
 
 	T length();
 	T length() const;
 
 	void set(T x, T y, T z) { this->x = x; this->y = y; this->z = z; }
 
-	void setMin(const Vector3<T> & v);
+	void setMin(const Vector3<T>& v);
 	void setMax(const Vector3<T>& v);
 
 	Vector3<T>& normalize();
 	void random(T range);
 	void random(const Vector3<T>& range);
 
-	T distance(const Vector3<T>& v) const { return (T)(v - *this).length();	}
+	T distance(const Vector3<T>& v) const { return (T)(v - *this).length(); }
 
-	Vector3<T> cross( const Vector3<T>& v ) const;
-	T dot( const Vector3<T>& v ) const;
+	Vector3<T> cross(const Vector3<T>& v) const;
+	T dot(const Vector3<T>& v) const;
 
 	void parseFromText(const char* text, const char separator);
 
@@ -163,7 +163,7 @@ class Vector4
 public:
 	union
 	{
-		struct { T x,y,z,w; };
+		struct { T x, y, z, w; };
 		T v[4];
 	};
 
@@ -180,7 +180,7 @@ public:
 
 template <typename T> inline Vector4<T> operator * (const Vector4<T>& a, T v) { return Vector4<T>(a.x * v, a.y * v, a.z * v, a.w * v); }
 template <typename T> inline Vector4<T> operator + (const Vector4<T>& a, const Vector4<T>& b) { return Vector4<T>(a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w); }
-template <typename T> inline Vector4<T> lerp(const Vector4<T>& a, const Vector4<T>& b, float v) { return a*(1.0f - v) + b*v; }
+template <typename T> inline Vector4<T> lerp(const Vector4<T>& a, const Vector4<T>& b, float v) { return a * (1.0f - v) + b * v; }
 
 typedef Vector4<float> Vector4f;
 
@@ -207,14 +207,14 @@ public:
 	Vector4ub() { x = y = z = 0; }
 	Vector4ub(unsigned char x, unsigned char y, unsigned char z, unsigned char w = 0) { this->x = x; this->y = y; this->z = z; this->w = w; }
 	void set(unsigned char x, unsigned char y, unsigned char z, unsigned char w = 0) { this->x = x; this->y = y; this->z = z; this->w = w; }
-	Vector4ub operator = (const Vector4f& a) { x = (unsigned char)a.x; y = (unsigned char)a.y; z = (unsigned char)a.z; w = (unsigned char)a.w; return *this;  }
+	Vector4ub operator = (const Vector4f& a) { x = (unsigned char)a.x; y = (unsigned char)a.y; z = (unsigned char)a.z; w = (unsigned char)a.w; return *this; }
 	Vector4f toVector4f() { return Vector4f(x, y, z, w); }
 };
 
-inline Vector4ub operator + (const Vector4ub& a, const Vector4ub& b) { return Vector4ub(a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w ); }
+inline Vector4ub operator + (const Vector4ub& a, const Vector4ub& b) { return Vector4ub(a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w); }
 inline Vector4ub operator * (const Vector4ub& a, float v) { return Vector4ub((unsigned char)(a.x * v), (unsigned char)(a.y * v), (unsigned char)(a.z * v), (unsigned char)(a.w * v)); }
 inline bool operator == (const Vector4ub& a, const Vector4ub& b) { return a.x == b.x && a.y == b.y && a.z == b.z; } //only colors, no alpha
-inline Vector4ub lerp(const Vector4ub& a, const Vector4ub& b, float v) { return a*(1.0f - v) + b*v; }
+inline Vector4ub lerp(const Vector4ub& a, const Vector4ub& b, float v) { return a * (1.0f - v) + b * v; }
 
 typedef Vector4ub Color;
 
@@ -222,72 +222,72 @@ typedef Vector4ub Color;
 //Matrix44 class
 class Matrix44
 {
-	public:
-		static const Matrix44 IDENTITY;
+public:
+	static const Matrix44 IDENTITY;
 
-		//This matrix works in 
-		union { //allows to access the same var using different ways
-			struct
-			{
-				float        _11, _12, _13, _14;
-				float        _21, _22, _23, _24;
-				float        _31, _32, _33, _34;
-				float        _41, _42, _43, _44;
-			};
-			float M[4][4]; //[row][column]
-			float m[16];
+	//This matrix works in 
+	union { //allows to access the same var using different ways
+		struct
+		{
+			float        _11, _12, _13, _14;
+			float        _21, _22, _23, _24;
+			float        _31, _32, _33, _34;
+			float        _41, _42, _43, _44;
 		};
+		float M[4][4]; //[row][column]
+		float m[16];
+	};
 
-		Matrix44();
-		Matrix44(const float* v);
+	Matrix44();
+	Matrix44(const float* v);
 
-		void set(); //multiply with opengl matrix
-		void load(); //load in opengl matrix
-		void clear();
-		void setIdentity();
-		void transpose();
-		void normalizeAxis();
+	void set(); //multiply with opengl matrix
+	void load(); //load in opengl matrix
+	void clear();
+	void setIdentity();
+	void transpose();
+	void normalizeAxis();
 
-		//get base vectors
-		Vector3f rightVector() { return Vector3f(m[0],m[1],m[2]); }
-		Vector3f topVector() { return Vector3f(m[4],m[5],m[6]); }
-		Vector3f frontVector() { return Vector3f(m[8],m[9],m[10]); }
+	//get base vectors
+	Vector3f rightVector() { return Vector3f(m[0], m[1], m[2]); }
+	Vector3f topVector() { return Vector3f(m[4], m[5], m[6]); }
+	Vector3f frontVector() { return Vector3f(m[8], m[9], m[10]); }
 
-		bool inverse();
-		void setUpAndOrthonormalize(Vector3f up);
-		void setFrontAndOrthonormalize(Vector3f front);
+	bool inverse();
+	void setUpAndOrthonormalize(Vector3f up);
+	void setFrontAndOrthonormalize(Vector3f front);
 
-		Matrix44 getRotationOnly(); //used when having scale
+	Matrix44 getRotationOnly(); //used when having scale
 
-		//rotate only
-		Vector3f rotateVector( const Vector3f& v) const;
+	//rotate only
+	Vector3f rotateVector(const Vector3f& v) const;
 
-		//transform using local coordinates
-		void translate(float x, float y, float z);
-		void rotate( float angle_in_rad, const Vector3f& axis  );
-		void scale(float x, float y, float z);
+	//transform using local coordinates
+	void translate(float x, float y, float z);
+	void rotate(float angle_in_rad, const Vector3f& axis);
+	void scale(float x, float y, float z);
 
-		//transform using global coordinates
-		void translateGlobal(float x, float y, float z);
-		void rotateGlobal( float angle_in_rad, const Vector3f& axis  );
+	//transform using global coordinates
+	void translateGlobal(float x, float y, float z);
+	void rotateGlobal(float angle_in_rad, const Vector3f& axis);
 
-		//create a transformation matrix from scratch
-		void setTranslation(float x, float y, float z);
-		void setRotation( float angle_in_rad, const Vector3f& axis );
-		void setScale(float x, float y, float z);
+	//create a transformation matrix from scratch
+	void setTranslation(float x, float y, float z);
+	void setRotation(float angle_in_rad, const Vector3f& axis);
+	void setScale(float x, float y, float z);
 
-		Vector3f getTranslation();
-		Vector3f getScale();
+	Vector3f getTranslation();
+	Vector3f getScale();
 
-		bool getXYZ(float* euler) const; //not sure which axis...
+	bool getXYZ(float* euler) const; //not sure which axis...
 
-		void lookAt(Vector3f& eye, Vector3f& center, Vector3f& up);
-		void perspective(float fov, float aspect, float near_plane, float far_plane);
-		void ortho(float left, float right, float bottom, float top, float near_plane, float far_plane);
+	void lookAt(Vector3f& eye, Vector3f& center, Vector3f& up);
+	void perspective(float fov, float aspect, float near_plane, float far_plane);
+	void ortho(float left, float right, float bottom, float top, float near_plane, float far_plane);
 
-		Vector3f project(const Vector3f& v);
+	Vector3f project(const Vector3f& v);
 
-		Matrix44 operator * (const Matrix44& matrix) const;
+	Matrix44 operator * (const Matrix44& matrix) const;
 };
 
 //Operators, they are our friends
@@ -320,29 +320,29 @@ public:
 
 	void set(const float X, const float Y, const float Z, const float W);
 	void slerp(const Quaternion& b, float t);
-	void slerp(const Quaternion& q2, float t, Quaternion &q3) const;
+	void slerp(const Quaternion& q2, float t, Quaternion& q3) const;
 
 	void lerp(const Quaternion& b, float t);
-	void lerp(const Quaternion& q2, float t, Quaternion &q3) const;
+	void lerp(const Quaternion& q2, float t, Quaternion& q3) const;
 
 public:
 	void setAxisAngle(const Vector3f& axis, const float angle);
 	void setAxisAngle(float x, float y, float z, float angle);
-	void getAxisAngle(Vector3f &v, float &angle) const;
+	void getAxisAngle(Vector3f& v, float& angle) const;
 
 	Vector3f rotate(const Vector3f& v) const;
 
 	void operator*=(const Vector3f& v);
-	void operator *= (const Quaternion &q);
-	void operator += (const Quaternion &q);
+	void operator *= (const Quaternion& q);
+	void operator += (const Quaternion& q);
 
-	friend Quaternion operator + (const Quaternion &q1, const Quaternion& q2);
-	friend Quaternion operator * (const Quaternion &q1, const Quaternion& q2);
+	friend Quaternion operator + (const Quaternion& q1, const Quaternion& q2);
+	friend Quaternion operator * (const Quaternion& q1, const Quaternion& q2);
 
-	friend Quaternion operator * (const Quaternion &q, const Vector3f& v);
+	friend Quaternion operator * (const Quaternion& q, const Vector3f& v);
 
-	friend Quaternion operator * (float f, const Quaternion &q);
-	friend Quaternion operator * (const Quaternion &q, float f);
+	friend Quaternion operator * (float f, const Quaternion& q);
+	friend Quaternion operator * (const Quaternion& q, float f);
 
 	Quaternion& operator -();
 
@@ -357,25 +357,25 @@ public:
 	void normalize();
 	float squaredLength() const;
 	float length() const;
-	void toMatrix(Matrix44 &) const;
+	void toMatrix(Matrix44&) const;
 	void fromMatrix(Matrix44&);
 
 	void fromEuler(Vector3f& euler); //yaw, pitch, roll
-	void toEulerAngles(Vector3f &euler) const; //yaw, pitch, roll
+	void toEulerAngles(Vector3f& euler) const; //yaw, pitch, roll
 
 	float& operator[] (unsigned int i) { return q[i]; }
 };
 
-float DotProduct(const Quaternion &q1, const Quaternion &q2);
-Quaternion Qlerp(const Quaternion &q1, const Quaternion &q2, float t);
-Quaternion Qslerp(const Quaternion &q1, const Quaternion &q2, float t);
-Quaternion Qsquad(const Quaternion &q1, const Quaternion &q2, const Quaternion &a, const Quaternion &b, float t);
-Quaternion Qsquad(const Quaternion &q1, const Quaternion &q2, const Quaternion &a, float t);
-Quaternion Qspline(const Quaternion &q1, const Quaternion &q2, const Quaternion &q3);
-Quaternion QslerpNoInvert(const Quaternion &q1, const Quaternion &q2, float t);
-Quaternion Qexp(const Quaternion &q);
-Quaternion Qlog(const Quaternion &q);
-Quaternion SimpleRotation(const Vector3f &a, const Vector3f &b);
+float DotProduct(const Quaternion& q1, const Quaternion& q2);
+Quaternion Qlerp(const Quaternion& q1, const Quaternion& q2, float t);
+Quaternion Qslerp(const Quaternion& q1, const Quaternion& q2, float t);
+Quaternion Qsquad(const Quaternion& q1, const Quaternion& q2, const Quaternion& a, const Quaternion& b, float t);
+Quaternion Qsquad(const Quaternion& q1, const Quaternion& q2, const Quaternion& a, float t);
+Quaternion Qspline(const Quaternion& q1, const Quaternion& q2, const Quaternion& q3);
+Quaternion QslerpNoInvert(const Quaternion& q1, const Quaternion& q2, float t);
+Quaternion Qexp(const Quaternion& q);
+Quaternion Qlog(const Quaternion& q);
+Quaternion SimpleRotation(const Vector3f& a, const Vector3f& b);
 Vector3f transformQuat(const Vector3f& a, const Quaternion& q); //to euler
 
 //** Boundings ********************************************************
@@ -406,13 +406,13 @@ public:
 // ** Global Operations *********************************************
 
 float signedDistanceToPlane(const Vector4f& plane, const Vector3f& point);
-int planeBoxOverlap( const Vector4f& plane, const Vector3f& center, const Vector3f& halfsize );
-float ComputeSignedAngle( Vector2f a, Vector2f b); //returns the angle between both vectors in radians
-inline float ease(float f) { return f*f*f*(f*(f*6.0f - 15.0f) + 10.0f); }
+int planeBoxOverlap(const Vector4f& plane, const Vector3f& center, const Vector3f& halfsize);
+float ComputeSignedAngle(Vector2f a, Vector2f b); //returns the angle between both vectors in radians
+inline float ease(float f) { return f * f * f * (f * (f * 6.0f - 15.0f) + 10.0f); }
 bool RaySphereCollision(const Vector3f& center, const float& radius, const Vector3f& ray_origin, const Vector3f& ray_dir, Vector3f& coll, float& t);
-bool RayPlaneCollision( const Vector3f& plane_pos, const Vector3f& plane_normal, const Vector3f& ray_origin, const Vector3f& ray_dir, Vector3f& result );
+bool RayPlaneCollision(const Vector3f& plane_pos, const Vector3f& plane_normal, const Vector3f& ray_origin, const Vector3f& ray_dir, Vector3f& result);
 bool RayBoundingBoxCollision(const BoundingBox& box, const Vector3f& ray_origin, const Vector3f& ray_dir, Vector3f& coll);
-bool BoundingBoxSphereOverlap(const BoundingBox& box, const Vector3f& center, float radius );
+bool BoundingBoxSphereOverlap(const BoundingBox& box, const Vector3f& center, float radius);
 inline Vector3f reflect(const Vector3f& I, const Vector3f& N) { return I - N * 2.0f * dot(N, I); }
 
 //value between 0 and 1
@@ -421,6 +421,8 @@ inline float random(float range = 1.0f, int offset = 0) { return ((rand() % 1000
 std::ostream& operator << (std::ostream& os, const Vector3f& v);
 std::ostream& operator << (std::ostream& os, const Vector4f& v);
 
+std::vector<Vector3f> generateSpherePoints(int num, float radius, bool hemi);
+
 //generic types
 
 typedef Vector2f vec2;
@@ -428,5 +430,6 @@ typedef Vector3f vec3;
 typedef Vector4f vec4;
 typedef Matrix44 mat4;
 typedef Quaternion quat;
+
 
 #endif
