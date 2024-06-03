@@ -7,6 +7,8 @@
 
 #define MAX_SHADOWS 4
 
+#define MAX_SHADOWS 4
+
 //forward declarations
 class Camera;
 class Skeleton;
@@ -33,6 +35,7 @@ enum eShowGBuffer
 	DEPTH,
 	SHOW_BUFFER_COUNT
 };
+
 struct sProbe {
 	vec3 pos; //where is located
 	vec3 local; //its ijk pos in the matrix
@@ -48,6 +51,7 @@ struct sIrradianceInfo {
 	vec3 delta;
 	int num_probes;
 };
+
 
 namespace SCN {
 
@@ -87,6 +91,7 @@ namespace SCN {
 		bool show_probes;
 		//temporal
 		bool combined_irr;
+
 
 		float ssao_radius;
 		float ssao_max_distance;
@@ -151,6 +156,7 @@ namespace SCN {
 		void renderProbe(vec3 pos, float scale, SphericalHarmonics& shs);
 		void renderProbes(float scale);
 		void captureProbes();
+
 		void showUI();
 
 		void shadowToShader(GFX::Shader* shader);
@@ -160,7 +166,9 @@ namespace SCN {
 		void lightToShader(LightEntity* light, GFX::Shader* shader); //sends light uniforms to shader	
 		void lightToShader(GFX::Shader* shader);
 		void texturesToShader(SCN::Material* material, GFX::Shader* shader) const;
+
 		void visualizeGrid();
+
 	};
 
 };

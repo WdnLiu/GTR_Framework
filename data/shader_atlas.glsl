@@ -17,7 +17,6 @@ probe basic.vs probe.fs
 irradiance quad.vs irradiance.fs
 combine quad.vs combine.fs
 
-
 \basic.vs
 
 
@@ -1126,7 +1125,8 @@ void main()
 
     vec4 cubeColor;
     vec3 emitted = (use_degamma == 1) ? degamma(material_properties.xyz) : material_properties.xyz;
-    final_color.xyz = light + emitted;
+
+    final_color.xyz = light + factor*emitted;
 
     FragColor = final_color;
 }
@@ -1334,7 +1334,7 @@ void main()
     sh.c[7]= u_coefs[7];
     sh.c[8]= u_coefs[8];
 
-    color = ComputeSHIrradiance(N,sh); //cuanta luz/brillo sobre esa esfera en la dirección N hay
+    color = ComputeSHIrradiance(N,sh); //cuanta luz/brillo sobre esa esfera en la direcciï¿½n N hay
 
     FragColor = vec4( max(color,vec3(0.0)), 1.0) ;
 }

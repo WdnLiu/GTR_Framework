@@ -33,11 +33,12 @@ Application::Application()
 	//load scene
 	scene = new SCN::Scene();
 
-
-	if (!scene->load("data/scene_irradiance.json"))
+	scene2 = new SCN::Scene();
+	if (!scene->load("data/scene.json"))
 		exit(1);
 
-
+	if (!scene2->load("data/scene2.json"))
+		exit(1);
 
 	camera->lookAt(scene->main_camera.eye, scene->main_camera.center, vec3(0, 1, 0));
 	camera->fov = scene->main_camera.fov;
@@ -149,6 +150,7 @@ void Application::onKeyDown(SDL_KeyboardEvent event)
 
 	switch (event.keysym.sym)
 	{
+
 	case SDLK_1: renderer->pipeline_mode = ePipelineMode::DEFERRED; break;
 	case SDLK_2: renderer->pipeline_mode = ePipelineMode::FORWARD; break;
 	case SDLK_i: std::swap(scene, scene3); break;
@@ -167,6 +169,7 @@ void Application::onKeyDown(SDL_KeyboardEvent event)
 		break;
 
 	}
+
 }
 
 void Application::onKeyUp(SDL_KeyboardEvent event)
@@ -217,6 +220,7 @@ void Application::onMouseWheel(SDL_MouseWheelEvent event)
 			if (event.y < 0) io.MouseWheel -= 1;
 		}
 		}
+
 	mouse_blocked = ImGui::IsAnyItemHovered();
 #endif
 
