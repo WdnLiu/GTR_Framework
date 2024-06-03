@@ -3,6 +3,9 @@
 #include "prefab.h"
 
 #include "light.h"
+#include "../gfx/sphericalharmonics.h"
+
+#define MAX_SHADOWS 4
 
 #define MAX_SHADOWS 4
 
@@ -32,6 +35,23 @@ enum eShowGBuffer
 	DEPTH,
 	SHOW_BUFFER_COUNT
 };
+
+struct sProbe {
+	vec3 pos; //where is located
+	vec3 local; //its ijk pos in the matrix
+	int index; //its index in the linear array
+	SphericalHarmonics sh; //coeffs
+};
+
+//struct to store grid info
+struct sIrradianceInfo {
+	vec3 start;
+	vec3 end;
+	vec3 dim;
+	vec3 delta;
+	int num_probes;
+};
+
 
 namespace SCN {
 
@@ -67,6 +87,11 @@ namespace SCN {
 		bool view_blur;
 		bool use_blur;
 		bool use_dithering;
+
+		bool show_probes;
+		//temporal
+		bool combined_irr;
+
 
 		float ssao_radius;
 		float ssao_max_distance;
@@ -127,6 +152,11 @@ namespace SCN {
 
 		void renderMeshWithMaterialGBuffers(const Matrix44 model, GFX::Mesh* mesh, SCN::Material* material);
 
+		void captureProbe(sProbe& p); //rellena los spherical harmonics de la probe con la luz que llega al punto donde esta la probe
+		void renderProbe(vec3 pos, float scale, SphericalHarmonics& shs);
+		void renderProbes(float scale);
+		void captureProbes();
+
 		void showUI();
 
 		void shadowToShader(GFX::Shader* shader);
@@ -136,6 +166,9 @@ namespace SCN {
 		void lightToShader(LightEntity* light, GFX::Shader* shader); //sends light uniforms to shader	
 		void lightToShader(GFX::Shader* shader);
 		void texturesToShader(SCN::Material* material, GFX::Shader* shader) const;
+
+		void visualizeGrid();
+
 	};
 
 };

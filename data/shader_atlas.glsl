@@ -13,6 +13,9 @@ deferred_ws basic.vs deferred_global.fs
 ssao quad.vs ssao.fs
 blur quad.vs blur.fs
 gamma quad.vs gamma.fs
+probe basic.vs probe.fs
+irradiance quad.vs irradiance.fs
+combine quad.vs combine.fs
 
 \basic.vs
 
@@ -1122,6 +1125,7 @@ void main()
 
     vec4 cubeColor;
     vec3 emitted = (use_degamma == 1) ? degamma(material_properties.xyz) : material_properties.xyz;
+
     final_color.xyz = light + factor*emitted;
 
     FragColor = final_color;
@@ -1259,4 +1263,317 @@ void main()
     color.b = pow(color.b, 1.0/2.2);
     
     FragColor = color;
+}
+
+
+
+\probe.fs
+
+#version 330 core
+
+in vec3 v_position;
+in vec3 v_world_position;
+in vec3 v_normal;
+in vec2 v_uv;
+in vec4 v_color;
+
+uniform vec3 u_coefs[9];
+
+out vec4 FragColor;
+
+const float Pi = 3.141592654;
+const float CosineA0 = Pi;
+const float CosineA1 = (2.0 * Pi) / 3.0;
+const float CosineA2 = Pi * 0.25;
+struct SH9 { float c[9]; }; //to store weights
+struct SH9Color { vec3 c[9]; }; //to store colors
+
+void SHCosineLobe(in vec3 dir, out SH9 sh) //SH9
+{
+	// Band 0
+	sh.c[0] = 0.282095 * CosineA0;
+	// Band 1
+	sh.c[1] = 0.488603 * dir.y * CosineA1; 
+	sh.c[2] = 0.488603 * dir.z * CosineA1;
+	sh.c[3] = 0.488603 * dir.x * CosineA1;
+	// Band 2
+	sh.c[4] = 1.092548 * dir.x * dir.y * CosineA2;
+	sh.c[5] = 1.092548 * dir.y * dir.z * CosineA2;
+	sh.c[6] = 0.315392 * (3.0 * dir.z * dir.z - 1.0) * CosineA2;
+	sh.c[7] = 1.092548 * dir.x * dir.z * CosineA2;
+	sh.c[8] = 0.546274 * (dir.x * dir.x - dir.y * dir.y) * CosineA2;
+}
+
+vec3 ComputeSHIrradiance(in vec3 normal, in SH9Color sh)
+{
+	// Compute the cosine lobe in SH, oriented about the normal direction
+	SH9 shCosine;
+	SHCosineLobe(normal, shCosine);
+	// Compute the SH dot product to get irradiance
+	vec3 irradiance = vec3(0.0);
+	for(int i = 0; i < 9; ++i)
+		irradiance += sh.c[i] * shCosine.c[i];
+
+	return irradiance;
+}
+
+
+void main()
+{
+    vec3 color ;
+
+    vec3 N = normalize(v_normal);
+    SH9Color sh;
+    sh.c[0]= u_coefs[0];
+    sh.c[1]= u_coefs[1];
+    sh.c[2]= u_coefs[2];
+    sh.c[3]= u_coefs[3];
+    sh.c[4]= u_coefs[4];
+    sh.c[5]= u_coefs[5];
+    sh.c[6]= u_coefs[6];
+    sh.c[7]= u_coefs[7];
+    sh.c[8]= u_coefs[8];
+
+    color = ComputeSHIrradiance(N,sh); //cuanta luz/brillo sobre esa esfera en la direcci�n N hay
+
+    FragColor = vec4( max(color,vec3(0.0)), 1.0) ;
+}
+
+
+
+
+\irradiance.fs
+
+
+#version 330 core
+
+in vec3 v_position;
+in vec2 v_uv;
+
+uniform sampler2D u_color_texture;
+uniform sampler2D u_normal_texture;
+uniform sampler2D u_extra_texture;
+uniform sampler2D u_metallic_texture;
+uniform sampler2D u_depth_texture;
+uniform sampler2D u_probes_texture;
+
+
+uniform vec3 u_irr_start;
+uniform vec3 u_irr_end;
+uniform float u_irr_normal_distance;
+uniform vec3 u_irr_dims;
+uniform int u_num_probes;
+uniform vec3 u_irr_delta;
+
+uniform vec2 u_iRes;
+uniform mat4 u_inverse_viewprojection;
+uniform float u_alpha_cutoff;
+uniform vec3 u_camera_pos;
+
+
+
+uniform int occlusion_option;
+uniform int normal_option;
+uniform int specular_option;
+
+
+
+#define POINTLIGHT 1
+#define SPOTLIGHT 2
+#define DIRECTIONALLIGHT 3
+
+out vec4 FragColor;
+
+#define RECIPROCAL_PI 0.3183098861837697
+#define PI 3.1415926538
+
+
+
+vec3 degamma(vec3 c)
+{
+	return pow(c,vec3(2.2));
+}
+const float Pi = 3.141592654;
+const float CosineA0 = Pi;
+const float CosineA1 = (2.0 * Pi) / 3.0;
+const float CosineA2 = Pi * 0.25;
+struct SH9 { float c[9]; }; //to store weights
+struct SH9Color { vec3 c[9]; }; //to store colors
+
+void SHCosineLobe(in vec3 dir, out SH9 sh) //SH9
+{
+	// Band 0
+	sh.c[0] = 0.282095 * CosineA0;
+	// Band 1
+	sh.c[1] = 0.488603 * dir.y * CosineA1; 
+	sh.c[2] = 0.488603 * dir.z * CosineA1;
+	sh.c[3] = 0.488603 * dir.x * CosineA1;
+	// Band 2
+	sh.c[4] = 1.092548 * dir.x * dir.y * CosineA2;
+	sh.c[5] = 1.092548 * dir.y * dir.z * CosineA2;
+	sh.c[6] = 0.315392 * (3.0 * dir.z * dir.z - 1.0) * CosineA2;
+	sh.c[7] = 1.092548 * dir.x * dir.z * CosineA2;
+	sh.c[8] = 0.546274 * (dir.x * dir.x - dir.y * dir.y) * CosineA2;
+}
+
+vec3 ComputeSHIrradiance(in vec3 normal, in SH9Color sh)
+{
+	// Compute the cosine lobe in SH, oriented about the normal direction
+	SH9 shCosine;
+	SHCosineLobe(normal, shCosine);
+	// Compute the SH dot product to get irradiance
+	vec3 irradiance = vec3(0.0);
+	for(int i = 0; i < 9; ++i)
+		irradiance += sh.c[i] * shCosine.c[i];
+
+	return irradiance;
+}
+vec3 computeIrr(vec3 indices, vec3 N)
+{
+
+    //compute in which row is the probe stored
+    float row = indices.x + 
+    indices.y * u_irr_dims.x + 
+    indices.z * u_irr_dims.x * u_irr_dims.y;
+
+    //find the UV.y coord of that row in the probes texture
+    float row_uv = (row + 1.0) / (u_num_probes + 1.0);
+
+
+    SH9Color sh;
+
+    //fill the coefficients
+    const float d_uvx = 1.0 / 9.0;
+    for(int i = 0; i < 9; ++i)
+    {
+	    vec2 coeffs_uv = vec2( (float(i)+0.5) * d_uvx, row_uv );
+	    sh.c[i] = texture( u_probes_texture, coeffs_uv).xyz;
+    }
+
+    //now we can use the coefficients to compute the irradiance
+    vec3 irradiance = ComputeSHIrradiance( N, sh );
+
+    return irradiance;
+    
+
+}
+
+void main()
+{
+    vec2 uv = (gl_FragCoord.xy * u_iRes);
+
+    vec4 color = texture(u_color_texture, uv);
+    
+    vec3 N = texture(u_normal_texture, uv).xyz * 2 - vec3(1.0f);
+    float depth = texture(u_depth_texture, uv).x;
+
+    
+
+    if (depth == 1.0f)
+        discard;
+
+    vec4 screen_pos = vec4(uv.x*2.0f-1.0f, uv.y*2.0f-1.0f, depth*2.0f-1.0f, 1.0);
+    vec4 proj_worldpos = u_inverse_viewprojection * screen_pos;
+    vec3 world_position = proj_worldpos.xyz / proj_worldpos.w;
+    vec4 material_properties = texture(u_extra_texture, uv);
+
+    N = normalize(N);
+    
+    
+
+    //computing nearest probe index based on world position
+    vec3 irr_range = u_irr_end - u_irr_start;
+    vec3 irr_local_pos = clamp( world_position - u_irr_start 
+    + N * u_irr_normal_distance, vec3(0.0), irr_range );
+
+    //convert from world pos to grid pos
+    vec3 irr_norm_pos = irr_local_pos / u_irr_delta;
+
+    
+     //floor instead of round
+    vec3 local_indices = floor( irr_norm_pos );
+
+    //now we have the interpolation factors
+    vec3 factors = irr_norm_pos - local_indices;
+
+    //local_indices points to Left,Bottom,Far
+    vec3 indicesLBF = local_indices;
+
+    vec3 indicesRBF = local_indices;
+    indicesRBF.x += 1; //from left to right
+    
+    vec3 indicesLTF = local_indices;
+    indicesLTF.y += 1; //from left to right
+
+    vec3 indicesRTF = local_indices;
+    indicesRTF.x += 1; //from left to right
+    indicesRTF.y += 1; //from left to right
+
+    vec3 indicesLBN = local_indices;
+    indicesLBN.z -= 1; //from left to right
+
+
+    vec3 indicesRBN = local_indices;
+    indicesRBN.x += 1; //from left to right
+    indicesRBN.z -= 1;
+
+
+    vec3 indicesLTN = local_indices;
+    indicesLTN.y += 1; //from left to right
+    indicesLTN.z -= 1;
+
+    vec3 indicesRTN = local_indices;
+    indicesRTN.x += 1; //from left to right
+    indicesRTN.y += 1;
+    indicesRTN.z -= 1;
+
+
+    //compute irradiance for every corner
+    vec3 irrLBF = computeIrr( indicesLBF ,N );
+    vec3 irrRBF = computeIrr( indicesRBF , N);
+    vec3 irrLTF = computeIrr( indicesLTF ,N );
+    vec3 irrRTF = computeIrr( indicesRTF ,N);
+    vec3 irrLBN = computeIrr( indicesLBN ,N);
+    vec3 irrRBN = computeIrr( indicesRBN , N);
+    vec3 irrLTN = computeIrr( indicesLTN , N);
+    vec3 irrRTN = computeIrr( indicesRTN , N);
+
+    vec3 irrTF = mix( irrLTF, irrRTF, factors.x );
+    vec3 irrBF = mix( irrLBF, irrRBF, factors.x );
+    vec3 irrTN = mix( irrLTN, irrRTN, factors.x );
+    vec3 irrBN = mix( irrLBN, irrRBN, factors.x );
+
+    vec3 irrT = mix( irrTF, irrTN, factors.z );
+    vec3 irrB = mix( irrBF, irrBN, factors.z );
+
+    vec3 irr = mix( irrB, irrT, factors.y );
+
+    FragColor = vec4(irr*color.rgb,1.0);
+
+
+}
+
+
+\combine.fs
+#version 330 core
+
+in vec2 v_uv;
+
+uniform sampler2D u_illumination_texture;
+uniform sampler2D u_probe_illumination_texture;
+
+out vec4 frag_color;
+
+void main()
+{
+    // Fetch the existing illumination and probe illumination
+    vec3 illumination = texture(u_illumination_texture, v_uv).rgb;
+    vec3 probe_illumination = texture(u_probe_illumination_texture, v_uv).rgb;
+
+    // Combine the two illumination values
+    // Here we simply add them, but you can use different blending techniques
+    vec3 combined_illumination = illumination + probe_illumination;
+
+    // Output the final combined color
+    frag_color = vec4(combined_illumination, 1.0);
 }
