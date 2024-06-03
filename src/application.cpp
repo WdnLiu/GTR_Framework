@@ -32,6 +32,7 @@ Application::Application()
 
 	//load scene
 	scene = new SCN::Scene();
+
 	scene2 = new SCN::Scene();
 	if (!scene->load("data/scene.json"))
 		exit(1);
@@ -41,6 +42,8 @@ Application::Application()
 
 	camera->lookAt(scene->main_camera.eye, scene->main_camera.center, vec3(0, 1, 0));
 	camera->fov = scene->main_camera.fov;
+
+	camera->lookAt(vec3(25, 31, -85), vec3(0, 20, 0),  vec3(0, 1, 0));
 
 	//loads and compiles several shaders from one single file
 	//change to "data/shader_atlas_osx.txt" if you are in XCODE
@@ -147,19 +150,26 @@ void Application::onKeyDown(SDL_KeyboardEvent event)
 
 	switch (event.keysym.sym)
 	{
-		case SDLK_1: renderer->pipeline_mode = ePipelineMode::DEFERRED; break;
-		case SDLK_2: renderer->pipeline_mode = ePipelineMode::FORWARD ; break;
-		case SDLK_t: std::swap(scene, scene2); break;
-		case SDLK_ESCAPE: must_exit = true; break; //ESC key, kill the app
-		case SDLK_TAB: render_ui = !render_ui; break;
-		case SDLK_F5: GFX::Shader::ReloadAll(); break;
-		case SDLK_F6: //refresh
-			scene->clear();
-			scene->load(scene->filename.c_str());
-			camera->lookAt(scene->main_camera.eye, scene->main_camera.center, Vector3f(0, 1, 0));
-			camera->fov = scene->main_camera.fov;
-			break;
-		}
+
+	case SDLK_1: renderer->pipeline_mode = ePipelineMode::DEFERRED; break;
+	case SDLK_2: renderer->pipeline_mode = ePipelineMode::FORWARD; break;
+	case SDLK_i: std::swap(scene, scene3); break;
+
+		//case SDLK_l: hacer entonces que suba los datos desde el disco
+
+		//case SDLK_t: std::swap(scene, scene2); break;
+	case SDLK_ESCAPE: must_exit = true; break; //ESC key, kill the app
+	case SDLK_TAB: render_ui = !render_ui; break;
+	case SDLK_F5: GFX::Shader::ReloadAll(); break;
+	case SDLK_F6: //refresh
+		scene->clear();
+		scene->load(scene->filename.c_str());
+		camera->lookAt(scene->main_camera.eye, scene->main_camera.center, Vector3f(0, 1, 0));
+		camera->fov = scene->main_camera.fov;
+		break;
+
+	}
+
 }
 
 void Application::onKeyUp(SDL_KeyboardEvent event)
@@ -210,6 +220,7 @@ void Application::onMouseWheel(SDL_MouseWheelEvent event)
 			if (event.y < 0) io.MouseWheel -= 1;
 		}
 		}
+
 	mouse_blocked = ImGui::IsAnyItemHovered();
 #endif
 

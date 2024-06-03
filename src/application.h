@@ -20,7 +20,10 @@ public:
 	bool render_debug = true;
 	bool scene_option;
 
-	SCN::Scene* scenes[2] = { scene, scene2 };
+	SCN::Scene* scene3 = nullptr;
+
+	SCN::Scene* scenes[3] = { scene, scene2, scene3 };
+
 
 	Application();
 

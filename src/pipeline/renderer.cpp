@@ -29,6 +29,125 @@ GFX::FBO* ssao_fbo = nullptr;
 GFX::FBO* final_fbo = nullptr;
 GFX::FBO* blur_fbo = nullptr;
 
+GFX::FBO* irr_fbo = nullptr;
+
+GFX::FBO* probe_illumination_fbo = nullptr;
+GFX::FBO* combined_illumination_fbo = nullptr;
+sProbe probe;
+std::vector<sProbe> probes;
+//a place to store info about the layout of the grid
+sIrradianceInfo probes_info;
+
+GFX::Texture* probes_texture = nullptr;
+
+Renderer::Renderer(const char* shader_atlas_filename)
+{
+	render_wireframe = false;
+	render_boundaries = false;
+	scene = nullptr;
+	skybox_cubemap = nullptr;
+
+	if (!GFX::Shader::LoadAtlas(shader_atlas_filename))
+		exit(1);
+	GFX::checkGLErrors();
+
+	use_multipass_lights = true;
+	use_no_texture = false;
+	use_normal_map = true;
+	use_emissive = true;
+	use_specular = true;
+	use_occlusion = true;
+	view_ssao = false;
+	use_ssao = false;
+	use_degamma = false;
+	view_blur = false;
+	use_blur = false;
+	use_dithering = true;
+
+	show_probes = false;
+	combined_irr = false;
+	sphere.createSphere(1.0f);
+	sphere.uploadToVRAM();
+
+	shadowmap_size = 1024;
+	mainLight = nullptr;
+
+	pipeline_mode = ePipelineMode::DEFERRED;
+	gbuffer_show_mode = eShowGBuffer::NONE;
+
+	ssao_radius = 11.0f;
+	ssao_max_distance = 0.1f;
+	random_points = generateSpherePoints(64, 1, false);
+
+	//delete----------------
+	//probe.pos.set(0, 11,7);
+	//probe.pos.set(71, 26, 42);
+	//delete----------------
+	 
+	
+	
+	
+	//define grid proves
+	//define bounding of the grid and num probes
+	//probes_info.start.set(-80, 0, -90); //sc1
+	//probes_info.end.set(80, 80, 90); //sc1
+
+
+
+	probes_info.start.set(80, 0, 90); //sc2
+	probes_info.end.set(-80, 80, -90); //sc2
+
+
+	probes_info.dim.set(10, 4, 10);
+
+	//compute the vector from one corner to the other
+	vec3 delta = (probes_info.end - probes_info.start);
+	//compute delta from one probe to the next one
+	delta.x /= (probes_info.dim.x - 1);
+	delta.y /= (probes_info.dim.y - 1);
+	delta.z /= (probes_info.dim.z - 1);
+	probes_info.delta = delta; 
+	
+	//store
+
+	for (int z = 0; z < probes_info.dim.z; ++z) {
+		for (int y = 0; y < probes_info.dim.y; ++y) {
+			for (int x = 0; x < probes_info.dim.x; ++x)
+			{
+				sProbe p;
+				p.local.set(x, y, z);
+
+				//index in the linear array
+				p.index = x + y * probes_info.dim.x + z *
+					probes_info.dim.x * probes_info.dim.y;
+
+				//and its position
+				p.pos = probes_info.start +
+					probes_info.delta * Vector3f(x, y, z);
+				probes.push_back(p);
+			}
+		}
+	}
+	// saveIrradianceToDisk ---------------------------------
+
+	//write to file header and probes data
+	/*FILE* f = fopen("irradiance.bin", "wb");
+	fwrite(&probes_info, sizeof(sIrradianceInfo), 1, f);
+	fwrite(&(probes[0]), sizeof(sProbe), probes.size(), f);
+	fclose(f);*/
+
+
+	
+
+}
+
+void Renderer::visualizeGrid()
+{
+	/*You must have a method to visualize your grid to be sure all probes have the right value.
+	Just iterate through our probes vector and render a sphere with its coefficients.
+	Check that the illumination in every probe matches the light of its surroundings.*/
+
+}
 void Renderer::extractRenderables(SCN::Node* node, Camera* camera)
 {
 	if (!node->visible)
@@ -66,43 +185,7 @@ void Renderer::extractRenderables(SCN::Node* node, Camera* camera)
 		extractRenderables(node->children[i], camera);
 }
 
-Renderer::Renderer(const char* shader_atlas_filename)
-{
-	render_wireframe = false;
-	render_boundaries = false;
-	scene = nullptr;
-	skybox_cubemap = nullptr;
 
-	if (!GFX::Shader::LoadAtlas(shader_atlas_filename))
-		exit(1);
-	GFX::checkGLErrors();
-
-	use_multipass_lights = true;
-	use_no_texture = false;
-	use_normal_map = true;
-	use_emissive = true;
-	use_specular = true;
-	use_occlusion = true;
-	view_ssao = false;
-	use_ssao = false;
-	use_degamma = false;
-	view_blur = false;
-	use_blur = false;
-	use_dithering  = true;
-
-	sphere.createSphere(1.0f);
-	sphere.uploadToVRAM();
-
-	shadowmap_size = 1024;
-	mainLight = nullptr;
-
-	pipeline_mode = ePipelineMode::DEFERRED;
-	gbuffer_show_mode = eShowGBuffer::NONE;
-
-	ssao_radius = 11.0f;
-	ssao_max_distance = 0.1f;
-	random_points = generateSpherePoints(64, 1, false);
-}
 
 void Renderer::extractSceneInfo(SCN::Scene* scene, Camera* camera)
 {
@@ -489,13 +572,112 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 				renderMeshWithMaterialLights(re.model, re.mesh, re.material);
 		}
 	}
-
+	
 	illumination_fbo->unbind();
+
+
+	//dlete:renderProbe(probe.pos, 1, probe.sh);
+	if (!probe_illumination_fbo)
+	{
+		probe_illumination_fbo = new GFX::FBO();
+		probe_illumination_fbo->create(size.x, size.y, 1, GL_RGB, GL_FLOAT, false);
+		probe_illumination_fbo->color_textures[0]->setName("irradiance_probe");
+
+	}
+	
+
+	// Render probe illumination
+	probe_illumination_fbo->bind();
+	glClear(GL_COLOR_BUFFER_BIT);
+
+
+	if (probes_texture) {
+		
+		
+		GFX::Mesh* quad = GFX::Mesh::getQuad(); 
+
+		GFX::Shader* sh_irradiance = GFX::Shader::Get("irradiance");
+		assert(sh_irradiance);
+
+		sh_irradiance->enable();
+
+		
+		sh_irradiance->setUniform("u_irr_start", probes_info.start);
+		sh_irradiance->setUniform("u_irr_end", probes_info.end);
+		sh_irradiance->setUniform("u_irr_normal_distance", (float)0.0f);
+		sh_irradiance->setUniform("u_irr_delta", probes_info.delta);
+		sh_irradiance->setUniform("u_irr_dims", probes_info.dim);
+
+		probes_info.num_probes = probes.size();
+
+		sh_irradiance->setUniform("u_num_probes", (int) probes_info.num_probes);
+
+		int texturePos = 0;
+
+		sh_irradiance->setUniform("u_probes_texture",  probes_texture, texturePos++);
+
+		// you need also pass the distance factor, for now leave it as 0.0
+		sh_irradiance->setUniform("u_irr_normal_distance", 0.0f);
+
+		//gbufers
+		sh_irradiance->setUniform("u_color_texture",    gbuffers->color_textures[0], texturePos++);
+		sh_irradiance->setUniform("u_normal_texture",	 gbuffers->color_textures[1], texturePos++);
+		sh_irradiance->setUniform("u_extra_texture",    gbuffers->color_textures[2], texturePos++);
+		sh_irradiance->setUniform("u_metallic_texture", gbuffers->color_textures[3], texturePos++);
+		sh_irradiance->setUniform("u_depth_texture",    gbuffers->depth_texture,	  texturePos++);
+
+		//to reconstruct world position
+		sh_irradiance->setUniform("u_iRes", vec2(1.0 / size.x, 1.0 / size.y));
+		sh_irradiance->setUniform("u_inverse_viewprojection", camera->inverse_viewprojection_matrix);
+		sh_irradiance->setUniform("u_viewprojection", camera->viewprojection_matrix);
+
+		quad->render(GL_TRIANGLES);
+		sh_irradiance->disable();
+
+
+	}
+
+	probe_illumination_fbo->unbind();
+
+	if(show_probes) renderProbes(1);
+
+	//Mar note: He posat de moment en un shader separat que els combini, per poder visualitzar per separat de moment com es veu la irradiance, el dilluns els junto dins el shader irradiance directmaent!!!
+
+
+	if (!combined_illumination_fbo)
+	{
+		combined_illumination_fbo = new GFX::FBO();
+		combined_illumination_fbo->create(size.x, size.y, 1, GL_RGB, GL_FLOAT, false);
+		combined_illumination_fbo->color_textures[0]->setName("total_illum");
+
+	}
+
+	combined_illumination_fbo->bind();
+	GFX::Shader* combine_shader = GFX::Shader::Get("combine");
+	combine_shader->enable();
+	combine_shader->setUniform("u_illumination_texture", illumination_fbo->color_textures[0], 0);
+	combine_shader->setUniform("u_probe_illumination_texture", probe_illumination_fbo->color_textures[0], 1);
+
+	GFX::Mesh::getQuad()->render(GL_TRIANGLES);
+	combine_shader->disable();
+	combined_illumination_fbo->unbind();
+
+	
+
 
 	if (use_degamma)
 		illumination_fbo->color_textures[0]->toViewport(GFX::Shader::Get("gamma"));
+
+	else if(combined_irr)
+		combined_illumination_fbo->color_textures[0]->toViewport();
+
 	else
 		illumination_fbo->color_textures[0]->toViewport();
+
+
+	
+
+
 
 	glDisable(GL_DEPTH_TEST);
 	switch (gbuffer_show_mode) //debug
@@ -538,6 +720,7 @@ void Renderer::renderSkybox(GFX::Texture* cubemap)
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	glEnable(GL_DEPTH_TEST);
 }
+//deferred cambias solo color 
 
 //renders a node of the prefab and its children
 void Renderer::renderNode(SCN::Node* node, Camera* camera)
@@ -566,6 +749,117 @@ void Renderer::renderNode(SCN::Node* node, Camera* camera)
 	//iterate recursively with children
 	for (int i = 0; i < node->children.size(); ++i)
 		renderNode( node->children[i], camera);
+}
+void  SCN::Renderer::captureProbes() {
+
+	for (auto& probe : probes) {
+		captureProbe(probe);  //TO OPTIMIZE: crear solo una vez las imagenes no cada vez (constatic reusea ya ) y cam ?
+	}
+
+	if (probes_texture)
+		delete probes_texture;
+
+	
+	//create the texture to store the probes (do this ONCE!!!)
+	probes_texture = new GFX::Texture(
+		9, //9 coefficients per probe
+		(int) probes.size(), //as many rows as probes
+		GL_RGB, //3 channels per coefficient
+		GL_FLOAT); //they require a high range
+	//we must create the color information for the texture. because every SH are 27 floats in the RGB,RGB,... order, we can create an array of SphericalHarmonics and use it as pixels of the texture
+	
+	SphericalHarmonics* sh_data = NULL;
+	sh_data = new SphericalHarmonics[probes_info.dim.x* probes_info.dim.y* probes_info.dim.z];
+
+	//here we fill the data of the array with our probes in x,y,z order
+	for (int i = 0; i < probes.size(); ++i)
+		sh_data[i] = probes[i].sh; //una probe por row
+
+	//now upload the data to the GPU as a texture
+	probes_texture->upload(GL_RGB, GL_FLOAT, false, (uint8*)sh_data);
+
+	//disable any texture filtering when reading
+	probes_texture->bind();
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+	//always free memory after allocating it!!!
+	delete[] sh_data;
+
+}
+void SCN::Renderer::captureProbe(sProbe& p) //cuanta luz llega a esa esfera
+{
+	//poner camara donde esta la probe y tira renderer en 6 direcciones
+
+	static FloatImage images[6]; //here we will store the six views  //static reusa la var
+	if (!irr_fbo) {
+
+		irr_fbo = new GFX::FBO();
+		irr_fbo->create(64, 64, 1, GL_RGB, GL_FLOAT, false);
+	}
+	
+	Camera cam;
+
+	//set the fov to 90 and the aspect to 1 (cuadrados)
+	cam.setPerspective(90, 1, 0.1, 1000); 
+
+	for (int i = 0; i < 6; ++i) //for every cubemap face
+	{
+		//compute camera orientation using defined vectors
+		vec3 eye = p.pos;
+		vec3 front = cubemapFaceNormals[i][2];
+		vec3 center = p.pos + front;
+		vec3 up = cubemapFaceNormals[i][1];
+		cam.lookAt(eye, center, up);
+		cam.enable();
+
+		//render the scene from this point of view
+		irr_fbo->bind();
+
+		renderSceneForward(scene, &cam);
+
+		irr_fbo->unbind();
+
+		//read the pixels back and store in a FloatImage
+		images[i].fromTexture(irr_fbo->color_textures[0]); //copia de GPU a CPU
+	}
+
+	//compute the coefficients given the six images
+	p.sh = computeSH(images); //opicon gamma o degamma en la funcion si queremos incluirlo!
+
+
+}
+
+void  SCN::Renderer::renderProbes( float scale) {
+
+	for (auto& probe : probes) {
+		renderProbe(probe.pos, scale, probe.sh);
+	}
+}
+void  SCN::Renderer::renderProbe(vec3 pos, float scale, SphericalHarmonics& shs) {
+	
+	Camera* camera = Camera::current;
+
+	glDisable(GL_BLEND);
+	glDisable(GL_DEPTH_TEST); //enable?
+	glEnable(GL_CULL_FACE); //para no pintar parte interior
+	
+
+	GFX::Shader* shader = GFX::Shader::Get("probe");
+	if (!shader)
+		return;
+	shader->enable();
+
+	Matrix44 m;
+	m.setTranslation(pos.x,pos.y, pos.z);
+	m.scale(scale, scale, scale);
+	shader->setUniform("u_model", m);
+	cameraToShader(camera, shader);
+	shader->setUniform3Array("u_coefs", shs.coeffs[0].v, 9);
+	sphere.render(GL_TRIANGLES);
+	shader->disable();
+
+
 }
 
 void Renderer::renderMeshWithMaterialGBuffers(const Matrix44 model, GFX::Mesh* mesh, SCN::Material* material)
@@ -613,6 +907,7 @@ void Renderer::renderMeshWithMaterialGBuffers(const Matrix44 model, GFX::Mesh* m
 	shader->enable();
 
 	//upload uniforms
+
 	shader->setUniform("u_model", model);
 	cameraToShader(camera, shader);
 
@@ -620,7 +915,8 @@ void Renderer::renderMeshWithMaterialGBuffers(const Matrix44 model, GFX::Mesh* m
 	if (texture)
 		shader->setUniform("u_texture", texture, texturePosition++);
 
-	//added
+	//added---------------------------------------------------------------
+
 	if (metallic_roughness_texture)
 		shader->setUniform("u_metallic_roughness_texture", metallic_roughness_texture, texturePosition++);
 
@@ -647,6 +943,10 @@ void Renderer::renderMeshWithMaterialGBuffers(const Matrix44 model, GFX::Mesh* m
 		shader->setUniform("dithering_option", 1);
 	else
 		shader->setUniform("dithering_option", 0);
+
+
+	//---------------------------------------------------------------------
+
 
 	//this is used to say which is the alpha threshold to what we should not paint a pixel on the screen (to cut polygons according to texture alpha)
 	shader->setUniform("u_alpha_cutoff", material->alpha_mode == SCN::eAlphaMode::MASK ? material->alpha_cutoff : 0.001f);
@@ -1096,6 +1396,10 @@ void Renderer::showUI()
 	ImGui::Checkbox("View blur", &view_blur);
 	ImGui::Checkbox("Use degamma", &use_degamma);
 
+	ImGui::Checkbox("Show probes", &show_probes);
+	ImGui::Checkbox("Show all combined", &combined_irr);
+
+	
 	if (ImGui::Button("ShadowMap 256"))
 		shadowmap_size = 256;
 	if (ImGui::Button("ShadowMap 512"))
@@ -1104,6 +1408,9 @@ void Renderer::showUI()
 		shadowmap_size = 1024;
 	if (ImGui::Button("ShadowMap 2048"))
 		shadowmap_size = 2048;
+	
+	if (ImGui::Button("Capture Irradiance"))
+		captureProbes();
 }
 
 #else
