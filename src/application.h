@@ -14,16 +14,18 @@ public:
 	//some vars
 	bool mouse_locked; //tells if the mouse is locked (blocked in the center and not visible)
 	Camera* camera = nullptr;
+  
 	SCN::Scene* scene = nullptr;
+	SCN::Scene* scene1 = nullptr;
 	SCN::Scene* scene2 = nullptr;
-	SCN::Renderer* renderer = nullptr;
+	SCN::Scene* scene3 = nullptr;
+  int currScene = 0;
+	
+  SCN::Renderer* renderer = nullptr;
 	bool render_debug = true;
 	bool scene_option;
 
-	SCN::Scene* scene3 = nullptr;
-
-	SCN::Scene* scenes[3] = { scene, scene2, scene3 };
-
+	std::vector<SCN::Scene*> scenes;
 
 	Application();
 
