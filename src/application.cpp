@@ -31,13 +31,22 @@ Application::Application()
 	camera->setPerspective(45.f, window_width / (float)window_height, 1.0f, 10000.f);
 
 	//load scene
-	scene = new SCN::Scene();
+	scene1 = new SCN::Scene();
 	scene2 = new SCN::Scene();
-	if (!scene->load("data/scene.json"))
+	scene3 = new SCN::Scene();
+
+	if (!scene1->load("data/scene.json"))
 		exit(1);
 
 	if (!scene2->load("data/scene2.json"))
 		exit(1);
+
+	if (!scene3->load("data/scene_irradiance.json"))
+		exit(1);
+
+	scenes.push_back(scene1); scenes.push_back(scene2); scenes.push_back(scene3);
+
+	scene = scenes[currScene];
 
 	camera->lookAt(scene->main_camera.eye, scene->main_camera.center, vec3(0, 1, 0));
 	camera->fov = scene->main_camera.fov;
@@ -149,7 +158,7 @@ void Application::onKeyDown(SDL_KeyboardEvent event)
 	{
 		case SDLK_1: renderer->pipeline_mode = ePipelineMode::DEFERRED; break;
 		case SDLK_2: renderer->pipeline_mode = ePipelineMode::FORWARD ; break;
-		case SDLK_t: std::swap(scene, scene2); break;
+		case SDLK_t: currScene = ++currScene % 3; scene = scenes[currScene]; editor->scene = scene; break;
 		case SDLK_ESCAPE: must_exit = true; break; //ESC key, kill the app
 		case SDLK_TAB: render_ui = !render_ui; break;
 		case SDLK_F5: GFX::Shader::ReloadAll(); break;
