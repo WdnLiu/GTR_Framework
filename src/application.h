@@ -24,7 +24,6 @@ public:
 
 	SCN::Scene* scenes[3] = { scene, scene2, scene3 };
 
-
 	Application();
 
 	//main functions

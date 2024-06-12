@@ -17,7 +17,6 @@ probe basic.vs probe.fs
 irradiance quad.vs irradiance.fs
 combine quad.vs combine.fs
 reflecionProbe basic.vs reflecionProbe.fs
-decals basic.vs decals.fs
 
 \basic.vs
 
@@ -1550,7 +1549,7 @@ void main()
     vec3 irr = mix( irrB, irrT, factors.y );
 
     FragColor = vec4(irr*color.rgb,1.0);
-    
+
 
 }
 
@@ -1623,67 +1622,4 @@ void main()
     FragColor = vec4( reflection, metalness );
 
 }    
-
-\decals.fs
-
-in vec3 v_position;
-in vec3 v_world_position;
-in vec3 v_normal;
-in vec2 v_uv;
-in vec4 v_color;
-
-
-uniform sampler2D u_depth_texture;
-uniform mat4 u_inverse_viewprojection;
-uniform vec2 u_iRes;
-uniform mat4 u_inv_decal_model;
-uniform sampler2D u_decal_texture;
-uniform sampler2D u_emissive_texture;
-uniform sampler2D u_matprop_texture;
-
-layout(location = 0) out vec4 FragColor;
-layout(location = 2) out vec4 ExtraColor;
-layout(location = 3) out vec4 MetalnessColor;
-
-void main()
-{
-    //extract uvs from pixel screenpos
-	vec2 uv = gl_FragCoord.xy * u_iRes.xy; 
-
-	//reconstruct world position from depth
-	float depth = texture( u_depth_texture, uv ).x;
-	vec4 screen_pos = vec4(uv.x*2.0-1.0, uv.y*2.0-1.0,depth*2.0-1.0, 1.0);
-	vec4 proj_worldpos = u_inverse_viewprojection * screen_pos;
-	vec3 worldpos = proj_worldpos.xyz / proj_worldpos.w;
-
-
-	//convert to local space
-    vec3 localpos = (u_inv_decal_model * vec4(worldpos,1.0)).xyz;
-
-    //if outside of the volume
-    if( localpos.x < -0.5 || localpos.x > 0.5 ||
-    localpos.y < -0.5 || localpos.y > 0.5 ||
-    localpos.z < -0.5 || localpos.z > 0.5 )
-	    discard;
-
-
-    //use XZ as UVs, remap to 0..1 range
-    vec2 decal_uv = localpos.xz + vec2(0.5);
-
-    vec4 albedo = texture(u_decal_texture,decal_uv);
-    vec4 emissive = texture(u_emissive_texture,decal_uv);
-    vec4 matprop = texture(u_matprop_texture,decal_uv);
-    float opacity = albedo.a;
-
-    //skip transparent pixels
-    if(albedo.a == 0.0)
-        discard;
-
-
-    //update them
-    FragColor = vec4( albedo.xyz, opacity );
-    ExtraColor = vec4( emissive.xyz, opacity );
-    MetalnessColor = matprop;
-
-}
 

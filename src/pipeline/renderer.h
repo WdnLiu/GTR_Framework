@@ -7,8 +7,6 @@
 
 #define MAX_SHADOWS 4
 
-#define MAX_SHADOWS 4
-
 //forward declarations
 class Camera;
 class Skeleton;
@@ -35,7 +33,6 @@ enum eShowGBuffer
 	DEPTH,
 	SHOW_BUFFER_COUNT
 };
-
 struct sProbe {
 	vec3 pos; //where is located
 	vec3 local; //its ijk pos in the matrix
@@ -50,6 +47,11 @@ struct sIrradianceInfo {
 	vec3 dim;
 	vec3 delta;
 	int num_probes;
+};
+
+struct sReflectionProbe {
+	vec3 pos;
+	GFX::Texture* cubemap = NULL ;
 };
 
 
@@ -89,9 +91,9 @@ namespace SCN {
 		bool use_dithering;
 
 		bool show_probes;
+		bool render_refelction_probes;
 		//temporal
 		bool combined_irr;
-
 
 		float ssao_radius;
 		float ssao_max_distance;
@@ -117,6 +119,9 @@ namespace SCN {
 
 		LightEntity* mainLight;
 
+		//DecalEntity* decal;
+		//std::vector<DecalEntity*> decals;
+
 		void extractRenderables(SCN::Node* node, Camera* camera);
 
 		//updated every frame
@@ -135,6 +140,7 @@ namespace SCN {
 		void gbufferToShader(GFX::Shader* shader, vec2 size, Camera* camera);
 		void lightsDeferred(Camera* camera);
 		void ssaoBlur(Camera* camera);
+		void renderDecals(SCN::Scene* scene, Camera* camera, GFX::FBO* gbuffers);
 		//render the skybox
 		void renderSkybox(GFX::Texture* cubemap);
 
@@ -152,10 +158,18 @@ namespace SCN {
 
 		void renderMeshWithMaterialGBuffers(const Matrix44 model, GFX::Mesh* mesh, SCN::Material* material);
 
+		//irradiance
 		void captureProbe(sProbe& p); //rellena los spherical harmonics de la probe con la luz que llega al punto donde esta la probe
 		void renderProbe(vec3 pos, float scale, SphericalHarmonics& shs);
 		void renderProbes(float scale);
 		void captureProbes();
+
+
+		//reflection
+		void captureReflectionProbe(sReflectionProbe& p);
+		void renderReflectionProbe(sReflectionProbe& p,float scale);
+		void renderReflectionProbes(float scale);
+		void captureReflectionProbes();
 
 		void showUI();
 
@@ -166,9 +180,7 @@ namespace SCN {
 		void lightToShader(LightEntity* light, GFX::Shader* shader); //sends light uniforms to shader	
 		void lightToShader(GFX::Shader* shader);
 		void texturesToShader(SCN::Material* material, GFX::Shader* shader) const;
-
 		void visualizeGrid();
-
 	};
 
 };

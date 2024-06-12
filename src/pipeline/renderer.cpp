@@ -33,12 +33,21 @@ GFX::FBO* irr_fbo = nullptr;
 
 GFX::FBO* probe_illumination_fbo = nullptr;
 GFX::FBO* combined_illumination_fbo = nullptr;
+
+GFX::Texture* cloned_depth_texture = nullptr;
+GFX::FBO* reflections_fbo = nullptr;
+
 sProbe probe;
 std::vector<sProbe> probes;
-//a place to store info about the layout of the grid
-sIrradianceInfo probes_info;
+
+sIrradianceInfo probes_info;    //a place to store info about the layout of the grid
 
 GFX::Texture* probes_texture = nullptr;
+
+std::vector< sReflectionProbe> reflection_probes; //tres y buscar cuál es la que esta más cerca !! to implement
+
+sReflectionProbe reflection_probe;
+GFX::Mesh cube;
 
 Renderer::Renderer(const char* shader_atlas_filename)
 {
@@ -62,12 +71,19 @@ Renderer::Renderer(const char* shader_atlas_filename)
 	use_degamma = false;
 	view_blur = false;
 	use_blur = false;
-	use_dithering = true;
+	use_dithering = false;
 
 	show_probes = false;
 	combined_irr = false;
+	render_refelction_probes = false;
+
 	sphere.createSphere(1.0f);
 	sphere.uploadToVRAM();
+
+
+	cube.createCube(vec3(1.0, 1.0, 1.0));	
+	cube.uploadToVRAM();
+
 
 	shadowmap_size = 1024;
 	mainLight = nullptr;
@@ -89,13 +105,13 @@ Renderer::Renderer(const char* shader_atlas_filename)
 	
 	//define grid proves
 	//define bounding of the grid and num probes
-	//probes_info.start.set(-80, 0, -90); //sc1
-	//probes_info.end.set(80, 80, 90); //sc1
+	probes_info.start.set(-80, 0, -90); //sc1
+	probes_info.end.set(80, 80, 90); //sc1
 
 
 
-	probes_info.start.set(80, 0, 90); //sc2
-	probes_info.end.set(-80, 80, -90); //sc2
+	//probes_info.start.set(80, 0, 90); //sc2
+	//probes_info.end.set(-80, 80, -90); //sc2
 
 
 	probes_info.dim.set(10, 4, 10);
@@ -108,7 +124,7 @@ Renderer::Renderer(const char* shader_atlas_filename)
 	delta.z /= (probes_info.dim.z - 1);
 	probes_info.delta = delta; 
 	
-	//store
+	//store grid
 
 	for (int z = 0; z < probes_info.dim.z; ++z) {
 		for (int y = 0; y < probes_info.dim.y; ++y) {
@@ -128,6 +144,8 @@ Renderer::Renderer(const char* shader_atlas_filename)
 			}
 		}
 	}
+
+
 	// saveIrradianceToDisk ---------------------------------
 
 	//write to file header and probes data
@@ -136,8 +154,22 @@ Renderer::Renderer(const char* shader_atlas_filename)
 	fwrite(&(probes[0]), sizeof(sProbe), probes.size(), f);
 	fclose(f);*/
 
+	//reflections--------------------------------------------
+	sReflectionProbe probe;
 
-	
+	//set it up
+	/*probe.pos.set(-80, 16, 43);
+	probe.cubemap = new GFX::Texture();
+	probe.cubemap->createCubemap(
+		512, 512, 	//size
+		NULL, 	//data
+		GL_RGB, GL_UNSIGNED_INT, true);	//mipmaps
+
+	//add it to the list
+	reflection_probes.push_back(probe);*/
+
+	reflection_probes.push_back({ vec3(-80, 16, 43),NULL });
+	reflection_probes.push_back({ vec3(0, 100, 300),NULL });
 
 }
 
@@ -514,6 +546,8 @@ void Renderer::ssaoBlur(Camera* camera)
 	blur_fbo->unbind();
 }
 
+
+
 void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 {
 	vec2 size = CORE::getWindowSize();
@@ -543,6 +577,10 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 
 	gbuffers->unbind();
 
+	//DECALS
+	//renderDecals(scene, camera, gbuffers);
+
+
 	ssaoBlur(camera);
 
 	if (!illumination_fbo)
@@ -564,15 +602,6 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 
 	lightsDeferred(camera);
 
-	if (!use_dithering) {
-		sort(alpha_renderables.begin(), alpha_renderables.end(), renderableComparator);
-		for (Renderable& re : alpha_renderables)
-		{
-			if (camera->testBoxInFrustum(re.bounding.center, re.bounding.halfsize))
-				renderMeshWithMaterialLights(re.model, re.mesh, re.material);
-		}
-	}
-	
 	illumination_fbo->unbind();
 
 
@@ -636,12 +665,11 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 
 
 	}
-
+	
+	
 	probe_illumination_fbo->unbind();
 
-	if(show_probes) renderProbes(1);
 
-	//Mar note: He posat de moment en un shader separat que els combini, per poder visualitzar per separat de moment com es veu la irradiance, el dilluns els junto dins el shader irradiance directmaent!!!
 
 
 	if (!combined_illumination_fbo)
@@ -660,10 +688,20 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 
 	GFX::Mesh::getQuad()->render(GL_TRIANGLES);
 	combine_shader->disable();
+
+
+	if (!use_dithering) {
+		sort(alpha_renderables.begin(), alpha_renderables.end(), renderableComparator);
+		for (Renderable& re : alpha_renderables)
+		{
+			if (camera->testBoxInFrustum(re.bounding.center, re.bounding.halfsize))
+				renderMeshWithMaterialLights(re.model, re.mesh, re.material);
+		}
+	}
+
 	combined_illumination_fbo->unbind();
 
 	
-
 
 	if (use_degamma)
 		illumination_fbo->color_textures[0]->toViewport(GFX::Shader::Get("gamma"));
@@ -674,6 +712,13 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 	else
 		illumination_fbo->color_textures[0]->toViewport();
 
+
+
+	glDepthFunc(GL_LESS);
+	glEnable(GL_DEPTH_TEST);
+
+	if (show_probes) renderProbes(1);
+	if (render_refelction_probes) renderReflectionProbes(10.0f);
 
 	
 
@@ -693,7 +738,72 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 	if (view_blur)
 		blur_fbo->color_textures[0]->toViewport();
 }
+void Renderer::renderDecals(SCN::Scene* scene, Camera* camera, GFX::FBO* gbuffers)
+{
+	//enable alpha blending
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+	//block changing alpha channel
+	glColorMask(true, true, true, false);
+
+	glEnable(GL_DEPTH_TEST); //to use the depth test
+	glDepthMask(GL_FALSE); //But to not modify the depth buffer by any means
+	glDepthFunc(GL_GEQUAL); //But only render if the object is inside the depth
+	glEnable(GL_CULL_FACE); //And render the inner side of the cube
+	glFrontFace(GL_CW);
+
+	//block from writing to normalmap gbuffer
+	gbuffers->enableBuffers(false, true, false, false); //normalmap our second pos
+
+	if (!cloned_depth_texture)
+		cloned_depth_texture = new GFX::Texture();
+
+
+	//copy gbuffers depth to other texture
+	gbuffers->depth_texture->copyTo(cloned_depth_texture);
+
+	//draw again inside the gbuffers
+	gbuffers->bind();
+
+
+	/*for (auto decal : decals)
+	{	
+		GFX::Shader* decal_shader = GFX::Shader::Get("decal");
+		decal_shader->enable();
+
+		decal_shader->setUniform("u_depth_texture", cloned_depth_texture,0);
+
+	
+		decal_shader->setUniform("u_inverse_viewprojection", camera->inverse_viewprojection_matrix);
+		decal_shader->setUniform("u_iRes", vec2(1.0 / CORE::getWindowSize().x, 1.0 / CORE::getWindowSize().y));
+		
+		//draw cube per decal
+		decal_shader->setUniform("u_model", decal->model);
+		//decal_shader->setUniform("u_inv_decal_model", inv_decal_model);
+		//decal_shader->setUniform("u_decal_texture", decal_texture);
+		//decal_shader->setUniform("u_texture", decal->texture);
+
+		
+		cube.render(GL_TRIANGLES);
+
+		decal_shader->disable();
+	}*/
+
+	gbuffers->bind();
+	// Restaurar los valores por defecto
+	glColorMask(true, true, true, true);
+
+	//back to normal
+	glDepthFunc(GL_LEQUAL);
+	glFrontFace(GL_CCW);
+
+
+	glDepthMask(GL_TRUE);
+	glDisable(GL_CULL_FACE);
+	
+
+}
 void Renderer::renderSkybox(GFX::Texture* cubemap)
 {
 	Camera* camera = Camera::current;
@@ -841,7 +951,6 @@ void  SCN::Renderer::renderProbe(vec3 pos, float scale, SphericalHarmonics& shs)
 	Camera* camera = Camera::current;
 
 	glDisable(GL_BLEND);
-	glDisable(GL_DEPTH_TEST); //enable?
 	glEnable(GL_CULL_FACE); //para no pintar parte interior
 	
 
@@ -858,6 +967,107 @@ void  SCN::Renderer::renderProbe(vec3 pos, float scale, SphericalHarmonics& shs)
 	shader->setUniform3Array("u_coefs", shs.coeffs[0].v, 9);
 	sphere.render(GL_TRIANGLES);
 	shader->disable();
+
+
+}
+void SCN::Renderer::captureReflectionProbes() {
+	
+	if (!reflections_fbo)
+	{	
+		vec2 size = CORE::getWindowSize();
+		reflections_fbo = new GFX::FBO();
+		reflections_fbo->create(size.x, size.y, 1, GL_RGB, GL_FLOAT, false);
+	}
+
+	for (auto& p : reflection_probes)
+		captureReflectionProbe(p);
+}
+
+void SCN::Renderer::captureReflectionProbe(sReflectionProbe& p) {
+
+	if (!p.cubemap)
+	{
+		//espacio para el cubemap
+		p.cubemap = new GFX::Texture();
+		p.cubemap->createCubemap(512, 512, 	NULL, GL_RGB, GL_UNSIGNED_INT, true);	//mipmaps //true->Minamps
+
+	}
+
+	Camera cam;
+
+	//set the fov to 90 and the aspect to 1 (cuadrados)
+	cam.setPerspective(90, 1, 0.1, 1000);
+
+	for (int i = 0; i < 6; ++i) //for every cubemap face
+	{	
+		reflections_fbo->setTexture(p.cubemap, i);
+
+		//bind FBO
+		reflections_fbo->bind();
+
+		//compute camera orientation using defined vectors
+		vec3 eye = p.pos;
+		vec3 center = p.pos + cubemapFaceNormals[i][2];
+		vec3 up = cubemapFaceNormals[i][1];
+		cam.lookAt(eye, center, up);
+		cam.enable();
+		renderSceneForward(scene, &cam);
+		reflections_fbo->unbind();
+	
+
+	}
+
+	//generate the mipmaps
+	glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+	p.cubemap->generateMipmaps();
+
+
+
+
+
+
+}
+void SCN::Renderer::renderReflectionProbes(float scale) {
+
+	for (auto& ref : reflection_probes) {
+		renderReflectionProbe(ref, scale);
+	}
+}
+void SCN::Renderer::renderReflectionProbe(sReflectionProbe& p,float scale) {
+	Camera* camera = Camera::current;
+
+	glDisable(GL_BLEND);
+	glEnable(GL_CULL_FACE); //para no pintar parte interior
+
+
+	GFX::Shader* sh_reflc = GFX::Shader::Get("reflecionProbe");
+
+
+	if (!sh_reflc)
+		return;
+
+	sh_reflc->enable();
+
+	GFX::Texture* texture = p.cubemap ? p.cubemap : skybox_cubemap;
+	
+	if (!texture)
+		return;
+
+	Matrix44 m;
+	m.setTranslation(p.pos.x, p.pos.y, p.pos.z);
+	m.scale(scale, scale, scale);
+	sh_reflc->setUniform("u_model", m);
+	cameraToShader(camera, sh_reflc);
+	
+	sh_reflc->setTexture("u_environment_texture", texture, 0); //reflections texture
+	sh_reflc->setUniform("u_metallic_roughness_texture", gbuffers->color_textures[3],1);
+	sh_reflc->setUniform("u_color_texture", gbuffers->color_textures[0], 2);
+	
+	vec2 size = CORE::getWindowSize();
+	sh_reflc->setUniform("u_iRes", vec2(1.0 / size.x, 1.0 / size.y));
+	sphere.render(GL_TRIANGLES);
+	sh_reflc->disable();
+
 
 
 }
@@ -1396,10 +1606,11 @@ void Renderer::showUI()
 	ImGui::Checkbox("View blur", &view_blur);
 	ImGui::Checkbox("Use degamma", &use_degamma);
 
-	ImGui::Checkbox("Show probes", &show_probes);
+	ImGui::Checkbox("Show irradiance probes", &show_probes);
 	ImGui::Checkbox("Show all combined", &combined_irr);
 
-	
+	ImGui::Checkbox("Show reflection probes", &render_refelction_probes);
+
 	if (ImGui::Button("ShadowMap 256"))
 		shadowmap_size = 256;
 	if (ImGui::Button("ShadowMap 512"))
@@ -1411,6 +1622,9 @@ void Renderer::showUI()
 	
 	if (ImGui::Button("Capture Irradiance"))
 		captureProbes();
+
+	if (ImGui::Button("Capture Refl.probes"))
+		captureReflectionProbes();
 }
 
 #else
