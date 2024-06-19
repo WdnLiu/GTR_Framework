@@ -49,6 +49,11 @@ std::vector< sReflectionProbe> reflection_probes; //tres y buscar cuál es la que
 sReflectionProbe reflection_probe;
 GFX::Mesh cube;
 
+//post
+GFX::FBO* dof_fbo = nullptr;
+GFX::FBO* blur_final_fbo = nullptr;
+
+
 Renderer::Renderer(const char* shader_atlas_filename)
 {
 	render_wireframe = false;
@@ -94,6 +99,10 @@ Renderer::Renderer(const char* shader_atlas_filename)
 	ssao_radius = 11.0f;
 	ssao_max_distance = 0.1f;
 	random_points = generateSpherePoints(64, 1, false);
+
+	df_min_distance = 1.0f;
+	df_max_distance = 3.0f;
+	df_scale_blur = 1.0f;
 
 	//delete----------------
 	//probe.pos.set(0, 11,7);
@@ -605,7 +614,6 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 	illumination_fbo->unbind();
 
 
-	//dlete:renderProbe(probe.pos, 1, probe.sh);
 	if (!probe_illumination_fbo)
 	{
 		probe_illumination_fbo = new GFX::FBO();
@@ -738,6 +746,50 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 	if (view_blur)
 		blur_fbo->color_textures[0]->toViewport();
 }
+
+void Renderer::postDepthOfField(Camera* camera)
+{
+	vec2 size = CORE::getWindowSize();
+	GFX::Mesh* quad = GFX::Mesh::getQuad();
+
+	// Create FBO for depth of field if not created
+	if (!dof_fbo) {
+		dof_fbo = new GFX::FBO();
+		dof_fbo->create(size.x, size.y, 1, GL_RGB, GL_FLOAT, false);
+	}
+
+	dof_fbo->bind();
+	glClear(GL_COLOR_BUFFER_BIT);
+	glDisable(GL_DEPTH_TEST);
+	glDisable(GL_BLEND);
+
+	GFX::Shader* dof_shader = GFX::Shader::Get("depthoffield");
+	assert(dof_shader);
+
+	dof_shader->enable();
+
+
+
+	// Set uniforms for depth of field shader
+	dof_shader->setUniform("u_focus_texture", combined_illumination_fbo->color_textures[0], 0);
+
+	dof_shader->setUniform("u_depth_texture", gbuffers->depth_texture, 2);
+
+	// Depth of field parameters
+	dof_shader->setUniform("u_min_distance", df_min_distance);
+	dof_shader->setUniform("u_max_distance", df_max_distance);
+	dof_shader->setUniform("u_scale_blur", df_scale_blur);
+
+	dof_shader->setUniform("u_iRes", vec2(1.0 / CORE::getWindowSize().x, 1.0 / CORE::getWindowSize().y));
+
+
+	// Render the quad
+	quad->render(GL_TRIANGLES);
+	dof_shader->disable();
+	dof_fbo->unbind();
+}
+
+
 void Renderer::renderDecals(SCN::Scene* scene, Camera* camera, GFX::FBO* gbuffers)
 {
 	//enable alpha blending
@@ -1611,6 +1663,16 @@ void Renderer::showUI()
 
 	ImGui::Checkbox("Show reflection probes", &render_refelction_probes);
 
+
+	//effects post
+	ImGui::Combo("Show GBuffer", (int*)&post_fx, "NONE\0DEPTHOFFIELD\0BLOOM\0", ePost_fx::DEPTHOFFIELD);
+
+
+	//postDepthofField
+	ImGui::DragFloat("u_min_distance", &df_min_distance);
+	ImGui::DragFloat("u_max_distance", &df_max_distance);
+	ImGui::DragFloat("u_max_distance", &df_scale_blur);
+	
 	if (ImGui::Button("ShadowMap 256"))
 		shadowmap_size = 256;
 	if (ImGui::Button("ShadowMap 512"))

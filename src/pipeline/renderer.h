@@ -33,6 +33,11 @@ enum eShowGBuffer
 	DEPTH,
 	SHOW_BUFFER_COUNT
 };
+
+enum ePost_fx {
+	DEPTHOFFIELD,
+	BLOOM
+};
 struct sProbe {
 	vec3 pos; //where is located
 	vec3 local; //its ijk pos in the matrix
@@ -98,10 +103,16 @@ namespace SCN {
 		float ssao_radius;
 		float ssao_max_distance;
 
+		//post depth of field
+		float df_min_distance;
+		float df_max_distance;
+		float df_scale_blur;
+
 		std::vector<vec3> random_points;
 
 		ePipelineMode pipeline_mode;
 		eShowGBuffer gbuffer_show_mode;
+		ePost_fx post_fx;
 
 		int shadowmap_size;
 
@@ -170,6 +181,10 @@ namespace SCN {
 		void renderReflectionProbe(sReflectionProbe& p,float scale);
 		void renderReflectionProbes(float scale);
 		void captureReflectionProbes();
+
+
+		//post-procesing
+		void postDepthOfField(Camera* camera);
 
 		void showUI();
 
