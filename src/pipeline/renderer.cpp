@@ -22,6 +22,8 @@
 using namespace SCN;
 
 //some globals
+Renderer* Renderer::instance = NULL;
+
 GFX::Mesh sphere;
 GFX::FBO* gbuffers = nullptr;
 GFX::FBO* illumination_fbo = nullptr;
@@ -33,6 +35,7 @@ GFX::FBO* irr_fbo = nullptr;
 
 GFX::FBO* probe_illumination_fbo = nullptr;
 GFX::FBO* combined_illumination_fbo = nullptr;
+GFX::FBO* postfx_fbo = nullptr;
 sProbe probe;
 std::vector<sProbe> probes;
 //a place to store info about the layout of the grid
@@ -40,8 +43,12 @@ sIrradianceInfo probes_info;
 
 GFX::Texture* probes_texture = nullptr;
 
+float gamma = 2.2;
+
 Renderer::Renderer(const char* shader_atlas_filename)
 {
+	Renderer::instance = this;
+
 	render_wireframe = false;
 	render_boundaries = false;
 	scene = nullptr;
@@ -92,7 +99,12 @@ Renderer::Renderer(const char* shader_atlas_filename)
 	//probes_info.start.set(-80, 0, -90); //sc1
 	//probes_info.end.set(80, 80, 90); //sc1
 
-
+	//tonemapper attributes
+	use_tonemapper = false;
+	curr_tonemapper = 0.0f;
+	tonemapper_scale = 1.0f;
+	tonemapper_avg_lum = 1.0f;
+	tonemapper_lumwhite = 1.0f;
 
 	probes_info.start.set(80, 0, 90); //sc2
 	probes_info.end.set(-80, 80, -90); //sc2
@@ -317,6 +329,16 @@ void Renderer::renderScene(SCN::Scene* scene, Camera* camera)
 
 void Renderer::renderSceneForward(SCN::Scene* scene, Camera* camera)
 {
+	vec2 size = CORE::getWindowSize();
+
+	if (!illumination_fbo)
+	{
+		illumination_fbo = new GFX::FBO();
+		illumination_fbo->create(size.x, size.y, 1, GL_RGB, GL_FLOAT, false);
+	}
+
+	illumination_fbo->bind();
+
 	camera->enable();
 	glDisable(GL_BLEND);
 	glEnable(GL_DEPTH_TEST);
@@ -348,6 +370,13 @@ void Renderer::renderSceneForward(SCN::Scene* scene, Camera* camera)
 			renderMeshWithMaterialLights(re.model, re.mesh, re.material);
 	}
 
+	illumination_fbo->unbind();
+
+	if (use_degamma)
+		illumination_fbo->color_textures[0]->toViewport(GFX::Shader::Get("gamma"));
+
+	else
+		illumination_fbo->color_textures[0]->toViewport();
 }
 
 void Renderer::gbufferToShader(GFX::Shader* shader, vec2 size, Camera* camera)
@@ -514,6 +543,29 @@ void Renderer::ssaoBlur(Camera* camera)
 	blur_fbo->unbind();
 }
 
+void Renderer::renderTonemapper()
+{
+	GFX::Shader* shader;
+	//TONEMAPPER
+	if (curr_tonemapper == 0)
+	{
+		shader = GFX::Shader::Get("tonemapper");
+		shader->enable();
+		shader->setUniform("u_scale", tonemapper_scale);
+		shader->setUniform("u_average_lum", tonemapper_avg_lum);
+		shader->setUniform("u_lumwhite2", tonemapper_lumwhite);
+		shader->setUniform("u_igamma", 1.0f / gamma);
+	}
+	else {
+		shader = GFX::Shader::Get("uncharted_tonemapper");
+		shader->enable();
+	}
+
+	postfx_fbo->color_textures[0]->toViewport(shader);
+	//reflections_fbo->color_textures[0]->toViewport(shader);
+	shader->disable();
+}
+
 void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 {
 	vec2 size = CORE::getWindowSize();
@@ -649,7 +701,6 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 		combined_illumination_fbo = new GFX::FBO();
 		combined_illumination_fbo->create(size.x, size.y, 1, GL_RGB, GL_FLOAT, false);
 		combined_illumination_fbo->color_textures[0]->setName("total_illum");
-
 	}
 
 	combined_illumination_fbo->bind();
@@ -662,9 +713,6 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 	combine_shader->disable();
 	combined_illumination_fbo->unbind();
 
-	
-
-
 	if (use_degamma)
 		illumination_fbo->color_textures[0]->toViewport(GFX::Shader::Get("gamma"));
 
@@ -673,11 +721,6 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 
 	else
 		illumination_fbo->color_textures[0]->toViewport();
-
-
-	
-
-
 
 	glDisable(GL_DEPTH_TEST);
 	switch (gbuffer_show_mode) //debug
@@ -1387,18 +1430,37 @@ void Renderer::showUI()
 	ImGui::Checkbox("Occlusion light", &use_occlusion);
 	ImGui::Checkbox("Dithering", &use_dithering);
 
-	ImGui::Checkbox("Use SSAO", &use_ssao);
-	ImGui::Checkbox("Use blur", &use_blur);
+	if (ImGui::TreeNode("SSAO+BLUR"))
+	{
+		ImGui::Checkbox("Use SSAO", &use_ssao);
+		ImGui::Checkbox("Use blur", &use_blur);
+		
+		if (use_ssao || use_blur) {
+			ImGui::DragFloat("ssao radius", &ssao_radius, 0.01f, 0.0f);
+			ImGui::DragFloat("ssao max distance", &ssao_max_distance, 0.01f, 0.0f);
 
-	ImGui::DragFloat("ssao radius", &ssao_radius, 0.01f, 0.0f);
-	ImGui::DragFloat("ssao max distance", &ssao_max_distance, 0.01f, 0.0f);
-	ImGui::Checkbox("View ssao", &view_ssao);
-	ImGui::Checkbox("View blur", &view_blur);
+			ImGui::Checkbox("View ssao", &view_ssao);
+			ImGui::Checkbox("View blur", &view_blur);
+		}
+		ImGui::TreePop();
+	}
+
 	ImGui::Checkbox("Use degamma", &use_degamma);
 
 	ImGui::Checkbox("Show probes", &show_probes);
 	ImGui::Checkbox("Show all combined", &combined_irr);
 
+	if (ImGui::TreeNode("Tonemapper Parameters"))
+	{
+		ImGui::Checkbox("Use Tonemapper", &use_tonemapper);
+		if (use_tonemapper)
+		{
+			ImGui::DragFloat("Scale", &tonemapper_scale, 0.01f, 0.0f, 2.0f);
+			ImGui::DragFloat("Average Lum", &tonemapper_avg_lum, 0.01f, 0.0f, 2.0f);
+			ImGui::DragFloat("Lum White", &tonemapper_lumwhite, 0.01f, 0.0f, 2.0f);
+		}
+		ImGui::TreePop();
+	}
 	
 	if (ImGui::Button("ShadowMap 256"))
 		shadowmap_size = 256;
@@ -1411,6 +1473,21 @@ void Renderer::showUI()
 	
 	if (ImGui::Button("Capture Irradiance"))
 		captureProbes();
+}
+
+void Renderer::resize()
+{
+	vec2 size = CORE::getWindowSize();
+	
+	if (!gbuffers)
+		gbuffers = new GFX::FBO();
+
+	gbuffers->create(size.x, size.y, 4, GL_RGBA, GL_UNSIGNED_BYTE, true);  //crea todas las texturas attached, true if we want depthbuffer in a texure (para poder leerlo)
+
+	if (!illumination_fbo)
+		illumination_fbo = new GFX::FBO();
+
+	illumination_fbo->create(size.x, size.y, 1, GL_RGB, GL_FLOAT, false);
 }
 
 #else

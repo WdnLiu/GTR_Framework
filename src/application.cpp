@@ -52,7 +52,7 @@ Application::Application()
 	camera->lookAt(scene->main_camera.eye, scene->main_camera.center, vec3(0, 1, 0));
 	camera->fov = scene->main_camera.fov;
 
-	camera->lookAt(vec3(25, 31, -85), vec3(0, 20, 0),  vec3(0, 1, 0));
+	//camera->lookAt(vec3(25, 31, -85), vec3(0, 20, 0),  vec3(0, 1, 0));
 
 	//loads and compiles several shaders from one single file
 	//change to "data/shader_atlas_osx.txt" if you are in XCODE
@@ -238,6 +238,8 @@ void Application::onResize(int width, int height)
 	camera->aspect = width / (float)height;
 	window_width = width;
 	window_height = height;
+	
+	SCN::Renderer::instance->resize();
 }
 
 void Application::onFileDrop(std::string filename, std::string relative, SDL_Event event)

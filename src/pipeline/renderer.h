@@ -7,8 +7,6 @@
 
 #define MAX_SHADOWS 4
 
-#define MAX_SHADOWS 4
-
 //forward declarations
 class Camera;
 class Skeleton;
@@ -73,6 +71,8 @@ namespace SCN {
 	class Renderer
 	{
 	public:
+		static Renderer* instance;
+
 		bool render_wireframe;
 		bool render_boundaries;
 		bool use_multipass_lights;
@@ -87,11 +87,17 @@ namespace SCN {
 		bool view_blur;
 		bool use_blur;
 		bool use_dithering;
+		bool use_tonemapper;
 
 		bool show_probes;
 		//temporal
 		bool combined_irr;
 
+		//tonemapper
+		float curr_tonemapper;
+		float tonemapper_scale;
+		float tonemapper_avg_lum;
+		float tonemapper_lumwhite;
 
 		float ssao_radius;
 		float ssao_max_distance;
@@ -118,6 +124,8 @@ namespace SCN {
 		LightEntity* mainLight;
 
 		void extractRenderables(SCN::Node* node, Camera* camera);
+
+		void renderTonemapper();
 
 		//updated every frame
 		Renderer(const char* shaders_atlas_filename);
@@ -169,6 +177,7 @@ namespace SCN {
 
 		void visualizeGrid();
 
+		void resize();
 	};
 
 };
