@@ -302,6 +302,24 @@ bool SCN::PrefabEntity::testRay(const Ray& ray, Vector3f& coll, float max_dist)
 	root.model = root.model;
 	return root.testRay(ray, coll, 0xFF, max_dist);
 }
+//Decal
+
+/*SCN::DecalEntity::DecalEntity()
+{
+}
+
+void SCN::DecalEntity::configure(cJSON* json)
+{
+
+	this->filename = readJSONString(json, "filename", filename.c_str());
+
+}
+
+void SCN::DecalEntity::serialize(cJSON* json)
+{
+	writeJSONString(json, "filename", filename.c_str());
+}
+*/
 
 SCN::UnknownEntity::UnknownEntity()
 {

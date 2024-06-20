@@ -86,7 +86,7 @@ Renderer::Renderer(const char* shader_atlas_filename)
 	sphere.uploadToVRAM();
 
 
-	cube.createCube(vec3(1.0, 1.0, 1.0));	
+	cube.createCube(vec3(5.0, 5.0, 5.0));
 	cube.uploadToVRAM();
 
 
@@ -108,10 +108,10 @@ Renderer::Renderer(const char* shader_atlas_filename)
 	//probe.pos.set(0, 11,7);
 	//probe.pos.set(71, 26, 42);
 	//delete----------------
-	 
-	
-	
-	
+
+
+
+
 	//define grid proves
 	//define bounding of the grid and num probes
 	probes_info.start.set(-80, 0, -90); //sc1
@@ -131,8 +131,8 @@ Renderer::Renderer(const char* shader_atlas_filename)
 	delta.x /= (probes_info.dim.x - 1);
 	delta.y /= (probes_info.dim.y - 1);
 	delta.z /= (probes_info.dim.z - 1);
-	probes_info.delta = delta; 
-	
+	probes_info.delta = delta;
+
 	//store grid
 
 	for (int z = 0; z < probes_info.dim.z; ++z) {
@@ -193,7 +193,7 @@ void Renderer::extractRenderables(SCN::Node* node, Camera* camera)
 {
 	if (!node->visible)
 		return;
-	
+
 	//Compute global matrix
 	Matrix44 node_model = node->getGlobalMatrix(true);
 
@@ -208,7 +208,7 @@ void Renderer::extractRenderables(SCN::Node* node, Camera* camera)
 		{
 			Renderable re;
 			re.model = node_model;
-			re.mesh  = node->mesh;
+			re.mesh = node->mesh;
 			re.material = node->material;
 			re.dist_to_cam = camera->eye.distance(world_bounding.center);
 			re.bounding = world_bounding;
@@ -232,6 +232,7 @@ void Renderer::extractSceneInfo(SCN::Scene* scene, Camera* camera)
 {
 	renderables.clear();
 	lights.clear();
+	//decals.clear();
 	opaque_renderables.clear();
 	alpha_renderables.clear();
 	mainLight = nullptr;
@@ -240,26 +241,29 @@ void Renderer::extractSceneInfo(SCN::Scene* scene, Camera* camera)
 	{
 		if (!ent->visible)
 			continue;
-		
+
 		//Is a prefab
 		if (ent->getType() == eEntityType::PREFAB)
 		{
-			PrefabEntity* pent = (SCN::PrefabEntity*) ent;
+			PrefabEntity* pent = (SCN::PrefabEntity*)ent;
 			if (pent->prefab)
 				extractRenderables(&pent->root, camera);
 		}
 		else if (ent->getType() == eEntityType::LIGHT)
 		{
-			LightEntity* light = (SCN::LightEntity*) ent;
+			LightEntity* light = (SCN::LightEntity*)ent;
 
 			mat4 globalMatrix = light->root.getGlobalMatrix();
 
-			if ( light->light_type == eLightType::DIRECTIONAL || camera->testSphereInFrustum(globalMatrix.getTranslation(), light->max_distance))
+			if (light->light_type == eLightType::DIRECTIONAL || camera->testSphereInFrustum(globalMatrix.getTranslation(), light->max_distance))
 				lights.push_back(light);
 
 			if (!mainLight && light->light_type == eLightType::DIRECTIONAL)
 				mainLight = light;
+
 		}
+		/*else if (ent->getType() == eEntityType::DECAL)
+				decals.push_back((DecalEntity*)ent);*/
 	}
 }
 
@@ -313,10 +317,10 @@ void Renderer::generateShadowMaps(Camera* camera)
 			light_camera.setOrthographic(-halfArea, halfArea, -halfArea, halfArea, light->near_distance, light->max_distance);
 
 			//compute texel size in world units, where frustum size is the distance from left to right in the camera
-			float grid = light->area / (float) shadowmap_size;
+			float grid = light->area / (float)shadowmap_size;
 
 			//snap camera X,Y to that size in camera space assuming the frustum is square, otherwise compute gridx and gridy
-				light_camera.view_matrix.M[3][0] = round(light_camera.view_matrix.M[3][0] / grid) * grid;
+			light_camera.view_matrix.M[3][0] = round(light_camera.view_matrix.M[3][0] / grid) * grid;
 
 			light_camera.view_matrix.M[3][1] = round(light_camera.view_matrix.M[3][1] / grid) * grid;
 
@@ -394,23 +398,23 @@ void Renderer::renderSceneForward(SCN::Scene* scene, Camera* camera)
 void Renderer::gbufferToShader(GFX::Shader* shader, vec2 size, Camera* camera)
 {
 	int texturePos = 0;
-	shader->setUniform("u_color_texture",    gbuffers->color_textures[0], texturePos++);
-	shader->setUniform("u_normal_texture",	 gbuffers->color_textures[1], texturePos++);
-	shader->setUniform("u_extra_texture",    gbuffers->color_textures[2], texturePos++);
+	shader->setUniform("u_color_texture", gbuffers->color_textures[0], texturePos++);
+	shader->setUniform("u_normal_texture", gbuffers->color_textures[1], texturePos++);
+	shader->setUniform("u_extra_texture", gbuffers->color_textures[2], texturePos++);
 	shader->setUniform("u_metallic_texture", gbuffers->color_textures[3], texturePos++);
-	shader->setUniform("u_depth_texture",    gbuffers->depth_texture,	  texturePos++);
-	shader->setUniform("u_cube_texture",     skybox_cubemap,			  texturePos++);
+	shader->setUniform("u_depth_texture", gbuffers->depth_texture, texturePos++);
+	shader->setUniform("u_cube_texture", skybox_cubemap, texturePos++);
 	cameraToShader(camera, shader);
 	shader->setUniform("u_iRes", vec2(1.0 / size.x, 1.0 / size.y));
 	shader->setMatrix44("u_inverse_viewprojection", camera->inverse_viewprojection_matrix);
-	shader->setUniform("specular_option",  (int) use_specular);
+	shader->setUniform("specular_option", (int)use_specular);
 	shader->setUniform("u_use_ssao", (use_ssao || use_blur));
 
 	if (use_ssao)
 		shader->setUniform("u_ao_texture", ssao_fbo->color_textures[0], texturePos++);
 	else if (use_blur)
 		shader->setUniform("u_ao_texture", blur_fbo->color_textures[0], texturePos++);
-	
+
 	shader->setUniform("dithering_option", (int)use_dithering);
 }
 
@@ -586,9 +590,79 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 
 	gbuffers->unbind();
 
-	//DECALS
-	//renderDecals(scene, camera, gbuffers);
+	//DECALS (render a red cube) -------------------------------------------------------------------------------------------------------------------------------------------------------
 
+	//enable alpha blending
+	glDisable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	//block changing alpha channel
+	glColorMask(true, true, true, false);
+
+	//block from writing to normalmap gbuffer
+	//gbuffers->enableBuffers(false, true, false, false); //normalmap our second pos
+
+	glEnable(GL_DEPTH_TEST); //to use the depth test
+	glDepthMask(GL_FALSE); //But to not modify the depth buffer by any means
+	glDepthFunc(GL_GEQUAL); //But only render if the object is inside the depth
+	glEnable(GL_CULL_FACE); //And render the inner side of the cube
+	glFrontFace(GL_CW);
+
+	
+
+	if (!cloned_depth_texture)
+		cloned_depth_texture = new GFX::Texture(size.x,size.y, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, false);
+
+
+
+	//copy gbuffers depth to other texture
+	gbuffers->depth_texture->copyTo(cloned_depth_texture);
+
+	//draw again inside the gbuffers*/
+	gbuffers->bind();
+	camera->enable();
+
+	GFX::Shader* decal_shader = GFX::Shader::Get("decals");
+	assert(decal_shader);
+
+	decal_shader->enable();
+
+	Matrix44 model;
+	model.setTranslation(-28, 53, -47);
+	model.scale(4, 4, 0.5);
+
+	decal_shader->setUniform("u_model",model);
+	decal_shader->setUniform("u_color", vec4(1.0, 0.0, 0.0, 1.0));
+
+	decal_shader->setUniform("u_camera_pos", camera->eye);
+	decal_shader->setUniform("u_viewprojection", camera->viewprojection_matrix);
+
+	decal_shader->setUniform("u_depth_texture", cloned_depth_texture, 0);
+
+
+	decal_shader->setUniform("u_inverse_viewprojection", camera->inverse_viewprojection_matrix);
+	decal_shader->setUniform("u_iRes", vec2(1.0 / CORE::getWindowSize().x, 1.0 / CORE::getWindowSize().y));
+;
+	Matrix44 model_inverse = model;
+	model_inverse.inverse();
+	decal_shader->setUniform("u_inv_decal_model", model_inverse);
+
+	GFX::Texture* decal_texture = GFX::Texture::Get("data/decals/graffitti.png", true, true);
+	decal_shader->setUniform("u_decal_texture", decal_texture, 1);
+
+	cube.render(GL_TRIANGLES);
+
+	gbuffers->unbind();
+
+	glColorMask(true, true, true, true);
+
+	glDepthFunc(GL_LEQUAL);
+	glFrontFace(GL_CCW);
+
+
+	glDepthMask(GL_TRUE);
+	glDisable(GL_CULL_FACE);
+	
+	//*________________________________________________
 
 	ssaoBlur(camera);
 
@@ -621,7 +695,7 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 		probe_illumination_fbo->color_textures[0]->setName("irradiance_probe");
 
 	}
-	
+
 
 	// Render probe illumination
 	probe_illumination_fbo->bind();
@@ -629,16 +703,16 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 
 
 	if (probes_texture) {
-		
-		
-		GFX::Mesh* quad = GFX::Mesh::getQuad(); 
+
+
+		GFX::Mesh* quad = GFX::Mesh::getQuad();
 
 		GFX::Shader* sh_irradiance = GFX::Shader::Get("irradiance");
 		assert(sh_irradiance);
 
 		sh_irradiance->enable();
 
-		
+
 		sh_irradiance->setUniform("u_irr_start", probes_info.start);
 		sh_irradiance->setUniform("u_irr_end", probes_info.end);
 		sh_irradiance->setUniform("u_irr_normal_distance", (float)0.0f);
@@ -647,21 +721,21 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 
 		probes_info.num_probes = probes.size();
 
-		sh_irradiance->setUniform("u_num_probes", (int) probes_info.num_probes);
+		sh_irradiance->setUniform("u_num_probes", (int)probes_info.num_probes);
 
 		int texturePos = 0;
 
-		sh_irradiance->setUniform("u_probes_texture",  probes_texture, texturePos++);
+		sh_irradiance->setUniform("u_probes_texture", probes_texture, texturePos++);
 
 		// you need also pass the distance factor, for now leave it as 0.0
 		sh_irradiance->setUniform("u_irr_normal_distance", 0.0f);
 
 		//gbufers
-		sh_irradiance->setUniform("u_color_texture",    gbuffers->color_textures[0], texturePos++);
-		sh_irradiance->setUniform("u_normal_texture",	 gbuffers->color_textures[1], texturePos++);
-		sh_irradiance->setUniform("u_extra_texture",    gbuffers->color_textures[2], texturePos++);
+		sh_irradiance->setUniform("u_color_texture", gbuffers->color_textures[0], texturePos++);
+		sh_irradiance->setUniform("u_normal_texture", gbuffers->color_textures[1], texturePos++);
+		sh_irradiance->setUniform("u_extra_texture", gbuffers->color_textures[2], texturePos++);
 		sh_irradiance->setUniform("u_metallic_texture", gbuffers->color_textures[3], texturePos++);
-		sh_irradiance->setUniform("u_depth_texture",    gbuffers->depth_texture,	  texturePos++);
+		sh_irradiance->setUniform("u_depth_texture", gbuffers->depth_texture, texturePos++);
 
 		//to reconstruct world position
 		sh_irradiance->setUniform("u_iRes", vec2(1.0 / size.x, 1.0 / size.y));
@@ -673,8 +747,8 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 
 
 	}
-	
-	
+
+
 	probe_illumination_fbo->unbind();
 
 
@@ -709,12 +783,12 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 
 	combined_illumination_fbo->unbind();
 
-	
+
 
 	if (use_degamma)
 		illumination_fbo->color_textures[0]->toViewport(GFX::Shader::Get("gamma"));
 
-	else if(combined_irr)
+	else if (combined_irr)
 		combined_illumination_fbo->color_textures[0]->toViewport();
 
 	else
@@ -728,17 +802,17 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 	if (show_probes) renderProbes(1);
 	if (render_refelction_probes) renderReflectionProbes(10.0f);
 
-	
+
 
 
 
 	glDisable(GL_DEPTH_TEST);
 	switch (gbuffer_show_mode) //debug
 	{
-		case eShowGBuffer::COLOR:  gbuffers->color_textures[0]->toViewport(); break;
-		case eShowGBuffer::NORMAL: gbuffers->color_textures[1]->toViewport(); break;
-		case eShowGBuffer::EXTRA:  gbuffers->color_textures[2]->toViewport(); break;
-		case eShowGBuffer::DEPTH:  gbuffers->depth_texture->toViewport();	  break; //para visualizar depth usar depth.fs y funcion
+	case eShowGBuffer::COLOR:  gbuffers->color_textures[0]->toViewport(); break;
+	case eShowGBuffer::NORMAL: gbuffers->color_textures[1]->toViewport(); break;
+	case eShowGBuffer::EXTRA:  gbuffers->color_textures[2]->toViewport(); break;
+	case eShowGBuffer::DEPTH:  gbuffers->depth_texture->toViewport();	  break; //para visualizar depth usar depth.fs y funcion
 	}
 
 	if (view_ssao)
@@ -818,42 +892,75 @@ void Renderer::renderDecals(SCN::Scene* scene, Camera* camera, GFX::FBO* gbuffer
 	//draw again inside the gbuffers
 	gbuffers->bind();
 
+	GFX::Shader* decal_shader = GFX::Shader::Get("decals");
+	assert(decal_shader);
 
-	/*for (auto decal : decals)
-	{	
-		GFX::Shader* decal_shader = GFX::Shader::Get("decal");
+	decal_shader->enable();
+
+
+	Matrix44 model;
+	model.setTranslation(12, 126, 26);
+	model.scale(5, 5, 5);
+
+
+	decal_shader->setUniform("u_model", model);
+	decal_shader->setUniform("u_color", vec4(1.0, 0.0, 0.0, 1.0));
+
+
+	cameraToShader(camera, decal_shader);
+
+	//cube.render(GL_TRIANGLES);
+
+	//decal_shader->disable();
+
+	/**for (auto decal : decals)
+	{
+		GFX::Shader* decal_shader = GFX::Shader::Get("decals");
+		assert(decal_shader);
+
 		decal_shader->enable();
 
 		decal_shader->setUniform("u_depth_texture", cloned_depth_texture,0);
 
-	
+
 		decal_shader->setUniform("u_inverse_viewprojection", camera->inverse_viewprojection_matrix);
 		decal_shader->setUniform("u_iRes", vec2(1.0 / CORE::getWindowSize().x, 1.0 / CORE::getWindowSize().y));
-		
+
 		//draw cube per decal
-		decal_shader->setUniform("u_model", decal->model);
-		//decal_shader->setUniform("u_inv_decal_model", inv_decal_model);
-		//decal_shader->setUniform("u_decal_texture", decal_texture);
+
+
+		Matrix44 model;
+		model.setTranslation(-25,53,-52);
+		model.scale(3, 3, 3);
+
+
+
+		decal_shader->setUniform("u_model", model);
+		decal_shader->setUniform("u_inv_decal_model", model.inverse());
+
+		GFX::Texture* decal_texture = GFX::Texture::Get("data/decals/graffitti.png", true, true);
+		decal_shader->setUniform("u_decal_texture", decal_texture);
+
+
 		//decal_shader->setUniform("u_texture", decal->texture);
 
-		
+
 		cube.render(GL_TRIANGLES);
 
 		decal_shader->disable();
 	}*/
 
-	gbuffers->bind();
-	// Restaurar los valores por defecto
+	//gbuffers->unbind();
+
 	glColorMask(true, true, true, true);
 
-	//back to normal
 	glDepthFunc(GL_LEQUAL);
 	glFrontFace(GL_CCW);
 
 
 	glDepthMask(GL_TRUE);
 	glDisable(GL_CULL_FACE);
-	
+
 
 }
 void Renderer::renderSkybox(GFX::Texture* cubemap)
@@ -882,7 +989,6 @@ void Renderer::renderSkybox(GFX::Texture* cubemap)
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	glEnable(GL_DEPTH_TEST);
 }
-//deferred cambias solo color 
 
 //renders a node of the prefab and its children
 void Renderer::renderNode(SCN::Node* node, Camera* camera)
@@ -897,12 +1003,12 @@ void Renderer::renderNode(SCN::Node* node, Camera* camera)
 	if (node->mesh && node->material)
 	{
 		//compute the bounding box of the object in world space (by using the mesh bounding box transformed to world space)
-		BoundingBox world_bounding = transformBoundingBox(node_model,node->mesh->box);
-		
+		BoundingBox world_bounding = transformBoundingBox(node_model, node->mesh->box);
+
 		//if bounding box is inside the camera frustum then the object is probably visible
-		if (camera->testBoxInFrustum(world_bounding.center, world_bounding.halfsize) )
+		if (camera->testBoxInFrustum(world_bounding.center, world_bounding.halfsize))
 		{
-			if(render_boundaries)
+			if (render_boundaries)
 				node->mesh->renderBounding(node_model, true);
 			renderMeshWithMaterial(node_model, node->mesh, node->material);
 		}
@@ -910,7 +1016,7 @@ void Renderer::renderNode(SCN::Node* node, Camera* camera)
 
 	//iterate recursively with children
 	for (int i = 0; i < node->children.size(); ++i)
-		renderNode( node->children[i], camera);
+		renderNode(node->children[i], camera);
 }
 void  SCN::Renderer::captureProbes() {
 
@@ -921,17 +1027,17 @@ void  SCN::Renderer::captureProbes() {
 	if (probes_texture)
 		delete probes_texture;
 
-	
+
 	//create the texture to store the probes (do this ONCE!!!)
 	probes_texture = new GFX::Texture(
 		9, //9 coefficients per probe
-		(int) probes.size(), //as many rows as probes
+		(int)probes.size(), //as many rows as probes
 		GL_RGB, //3 channels per coefficient
 		GL_FLOAT); //they require a high range
 	//we must create the color information for the texture. because every SH are 27 floats in the RGB,RGB,... order, we can create an array of SphericalHarmonics and use it as pixels of the texture
-	
+
 	SphericalHarmonics* sh_data = NULL;
-	sh_data = new SphericalHarmonics[probes_info.dim.x* probes_info.dim.y* probes_info.dim.z];
+	sh_data = new SphericalHarmonics[probes_info.dim.x * probes_info.dim.y * probes_info.dim.z];
 
 	//here we fill the data of the array with our probes in x,y,z order
 	for (int i = 0; i < probes.size(); ++i)
@@ -959,11 +1065,11 @@ void SCN::Renderer::captureProbe(sProbe& p) //cuanta luz llega a esa esfera
 		irr_fbo = new GFX::FBO();
 		irr_fbo->create(64, 64, 1, GL_RGB, GL_FLOAT, false);
 	}
-	
+
 	Camera cam;
 
 	//set the fov to 90 and the aspect to 1 (cuadrados)
-	cam.setPerspective(90, 1, 0.1, 1000); 
+	cam.setPerspective(90, 1, 0.1, 1000);
 
 	for (int i = 0; i < 6; ++i) //for every cubemap face
 	{
@@ -992,19 +1098,19 @@ void SCN::Renderer::captureProbe(sProbe& p) //cuanta luz llega a esa esfera
 
 }
 
-void  SCN::Renderer::renderProbes( float scale) {
+void  SCN::Renderer::renderProbes(float scale) {
 
 	for (auto& probe : probes) {
 		renderProbe(probe.pos, scale, probe.sh);
 	}
 }
 void  SCN::Renderer::renderProbe(vec3 pos, float scale, SphericalHarmonics& shs) {
-	
+
 	Camera* camera = Camera::current;
 
 	glDisable(GL_BLEND);
 	glEnable(GL_CULL_FACE); //para no pintar parte interior
-	
+
 
 	GFX::Shader* shader = GFX::Shader::Get("probe");
 	if (!shader)
@@ -1012,7 +1118,7 @@ void  SCN::Renderer::renderProbe(vec3 pos, float scale, SphericalHarmonics& shs)
 	shader->enable();
 
 	Matrix44 m;
-	m.setTranslation(pos.x,pos.y, pos.z);
+	m.setTranslation(pos.x, pos.y, pos.z);
 	m.scale(scale, scale, scale);
 	shader->setUniform("u_model", m);
 	cameraToShader(camera, shader);
@@ -1023,9 +1129,9 @@ void  SCN::Renderer::renderProbe(vec3 pos, float scale, SphericalHarmonics& shs)
 
 }
 void SCN::Renderer::captureReflectionProbes() {
-	
+
 	if (!reflections_fbo)
-	{	
+	{
 		vec2 size = CORE::getWindowSize();
 		reflections_fbo = new GFX::FBO();
 		reflections_fbo->create(size.x, size.y, 1, GL_RGB, GL_FLOAT, false);
@@ -1041,7 +1147,7 @@ void SCN::Renderer::captureReflectionProbe(sReflectionProbe& p) {
 	{
 		//espacio para el cubemap
 		p.cubemap = new GFX::Texture();
-		p.cubemap->createCubemap(512, 512, 	NULL, GL_RGB, GL_UNSIGNED_INT, true);	//mipmaps //true->Minamps
+		p.cubemap->createCubemap(512, 512, NULL, GL_RGB, GL_UNSIGNED_INT, true);	//mipmaps //true->Minamps
 
 	}
 
@@ -1051,7 +1157,7 @@ void SCN::Renderer::captureReflectionProbe(sReflectionProbe& p) {
 	cam.setPerspective(90, 1, 0.1, 1000);
 
 	for (int i = 0; i < 6; ++i) //for every cubemap face
-	{	
+	{
 		reflections_fbo->setTexture(p.cubemap, i);
 
 		//bind FBO
@@ -1065,7 +1171,7 @@ void SCN::Renderer::captureReflectionProbe(sReflectionProbe& p) {
 		cam.enable();
 		renderSceneForward(scene, &cam);
 		reflections_fbo->unbind();
-	
+
 
 	}
 
@@ -1085,7 +1191,7 @@ void SCN::Renderer::renderReflectionProbes(float scale) {
 		renderReflectionProbe(ref, scale);
 	}
 }
-void SCN::Renderer::renderReflectionProbe(sReflectionProbe& p,float scale) {
+void SCN::Renderer::renderReflectionProbe(sReflectionProbe& p, float scale) {
 	Camera* camera = Camera::current;
 
 	glDisable(GL_BLEND);
@@ -1101,7 +1207,7 @@ void SCN::Renderer::renderReflectionProbe(sReflectionProbe& p,float scale) {
 	sh_reflc->enable();
 
 	GFX::Texture* texture = p.cubemap ? p.cubemap : skybox_cubemap;
-	
+
 	if (!texture)
 		return;
 
@@ -1110,11 +1216,11 @@ void SCN::Renderer::renderReflectionProbe(sReflectionProbe& p,float scale) {
 	m.scale(scale, scale, scale);
 	sh_reflc->setUniform("u_model", m);
 	cameraToShader(camera, sh_reflc);
-	
+
 	sh_reflc->setTexture("u_environment_texture", texture, 0); //reflections texture
-	sh_reflc->setUniform("u_metallic_roughness_texture", gbuffers->color_textures[3],1);
+	sh_reflc->setUniform("u_metallic_roughness_texture", gbuffers->color_textures[3], 1);
 	sh_reflc->setUniform("u_color_texture", gbuffers->color_textures[0], 2);
-	
+
 	vec2 size = CORE::getWindowSize();
 	sh_reflc->setUniform("u_iRes", vec2(1.0 / size.x, 1.0 / size.y));
 	sphere.render(GL_TRIANGLES);
@@ -1196,11 +1302,11 @@ void Renderer::renderMeshWithMaterialGBuffers(const Matrix44 model, GFX::Mesh* m
 	else
 	{
 		shader->setUniform("u_normal_texture", normal_texture, texturePosition++);
-		shader->setUniform("normal_option", (int) use_normal_map);
+		shader->setUniform("normal_option", (int)use_normal_map);
 	}
 
 	shader->setUniform("occlusion_option", (int)use_occlusion);
-	shader->setUniform("emissive_option",  (int)use_emissive);
+	shader->setUniform("emissive_option", (int)use_emissive);
 	if (use_dithering && material->alpha_mode == eAlphaMode::BLEND)
 		shader->setUniform("dithering_option", 1);
 	else
@@ -1225,15 +1331,15 @@ void Renderer::renderMeshWithMaterialGBuffers(const Matrix44 model, GFX::Mesh* m
 void Renderer::renderMeshWithMaterial(const Matrix44 model, GFX::Mesh* mesh, SCN::Material* material)
 {
 	//in case there is nothing to do
-	if (!mesh || !mesh->getNumVertices() || !material )
+	if (!mesh || !mesh->getNumVertices() || !material)
 		return;
-    assert(glGetError() == GL_NO_ERROR);
+	assert(glGetError() == GL_NO_ERROR);
 
 	//define locals to simplify coding
 	GFX::Shader* shader = NULL;
 	GFX::Texture* texture = NULL;
 	Camera* camera = Camera::current;
-	
+
 	texture = material->textures[SCN::eTextureChannel::ALBEDO].texture;
 	//texture = material->emissive_texture;
 	//texture = material->metallic_roughness_texture;
@@ -1252,18 +1358,18 @@ void Renderer::renderMeshWithMaterial(const Matrix44 model, GFX::Mesh* mesh, SCN
 		glDisable(GL_BLEND);
 
 	//select if render both sides of the triangles
-	if(material->two_sided)
+	if (material->two_sided)
 		glDisable(GL_CULL_FACE);
 	else
 		glEnable(GL_CULL_FACE);
-    assert(glGetError() == GL_NO_ERROR);
+	assert(glGetError() == GL_NO_ERROR);
 
 	glEnable(GL_DEPTH_TEST);
 
 	//chose a shader
 	shader = GFX::Shader::Get("texture");
 
-    assert(glGetError() == GL_NO_ERROR);
+	assert(glGetError() == GL_NO_ERROR);
 
 	//no shader? then nothing to render
 	if (!shader)
@@ -1274,17 +1380,17 @@ void Renderer::renderMeshWithMaterial(const Matrix44 model, GFX::Mesh* mesh, SCN
 	shader->setUniform("u_model", model);
 	cameraToShader(camera, shader);
 	float t = getTime();
-	shader->setUniform("u_time", t );
+	shader->setUniform("u_time", t);
 
 	shader->setUniform("u_color", material->color);
-	if(texture)
+	if (texture)
 		shader->setUniform("u_texture", texture, 0);
 
 	//this is used to say which is the alpha threshold to what we should not paint a pixel on the screen (to cut polygons according to texture alpha)
 	shader->setUniform("u_alpha_cutoff", material->alpha_mode == SCN::eAlphaMode::MASK ? material->alpha_cutoff : 0.001f);
 
 	if (render_wireframe)
-		glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
+		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
 	//do the draw call that renders the mesh into the screen
 	mesh->render(GL_TRIANGLES);
@@ -1294,7 +1400,7 @@ void Renderer::renderMeshWithMaterial(const Matrix44 model, GFX::Mesh* mesh, SCN
 
 	//set the render state as it was before to avoid problems with future renders
 	glDisable(GL_BLEND);
-	glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
 void Renderer::renderMeshWithMaterialPlain(const Matrix44 model, GFX::Mesh* mesh, SCN::Material* material)
@@ -1358,15 +1464,15 @@ void Renderer::renderMeshWithMaterialLights(const Matrix44 model, GFX::Mesh* mes
 	int texPosition = 0;
 	int shadowMapPos = 8;
 	//in case there is nothing to do
-	if (!mesh || !mesh->getNumVertices() || !material )
+	if (!mesh || !mesh->getNumVertices() || !material)
 		return;
-    assert(glGetError() == GL_NO_ERROR);
+	assert(glGetError() == GL_NO_ERROR);
 
 	//define locals to simplify coding
 	GFX::Shader* shader = NULL;
 	GFX::Texture* texture = NULL;
 	Camera* camera = Camera::current;
-	
+
 	texture = material->textures[SCN::eTextureChannel::ALBEDO].texture;
 
 	if (use_no_texture)
@@ -1385,17 +1491,17 @@ void Renderer::renderMeshWithMaterialLights(const Matrix44 model, GFX::Mesh* mes
 		glDisable(GL_BLEND);
 
 	//select if render both sides of the triangles
-	if(material->two_sided)
+	if (material->two_sided)
 		glDisable(GL_CULL_FACE);
 	else
 		glEnable(GL_CULL_FACE);
-    assert(glGetError() == GL_NO_ERROR);
+	assert(glGetError() == GL_NO_ERROR);
 
 	glEnable(GL_DEPTH_TEST);
 
 	//chose a shader
 	shader = (use_multipass_lights) ? GFX::Shader::Get("multipass_light") : GFX::Shader::Get("singlepass_light");
-    assert(glGetError() == GL_NO_ERROR);
+	assert(glGetError() == GL_NO_ERROR);
 
 	//no shader? then nothing to render
 	if (!shader)
@@ -1406,7 +1512,7 @@ void Renderer::renderMeshWithMaterialLights(const Matrix44 model, GFX::Mesh* mes
 	shader->setUniform("u_model", model);
 	cameraToShader(camera, shader);
 	float t = getTime();
-	shader->setUniform("u_time", t );
+	shader->setUniform("u_time", t);
 
 	//ambient light
 	shader->setUniform("u_ambient_light", scene->ambient_light);
@@ -1416,26 +1522,26 @@ void Renderer::renderMeshWithMaterialLights(const Matrix44 model, GFX::Mesh* mes
 	shader->setUniform("u_alpha", material->roughness_factor);
 	float specular_factor = material->metallic_factor;
 	shader->setUniform("u_specular", material->metallic_factor);
-	shader->setUniform("specular_option", use_specular && specular_factor>0.0f);
+	shader->setUniform("specular_option", use_specular && specular_factor > 0.0f);
 
 	//color
 	shader->setUniform("u_color", material->color);
-	if(texture)
+	if (texture)
 		shader->setUniform("u_texture", texture, texPosition++);
 
 	//upload of normal, emissive and occlusion (red value of metallic roughness as specified) textures, if they don't exist upload white texture
-	GFX::Texture* normalMap    = material->textures[eTextureChannel::NORMALMAP         ].texture;
-	GFX::Texture* emissiveTex  = material->textures[eTextureChannel::EMISSIVE          ].texture;
+	GFX::Texture* normalMap = material->textures[eTextureChannel::NORMALMAP].texture;
+	GFX::Texture* emissiveTex = material->textures[eTextureChannel::EMISSIVE].texture;
 	GFX::Texture* occlusionTex = material->textures[eTextureChannel::METALLIC_ROUGHNESS].texture;
-	
-	emissiveTex  = (emissiveTex)  ? emissiveTex  : GFX::Texture::getWhiteTexture();
+
+	emissiveTex = (emissiveTex) ? emissiveTex : GFX::Texture::getWhiteTexture();
 	occlusionTex = (occlusionTex) ? occlusionTex : GFX::Texture::getWhiteTexture();
 
 	if (!normalMap)
-		shader->setUniform("normal_option", (int) 0);
+		shader->setUniform("normal_option", (int)0);
 	else {
 		shader->setUniform("u_normal_texture", normalMap, texPosition++);
-		shader->setUniform("normal_option", (int) use_normal_map);
+		shader->setUniform("normal_option", (int)use_normal_map);
 	}
 
 	if (illumination_fbo->color_textures[0] && (int)pipeline_mode == ePipelineMode::DEFERRED)
@@ -1444,19 +1550,19 @@ void Renderer::renderMeshWithMaterialLights(const Matrix44 model, GFX::Mesh* mes
 
 	shader->setUniform("u_emissive_factor", material->emissive_factor);
 	shader->setUniform("u_emissive_texture", emissiveTex, texPosition++);
-	shader->setUniform("emissive_option", (int) use_emissive);
+	shader->setUniform("emissive_option", (int)use_emissive);
 
 	shader->setUniform("u_metallic_roughness_texture", occlusionTex, texPosition++);
-	shader->setUniform("occlusion_option", (int) use_occlusion);
+	shader->setUniform("occlusion_option", (int)use_occlusion);
 	shader->setUniform("u_deferred_option", (int)pipeline_mode == ePipelineMode::DEFERRED);
-		
+
 	//this is used to say which is the alpha threshold to what we should not paint a pixel on the screen (to cut polygons according to texture alpha)
 	shader->setUniform("u_alpha_cutoff", material->alpha_mode == SCN::eAlphaMode::MASK ? material->alpha_cutoff : 0.001f);
 
 	if (render_wireframe)
-		glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
+		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-	if (lights.size()){
+	if (lights.size()) {
 		//do the draw call that renders the mesh into the screen
 		shader->setUniform("single_pass_option", !use_multipass_lights);
 		if (use_multipass_lights)
@@ -1484,7 +1590,7 @@ void Renderer::renderMeshWithMaterialLights(const Matrix44 model, GFX::Mesh* mes
 				if (material->alpha_mode != SCN::eAlphaMode::BLEND || light == lights[0]) mesh->render(GL_TRIANGLES);
 
 				//only upload once
-				shader->setUniform("u_ambient_light" , vec3(0.0f));
+				shader->setUniform("u_ambient_light", vec3(0.0f));
 				shader->setUniform("u_emissive_factor", vec3(0.0f));
 				glEnable(GL_BLEND);
 			}
@@ -1511,7 +1617,7 @@ void Renderer::renderMeshWithMaterialLights(const Matrix44 model, GFX::Mesh* mes
 
 	//set the render state as it was before to avoid problems with future renders
 	glDisable(GL_BLEND);
-	glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
 void SCN::Renderer::shadowToShader(LightEntity* light, int& shadowMapPos, GFX::Shader* shader)
@@ -1537,8 +1643,8 @@ void SCN::Renderer::shadowToShader(GFX::Shader* shader)
 
 	shadowToShaderAuxiliar(shader);
 
-	shader->setUniform1Array("u_light_cast_shadows", (int*) &u_light_cast_shadows_arr, N_LIGHTS);
-	shader->setUniform1Array("u_shadowmap_bias"    , (float*) &u_shadowmap_biases, N_LIGHTS);
+	shader->setUniform1Array("u_light_cast_shadows", (int*)&u_light_cast_shadows_arr, N_LIGHTS);
+	shader->setUniform1Array("u_shadowmap_bias", (float*)&u_shadowmap_biases, N_LIGHTS);
 }
 
 void SCN::Renderer::shadowToShaderAuxiliar(GFX::Shader* shader)
@@ -1570,13 +1676,13 @@ void SCN::Renderer::shadowToShaderAuxiliar(GFX::Shader* shader)
 
 void SCN::Renderer::lightToShader(LightEntity* light, GFX::Shader* shader)
 {
-	vec2 cone_info = vec2( cosf(light->cone_info.x * PI/180.0f), cosf(light->cone_info.y * PI/180.0f) );
+	vec2 cone_info = vec2(cosf(light->cone_info.x * PI / 180.0f), cosf(light->cone_info.y * PI / 180.0f));
 
-	shader->setUniform("u_light_type"        , (int) light->light_type                    );
-	shader->setUniform("u_light_position"    , light->root.model.getTranslation()         );
-	shader->setUniform("u_light_front"       , light->root.model.frontVector().normalize());
-	shader->setUniform("u_light_color"       , light->color*light->intensity              );
-	shader->setUniform("u_light_max_distance", light->max_distance                        );
+	shader->setUniform("u_light_type", (int)light->light_type);
+	shader->setUniform("u_light_position", light->root.model.getTranslation());
+	shader->setUniform("u_light_front", light->root.model.frontVector().normalize());
+	shader->setUniform("u_light_color", light->color * light->intensity);
+	shader->setUniform("u_light_max_distance", light->max_distance);
 
 	if (use_degamma) {
 
@@ -1587,8 +1693,8 @@ void SCN::Renderer::lightToShader(LightEntity* light, GFX::Shader* shader)
 	else
 		shader->setUniform("u_light_color", light->color * light->intensity);
 
-	shader->setUniform("u_light_max_distance", light->max_distance );
-	shader->setUniform("u_light_cone_info"   , cone_info);
+	shader->setUniform("u_light_max_distance", light->max_distance);
+	shader->setUniform("u_light_cone_info", cone_info);
 }
 
 void SCN::Renderer::lightToShader(GFX::Shader* shader)
@@ -1604,28 +1710,28 @@ void SCN::Renderer::lightToShader(GFX::Shader* shader)
 	{
 		LightEntity* light = lights[i];
 
-		vec2 cone_info = vec2( cosf(light->cone_info.x * PI/180.0f), cosf(light->cone_info.y * PI/180.0f) );
+		vec2 cone_info = vec2(cosf(light->cone_info.x * PI / 180.0f), cosf(light->cone_info.y * PI / 180.0f));
 
-		light_position[i]      = light->getGlobalPosition();
-		light_color[i]         = light->color*lights[i]->intensity;
-		light_types[i]         = (int) light->light_type;
+		light_position[i] = light->getGlobalPosition();
+		light_color[i] = light->color * lights[i]->intensity;
+		light_types[i] = (int)light->light_type;
 		light_max_distances[i] = light->max_distance;
-		cone_infos[i]          = cone_info;
-		light_fronts[i]        = light->root.model.frontVector().normalize();
+		cone_infos[i] = cone_info;
+		light_fronts[i] = light->root.model.frontVector().normalize();
 	}
 
-	shader->setUniform3Array("u_light_pos"          , (float*) &light_position, N_LIGHTS     );
-	shader->setUniform3Array("u_light_color"        , (float*) &light_color, N_LIGHTS		 );
-	shader->setUniform1Array("u_light_type"        , (int*  ) &light_types, N_LIGHTS		 );
-	shader->setUniform1Array("u_light_max_distance" , (float*) &light_max_distances, N_LIGHTS);
-	shader->setUniform2Array("u_light_cone_info"    , (float*) &cone_infos, N_LIGHTS		 );
-	shader->setUniform3Array("u_light_front"        , (float*) &light_fronts, N_LIGHTS		 );
+	shader->setUniform3Array("u_light_pos", (float*)&light_position, N_LIGHTS);
+	shader->setUniform3Array("u_light_color", (float*)&light_color, N_LIGHTS);
+	shader->setUniform1Array("u_light_type", (int*)&light_types, N_LIGHTS);
+	shader->setUniform1Array("u_light_max_distance", (float*)&light_max_distances, N_LIGHTS);
+	shader->setUniform2Array("u_light_cone_info", (float*)&cone_infos, N_LIGHTS);
+	shader->setUniform3Array("u_light_front", (float*)&light_fronts, N_LIGHTS);
 	shader->setUniform1("u_num_lights", N_LIGHTS);
 }
 
 void SCN::Renderer::cameraToShader(Camera* camera, GFX::Shader* shader)
 {
-	shader->setUniform("u_viewprojection", camera->viewprojection_matrix );
+	shader->setUniform("u_viewprojection", camera->viewprojection_matrix);
 	shader->setUniform("u_camera_position", camera->eye);
 }
 
@@ -1665,14 +1771,14 @@ void Renderer::showUI()
 
 
 	//effects post
-	ImGui::Combo("Show GBuffer", (int*)&post_fx, "NONE\0DEPTHOFFIELD\0BLOOM\0", ePost_fx::DEPTHOFFIELD);
+	//ImGui::Combo("Show GBuffer", (int*)&post_fx, "NONE\0DEPTHOFFIELD\0BLOOM\0POST_COUNT\0", ePost_fx::POST_COUNT);
 
 
 	//postDepthofField
-	ImGui::DragFloat("u_min_distance", &df_min_distance);
-	ImGui::DragFloat("u_max_distance", &df_max_distance);
-	ImGui::DragFloat("u_max_distance", &df_scale_blur);
-	
+	ImGui::DragFloat("Dof min distance", &df_min_distance);
+	ImGui::DragFloat("DoF max distance", &df_max_distance);
+	ImGui::DragFloat("Dof scale blur", &df_scale_blur);
+
 	if (ImGui::Button("ShadowMap 256"))
 		shadowmap_size = 256;
 	if (ImGui::Button("ShadowMap 512"))
@@ -1681,7 +1787,7 @@ void Renderer::showUI()
 		shadowmap_size = 1024;
 	if (ImGui::Button("ShadowMap 2048"))
 		shadowmap_size = 2048;
-	
+
 	if (ImGui::Button("Capture Irradiance"))
 		captureProbes();
 

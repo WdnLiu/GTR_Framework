@@ -1,4 +1,3 @@
-
 //example of some shaders compiled
 flat basic.vs flat.fs
 texture basic.vs texture.fs
@@ -1625,8 +1624,26 @@ void main()
     FragColor = vec4( reflection, metalness );
 
 }    
+\decal.fs
+#version 330 core
+
+in vec3 v_position;
+in vec3 v_world_position;
+in vec3 v_normal;
+in vec2 v_uv;
+in vec4 v_color;
+
+uniform vec4 u_color;
+out vec4 FragColor;
+
+void main() {
+    FragColor = vec4(1.0,0.0,0.0,1.0);
+   
+}
+
 
 \decals.fs
+#version 330 core
 
 in vec3 v_position;
 in vec3 v_world_position;
@@ -1640,12 +1657,12 @@ uniform mat4 u_inverse_viewprojection;
 uniform vec2 u_iRes;
 uniform mat4 u_inv_decal_model;
 uniform sampler2D u_decal_texture;
-uniform sampler2D u_emissive_texture;
-uniform sampler2D u_matprop_texture;
+//uniform sampler2D u_emissive_texture;
+//uniform sampler2D u_matprop_texture;
 
-layout(location = 0) out vec4 FragColor;
-layout(location = 2) out vec4 ExtraColor;
-layout(location = 3) out vec4 MetalnessColor;
+out vec4 FragColor;
+//layout(location = 2) out vec4 ExtraColor;
+//layout(location = 3) out vec4 MetalnessColor;
 
 void main()
 {
@@ -1662,30 +1679,18 @@ void main()
 	//convert to local space
     vec3 localpos = (u_inv_decal_model * vec4(worldpos,1.0)).xyz;
 
-    //if outside of the volume
-    if( localpos.x < -0.5 || localpos.x > 0.5 ||
-    localpos.y < -0.5 || localpos.y > 0.5 ||
-    localpos.z < -0.5 || localpos.z > 0.5 )
-	    discard;
-
+   //if outside of the volume
 
     //use XZ as UVs, remap to 0..1 range
     vec2 decal_uv = localpos.xz + vec2(0.5);
 
     vec4 albedo = texture(u_decal_texture,decal_uv);
-    vec4 emissive = texture(u_emissive_texture,decal_uv);
-    vec4 matprop = texture(u_matprop_texture,decal_uv);
-    float opacity = albedo.a;
 
     //skip transparent pixels
     if(albedo.a == 0.0)
         discard;
 
-
-    //update them
-    FragColor = vec4( albedo.xyz, opacity );
-    ExtraColor = vec4( emissive.xyz, opacity );
-    MetalnessColor = matprop;
+    FragColor = vec4(albedo.xyz,1.0);
 
 }
 

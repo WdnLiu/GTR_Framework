@@ -111,6 +111,21 @@ namespace SCN {
 		bool testRay(const Ray& ray, Vector3f& coll, float max_dist = 100000.0f);
 	};
 
+	/*class DecalEntity : public SCN::BaseEntity
+	{
+	public:
+		std::string filename; //solo la textura
+		//Decal* decal;
+
+		DecalEntity();
+
+		ENTITY_METHODS(DecalEntity, DECAL, 11, 0);
+
+		virtual void configure(cJSON* json);
+		virtual void serialize(cJSON* json);
+
+	};
+	*/
 	class UnknownEntity : public SCN::BaseEntity
 	{
 	public:

@@ -232,6 +232,7 @@ void SceneEditor::render(Camera* camera)
 		{
 		case SCN::eEntityType::PREFAB: inspectEntity((SCN::PrefabEntity*)ent); break;
 		case SCN::eEntityType::LIGHT: inspectEntity((SCN::LightEntity*)ent); break;
+		//case SCN::eEntityType::DECAL: inspectEntity((SCN::DecalEntity*)ent); break;
 		case SCN::eEntityType::NONE: inspectEntity((SCN::UnknownEntity*)ent); break;
 		default: inspectEntity(ent); break;
 		}
@@ -391,6 +392,13 @@ void SceneEditor::inspectEntity( SCN::UnknownEntity* entity )
 #endif
 }
 
+/*void SceneEditor::inspectEntity(SCN::DecalEntity* entity)
+{
+	if (UI::Filename("filename", entity->filename, scene->base_folder))
+	{
+	}
+
+}*/
 void SceneEditor::renderInList(SCN::BaseEntity* entity)
 {
 #ifndef SKIP_IMGUI

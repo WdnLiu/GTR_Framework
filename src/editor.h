@@ -15,6 +15,7 @@ namespace SCN {
 class SceneEditor
 {
 public:
+	
 	bool visible;
 	SCN::Scene* scene;
 	SCN::Renderer* renderer;
@@ -33,6 +34,7 @@ public:
 	void inspectEntity(SCN::PrefabEntity* entity);
 	void inspectEntity(SCN::LightEntity* entity);
 	void inspectEntity(SCN::UnknownEntity* entity);
+	//void inspectEntity(SCN::DecalEntity* entity);
 
 	void renderInList(SCN::BaseEntity* entity);
 	void renderInList(SCN::PrefabEntity* entity);

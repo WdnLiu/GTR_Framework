@@ -1,175 +1,54 @@
-﻿  application.cpp
-  editor.cpp
-  main.cpp
-  renderer.cpp
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\scene.h(12,7): warning C4099: 'cJSON': nombre de tipo visto anteriormente usando 'struct' ahora se ve usando 'class'
-  (compilando archivo de origen "../../src/main.cpp")
-  C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\extra\cJSON.h(103,16):
-  vea la declaración de 'cJSON'
-  
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\scene.h(12,7): warning C4099: 'cJSON': nombre de tipo visto anteriormente usando 'struct' ahora se ve usando 'class'
-  (compilando archivo de origen "../../src/application.cpp")
-  C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\extra\cJSON.h(103,16):
-  vea la declaración de 'cJSON'
-  
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\scene.h(12,7): warning C4099: 'cJSON': nombre de tipo visto anteriormente usando 'struct' ahora se ve usando 'class'
+﻿  editor.cpp
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\scene.h(12,7): warning C4099: 'cJSON': nombre de tipo visto anteriormente usando 'struct' ahora se ve usando 'class'
   (compilando archivo de origen "../../src/editor.cpp")
-  C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\extra\cJSON.h(103,16):
+  C:\Users\Maar\Documents\GitHub\GTR_Framework\src\extra\cJSON.h(103,16):
   vea la declaración de 'cJSON'
   
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\application.cpp(92,14): warning C4244: 'inicializando': conversión de 'double' a 'float'; posible pérdida de datos
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\application.cpp(93,20): warning C4244: 'inicializando': conversión de 'double' a 'float'; posible pérdida de datos
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\extra\cJSON.h(103,16): warning C4099: 'cJSON': nombre de tipo visto anteriormente usando 'class' ahora se ve usando 'struct'
-  (compilando archivo de origen "../../src/pipeline/renderer.cpp")
-  C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\extra\cJSON.h(103,16):
-  vea la declaración de 'cJSON'
-  
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(172,20): warning C4018: '<': no coinciden signed/unsigned
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(228,20): warning C4018: '<': no coinciden signed/unsigned
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(351,54): warning C4244: 'argumento': conversión de 'double' a 'T'; posible pérdida de datos
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(351,54): warning C4244:         with
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(351,54): warning C4244:         [
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(351,54): warning C4244:             T=float
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(351,54): warning C4244:         ]
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(351,40): warning C4244: 'argumento': conversión de 'double' a 'T'; posible pérdida de datos
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(351,40): warning C4244:         with
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(351,40): warning C4244:         [
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(351,40): warning C4244:             T=float
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(351,40): warning C4244:         ]
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\editor.cpp(116,33): warning C4244: 'argumento': conversión de 'int' a 'float'; posible pérdida de datos
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\editor.cpp(133,33): warning C4244: 'argumento': conversión de 'int' a 'float'; posible pérdida de datos
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\editor.cpp(140,18): warning C4244: 'inicializando': conversión de 'T' a 'int'; posible pérdida de datos
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\editor.cpp(140,18): warning C4244:         with
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\editor.cpp(140,18): warning C4244:         [
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\editor.cpp(140,18): warning C4244:             T=float
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\editor.cpp(140,18): warning C4244:         ]
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\editor.cpp(143,36): warning C4244: 'argumento': conversión de 'int' a 'float'; posible pérdida de datos
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\editor.cpp(144,61): warning C4244: 'argumento': conversión de 'int' a 'float'; posible pérdida de datos
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\editor.cpp(144,34): warning C4244: 'argumento': conversión de 'int' a 'float'; posible pérdida de datos
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\editor.cpp(201,3): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(439,32): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(439,32): warning C4244:         with
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(439,32): warning C4244:         [
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(439,32): warning C4244:             T=float
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(439,32): warning C4244:         ]
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(439,24): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(439,24): warning C4244:         with
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(439,24): warning C4244:         [
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(439,24): warning C4244:             T=float
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(439,24): warning C4244:         ]
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(468,83): warning C4244: 'argumento': conversión de 'double' a 'T'; posible pérdida de datos
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(468,83): warning C4244:         with
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(468,83): warning C4244:         [
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(468,83): warning C4244:             T=float
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(468,83): warning C4244:         ]
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(468,41): warning C4244: 'argumento': conversión de 'double' a 'T'; posible pérdida de datos
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(468,41): warning C4244:         with
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(468,41): warning C4244:         [
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(468,41): warning C4244:             T=float
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(468,41): warning C4244:         ]
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(480,32): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(480,32): warning C4244:         with
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(480,32): warning C4244:         [
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(480,32): warning C4244:             T=float
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(480,32): warning C4244:         ]
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(480,24): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(480,24): warning C4244:         with
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(480,24): warning C4244:         [
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(480,24): warning C4244:             T=float
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(480,24): warning C4244:         ]
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(498,83): warning C4244: 'argumento': conversión de 'double' a 'T'; posible pérdida de datos
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(498,83): warning C4244:         with
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(498,83): warning C4244:         [
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(498,83): warning C4244:             T=float
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(498,83): warning C4244:         ]
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(498,41): warning C4244: 'argumento': conversión de 'double' a 'T'; posible pérdida de datos
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(498,41): warning C4244:         with
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(498,41): warning C4244:         [
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(498,41): warning C4244:             T=float
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(498,41): warning C4244:         ]
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(514,32): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(514,32): warning C4244:         with
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(514,32): warning C4244:         [
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(514,32): warning C4244:             T=float
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(514,32): warning C4244:         ]
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\editor.cpp(289,33): warning C4244: 'argumento': conversión de 'int' a 'float'; posible pérdida de datos
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(514,24): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(514,24): warning C4244:         with
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(514,24): warning C4244:         [
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(514,24): warning C4244:             T=float
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(514,24): warning C4244:         ]
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(539,40): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(539,40): warning C4244:         with
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(539,40): warning C4244:         [
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(539,40): warning C4244:             T=float
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(539,40): warning C4244:         ]
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(539,32): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(539,32): warning C4244:         with
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(539,32): warning C4244:         [
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(539,32): warning C4244:             T=float
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(539,32): warning C4244:         ]
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(703,20): warning C4018: '<': no coinciden signed/unsigned
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(726,71): warning C4244: 'inicializando': conversión de 'T' a 'unsigned int'; posible pérdida de datos
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(726,71): warning C4244:         with
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(726,71): warning C4244:         [
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(726,71): warning C4244:             T=float
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(726,71): warning C4244:         ]
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(729,20): warning C4018: '<': no coinciden signed/unsigned
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(758,28): warning C4305: 'argumento': truncamiento de 'double' a 'float'
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(968,10): warning C4244: 'inicializando': conversión de 'long' a 'float'; posible pérdida de datos
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(1100,10): warning C4244: 'inicializando': conversión de 'long' a 'float'; posible pérdida de datos
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\editor.cpp(304,39): warning C4244: '=': conversión de 'T' a 'int'; posible pérdida de datos
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\editor.cpp(304,39): warning C4244:         with
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\editor.cpp(304,39): warning C4244:         [
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\editor.cpp(304,39): warning C4244:             T=float
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\editor.cpp(304,39): warning C4244:         ]
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\editor.cpp(306,56): warning C4244: 'argumento': conversión de 'int' a 'float'; posible pérdida de datos
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\editor.cpp(306,54): warning C4244: 'argumento': conversión de 'int' a 'float'; posible pérdida de datos
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\editor.cpp(320,2): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\editor.cpp(358,60): warning C4305: 'argumento': truncamiento de 'double' a 'float'
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(1265,53): warning C4244: 'argumento': conversión de 'double' a 'float'; posible pérdida de datos
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\editor.cpp(372,57): warning C4305: 'argumento': truncamiento de 'double' a 'float'
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(1265,91): warning C4244: 'argumento': conversión de 'double' a 'float'; posible pérdida de datos
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(1276,73): warning C4244: 'argumento': conversión de 'double' a 'T'; posible pérdida de datos
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(1276,73): warning C4244:         with
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(1276,73): warning C4244:         [
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(1276,73): warning C4244:             T=float
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(1276,73): warning C4244:         ]
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\editor.cpp(408,34): warning C4244: 'argumento': conversión de 'double' a 'float'; posible pérdida de datos
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(1276,53): warning C4244: 'argumento': conversión de 'double' a 'T'; posible pérdida de datos
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(1276,53): warning C4244:         with
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(1276,53): warning C4244:         [
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(1276,53): warning C4244:             T=float
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(1276,53): warning C4244:         ]
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\editor.cpp(408,27): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\editor.cpp(408,27): warning C4244:         with
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\editor.cpp(408,27): warning C4244:         [
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\editor.cpp(408,27): warning C4244:             T=float
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\editor.cpp(408,27): warning C4244:         ]
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(1276,33): warning C4244: 'argumento': conversión de 'double' a 'T'; posible pérdida de datos
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(1276,33): warning C4244:         with
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(1276,33): warning C4244:         [
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(1276,33): warning C4244:             T=float
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(1276,33): warning C4244:         ]
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\editor.cpp(408,19): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\editor.cpp(408,19): warning C4244:         with
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\editor.cpp(408,19): warning C4244:         [
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\editor.cpp(408,19): warning C4244:             T=float
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\editor.cpp(408,19): warning C4244:         ]
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\editor.cpp(431,25): warning C4244: 'argumento': conversión de 'double' a 'float'; posible pérdida de datos
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(1299,54): warning C4244: 'argumento': conversión de 'double' a 'float'; posible pérdida de datos
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\pipeline\renderer.cpp(1299,92): warning C4244: 'argumento': conversión de 'double' a 'float'; posible pérdida de datos
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\editor.cpp(524,22): warning C4018: '<': no coinciden signed/unsigned
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\editor.cpp(545,83): warning C4305: 'argumento': truncamiento de 'double' a 'float'
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\editor.cpp(550,61): warning C4305: 'argumento': truncamiento de 'double' a 'float'
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\editor.cpp(570,10): warning C4244: 'inicializando': conversión de 'float' a 'int'; posible pérdida de datos
-C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\src\editor.cpp(572,86): warning C4244: 'argumento': conversión de 'int' a 'float'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(116,33): warning C4244: 'argumento': conversión de 'int' a 'float'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(133,33): warning C4244: 'argumento': conversión de 'int' a 'float'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(140,18): warning C4244: 'inicializando': conversión de 'T' a 'int'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(140,18): warning C4244:         with
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(140,18): warning C4244:         [
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(140,18): warning C4244:             T=float
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(140,18): warning C4244:         ]
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(143,36): warning C4244: 'argumento': conversión de 'int' a 'float'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(144,61): warning C4244: 'argumento': conversión de 'int' a 'float'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(144,34): warning C4244: 'argumento': conversión de 'int' a 'float'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(201,3): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(290,33): warning C4244: 'argumento': conversión de 'int' a 'float'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(305,39): warning C4244: '=': conversión de 'T' a 'int'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(305,39): warning C4244:         with
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(305,39): warning C4244:         [
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(305,39): warning C4244:             T=float
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(305,39): warning C4244:         ]
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(307,56): warning C4244: 'argumento': conversión de 'int' a 'float'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(307,54): warning C4244: 'argumento': conversión de 'int' a 'float'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(321,2): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(359,60): warning C4305: 'argumento': truncamiento de 'double' a 'float'
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(373,57): warning C4305: 'argumento': truncamiento de 'double' a 'float'
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(416,34): warning C4244: 'argumento': conversión de 'double' a 'float'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(416,27): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(416,27): warning C4244:         with
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(416,27): warning C4244:         [
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(416,27): warning C4244:             T=float
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(416,27): warning C4244:         ]
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(416,19): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(416,19): warning C4244:         with
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(416,19): warning C4244:         [
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(416,19): warning C4244:             T=float
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(416,19): warning C4244:         ]
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(439,25): warning C4244: 'argumento': conversión de 'double' a 'float'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(532,22): warning C4018: '<': no coinciden signed/unsigned
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(553,83): warning C4305: 'argumento': truncamiento de 'double' a 'float'
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(558,61): warning C4305: 'argumento': truncamiento de 'double' a 'float'
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(578,10): warning C4244: 'inicializando': conversión de 'float' a 'int'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(580,86): warning C4244: 'argumento': conversión de 'int' a 'float'; posible pérdida de datos
      Creando biblioteca ..\..\GTR.lib y objeto ..\..\GTR.exp
 LINK : warning LNK4098: la biblioteca predeterminada'LIBCMT' entra en conflicto con otras bibliotecas; use la biblioteca /NODEFAULTLIB:biblioteca
   Generando código
-  238 of 6003 functions ( 4.0%) were compiled, the rest were copied from previous compilation.
+  164 of 6092 functions ( 2.7%) were compiled, the rest were copied from previous compilation.
     0 functions were new in current compilation
-    138 functions had inline decision re-evaluated but remain unchanged
+    229 functions had inline decision re-evaluated but remain unchanged
   Generación de código finalizada
 glew32s.lib(glew.obj) : warning LNK4099: no se encontró PDB '' con 'glew32s.lib(glew.obj)' o en ''; se vinculará el objeto sin tener en cuenta información de depuración
-  visualstudio.vcxproj -> C:\Users\Maar\Downloads\graficos\GTR_Framework-master-final_3\GTR_Framework-master\GTR.exe
+  visualstudio.vcxproj -> C:\Users\Maar\Documents\GitHub\GTR_Framework\GTR.exe
