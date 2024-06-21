@@ -22,8 +22,11 @@ depthoffield quad.vs depthoffield.fs
 tonemapper quad.vs tonemapper.fs
 volumetric quad.vs volumetric.fs
 simpleBlur quad.vs simpleBlur.fs
+
 lut quad.vs lut.fs
 lut2 quad.vs lut2.fs
+
+postfx quad.vs postfx.fs
 
 \basic.vs
 
@@ -2077,4 +2080,87 @@ void main()
     float videoColor = texture2D(u_texture, v_uv).r;
     vec4 finalColor = texture2D(u_textureB, vec2(videoColor,u_amount));
     FragColor = finalColor;
+}
+\postfx.fs
+
+#version 330 core
+
+in vec3 v_position;
+in vec2 v_uv;
+in vec2 a_coord;
+
+uniform vec2 Res;
+
+uniform bool use_color_correction;
+uniform bool use_vignetting;
+uniform vec3 contrast;
+uniform float vignetting;
+uniform bool use_chromatic_aberration;
+uniform float ca_strength;
+
+uniform bool use_fish_eye;
+uniform float u_fish_eye_strength;
+
+uniform sampler2D u_texture;
+
+out vec4 FragColor;
+
+vec3 ChromaticAberration(vec2 uv)
+{
+    vec3 color = texture(u_texture, uv).rgb;
+	color.r = texture(u_texture, (uv - 0.5) * (1.0 + ca_strength/Res.xy) + 0.5).r;
+	color.b = texture(u_texture, (uv - 0.5) * (1.0 - ca_strength/Res.xy) + 0.5).b;
+
+    return color;
+}
+
+vec2 applyFisheye(vec2 uv) {
+    // Center coordinates (0.5, 0.5)
+    vec2 centeredUV = uv - 0.5;
+
+    // Distance from the center
+    float dist = length(centeredUV);
+
+    // Factor to control the strength of the fisheye effect
+    float strength = u_fish_eye_strength;
+
+    // Apply fisheye distortion
+    float radius = dist * strength + (1.0 - strength) * dist * dist;
+
+    // Clamp radius to move highly distorted parts outside the screen
+    radius = clamp(radius, 0.0, 1.0);
+
+    // Calculate the new distorted coordinates
+    vec2 fisheyeUV = (radius / dist) * centeredUV;
+
+    // Return the modified UV coordinates, ensuring they stay within [0, 1]
+    return fisheyeUV + 0.5;
+}
+
+void main()
+{
+    vec2 uv = v_uv;
+    vec2 pUv = uv;
+
+    if (use_fish_eye){
+        float PX = 3.0/Res.x;
+        pUv = vec2( PX*floor(uv.x/PX), PX*floor(uv.y/PX) );
+        pUv = applyFisheye(pUv);
+    }
+
+    vec4 color = texture(u_texture, pUv);
+
+    if (use_chromatic_aberration)
+        color.xyz = ChromaticAberration(pUv);
+
+    if (use_color_correction)
+    {
+        color.r = (color.r - 0.5) * contrast.r + 0.5;
+        color.g = (color.g - 0.5) * contrast.g + 0.5;
+        color.b = (color.b - 0.5) * contrast.b + 0.5;
+    }
+    if (use_vignetting)
+        color *= 1.2 - length(uv-vec2(0.5)) * vignetting;
+
+    FragColor = color;
 }

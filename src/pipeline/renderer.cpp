@@ -91,6 +91,10 @@ Renderer::Renderer(const char* shader_atlas_filename)
 	use_dithering = false;
 	use_volumetric = false;
 	constant_density = false;
+	use_vignetting = false;
+	use_color_correction = false;
+	use_chromatic_aberration = false;
+	use_fish_eye = true;
 
 	use_dof = false;
 	show_probes = false;
@@ -102,7 +106,12 @@ Renderer::Renderer(const char* shader_atlas_filename)
 	use_lut2 = false;
 	lut_amount2 = 0.5f;
 
-	bool use_simpleblurr = true;
+	use_simpleblurr = true;
+
+	ca_strength = 15.0f;
+	vignetting = 1.2f;
+	contrast = vec3(1.0f);
+	fish_eye_strength = 0.5f;
 
 	sphere.createSphere(1.0f);
 	sphere.uploadToVRAM();
@@ -872,7 +881,7 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 
 
 	combined_illumination_fbo->unbind();
-	GFX::Shader* lut_shader;
+	/*GFX::Shader* lut_shader;
 	GFX::Shader* lut_shader2;
 	if (use_degamma)
 		combined_illumination_fbo->color_textures[0]->toViewport(GFX::Shader::Get("gamma"));
@@ -890,16 +899,15 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 		lut_shader2->setUniform("u_amount", lut_amount2);
 		combined_illumination_fbo->color_textures[0]->toViewport(lut_shader2);
 
-
-	}
-		
+	}	
 	else
-		combined_illumination_fbo->color_textures[0]->toViewport();
+		combined_illumination_fbo->color_textures[0]->toViewport();*/
 
 
 
 
-/*/-------------- aplicar en ping pong si vols mes dun filtre i fer to viewport
+ //-------------- aplicar en ping pong si vols mes dun filtre i fer to viewport
+
 	if (!postfx_fbo)
 	{
 		postfx_fbo = new GFX::FBO();
@@ -918,9 +926,27 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 	if (use_dof) postDepthOfField(camera);
 	postfx_fbo->unbind();
 
+	postfx_fbo->bind();
+	GFX::Shader* postfx_shader = GFX::Shader::Get("postfx");
+	postfx_shader->enable();
+
+	postfx_shader->setUniform("use_vignetting", use_vignetting);
+	postfx_shader->setUniform("vignetting", vignetting);
+	postfx_shader->setUniform("use_color_correction", use_color_correction);
+	postfx_shader->setUniform("contrast", contrast);
+	postfx_shader->setUniform("use_fish_eye", use_fish_eye);
+	postfx_shader->setUniform("u_fish_eye_strength", fish_eye_strength);
+	postfx_shader->setUniform("use_chromatic_aberration", use_chromatic_aberration);
+	postfx_shader->setUniform("ca_strength", 15.0f);
+	postfx_shader->setUniform("iRes", vec2(1.0f/size.x, 1.0f/size.y));
+	postfx_shader->setUniform("Res", size);
+	postfx_fbo->color_textures[0]->toViewport(postfx_shader);
+	postfx_fbo->unbind();
+
+
 	if (use_tonemapper) renderTonemapper(postfx_fbo->color_textures[0]);
 	else postfx_fbo->color_textures[0]->toViewport();
-//>>>>>>> origin/simpleBlurr*/
+
 
 	glDepthFunc(GL_LESS);
 	glEnable(GL_DEPTH_TEST);
@@ -1997,15 +2023,37 @@ void Renderer::showUI()
 	if (ImGui::TreeNode("postfx"))
 	{
 		ImGui::Checkbox("Simple Blurr", &use_simpleblurr);
-		ImGui::Checkbox("Depth of field", &use_dof);
-		
+
 		//postDepthofField
+		ImGui::Checkbox("Depth of field", &use_dof);
 		if (use_dof) {
+			use_simpleblurr = true;
 			ImGui::DragFloat("Dof min distance", &df_min_distance, 0.01f, 0.0f, df_max_distance);
 			ImGui::DragFloat("DoF max distance", &df_max_distance, 0.01f, df_min_distance, 100000.0f);
 			ImGui::DragFloat("DoF focal distance", &df_focal_distance, 0.01f, 0.01f, 100000.0f);
 		}
-		ImGui::DragFloat("Blur scale", &df_scale_blur, 0.01f, 0, 100);
+		if (use_dof || use_simpleblurr)
+			ImGui::DragFloat("Blur scale", &df_scale_blur, 0.01f, 0, 100);
+
+		ImGui::Checkbox("Color Correction", &use_color_correction);
+		if (use_color_correction)
+		{
+			ImGui::DragFloat("Contrast Red", &contrast.x, 0.01f, 0, 100);
+			ImGui::DragFloat("Contrast Green", &contrast.y, 0.01f, 0, 100);
+			ImGui::DragFloat("Contrast Blue", &contrast.z, 0.01f, 0, 100);
+		}
+
+		ImGui::Checkbox("Vignetting", &use_vignetting);
+		if (use_vignetting)
+			ImGui::DragFloat("Vignetting", &vignetting, 0.01f, 0, 2);
+
+		ImGui::Checkbox("Fish eye", &use_fish_eye);
+		if (use_fish_eye)
+			ImGui::DragFloat("Fish eye strength", &fish_eye_strength, 0.01f, 0.0f, 1.0f, "%0.3f");
+
+		ImGui::Checkbox("Chromatic aberration", &use_chromatic_aberration);
+		if (use_chromatic_aberration)
+			ImGui::DragFloat("CA Strength", &ca_strength, 0.01f, 0.0f, 100.0f, "%0.3f");
 
 		ImGui::TreePop();
 	}

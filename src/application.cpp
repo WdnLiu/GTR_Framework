@@ -31,8 +31,6 @@ Application::Application()
 	camera->setPerspective(45.f, window_width / (float)window_height, 1.0f, 10000.f);
 
 	//load scene
-
-
 	
 	scene1 = new SCN::Scene();
 	scene2 = new SCN::Scene();
