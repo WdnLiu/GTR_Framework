@@ -888,7 +888,8 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 
 	if (use_degamma)
 		illumination_fbo->color_textures[0]->toViewport(GFX::Shader::Get("gamma"));
-	
+	else if (combined_irr)
+		combined_illumination_fbo->color_textures[0]->toViewport();
 	else
 		combined_illumination_fbo->color_textures[0]->toViewport();
 
