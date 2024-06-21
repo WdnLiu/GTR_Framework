@@ -41,6 +41,9 @@ GFX::Texture* cloned_depth_texture = nullptr;
 GFX::FBO* reflections_fbo = nullptr;
 
 GFX::FBO* postfx_fbo = nullptr;
+GFX::FBO* postfxIN_fbo = nullptr;
+GFX::FBO* postfxOUT_fbo = nullptr;
+
 sProbe probe;
 std::vector<sProbe> probes;
 
@@ -96,15 +99,16 @@ Renderer::Renderer(const char* shader_atlas_filename)
 	use_chromatic_aberration = false;
 	use_fish_eye = true;
 
+	use_lut = false;
+	use_lut2 = false;
+
+	lut_amount = 0.2f;
+	lut_amount2 = 0.2f;
+
 	use_dof = false;
 	show_probes = false;
 	combined_irr = false;
 	render_refelction_probes = false;
-
-	use_lut = false;
-	lut_amount = 0.5f;
-	use_lut2 = false;
-	lut_amount2 = 0.5f;
 
 	use_simpleblurr = true;
 
@@ -835,8 +839,6 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 	//render irradiance
 	renderIrradianceScene(camera, &size);
 
-	//precompute volumetrics
-	//renderFog(camera);
 
 	//FINAL FBO TO BE DISPLAYED ON THE SCREEN
 	if (!combined_illumination_fbo)
@@ -848,10 +850,7 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 	}
 
 	combined_illumination_fbo->bind();
-
 	GFX::Shader* combine_shader = GFX::Shader::Get("combine");
-
-
 	combine_shader->enable();
 	combine_shader->setUniform("u_illumination_texture", illumination_fbo->color_textures[0], 0);
 	
@@ -859,13 +858,6 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 		combine_shader->setUniform("u_probe_illumination_texture", probe_illumination_fbo->color_textures[0], 1);
 	else
 		combine_shader->setUniform("u_probe_illumination_texture", GFX::Texture().getBlackTexture(), 1);
-
-	//if (use_volumetric && volumetric_fbo)
-
-		//combine_shader->setUniform("u_volumetric_texture", volumetric_fbo->color_textures[0], 2);
-	//else
-		//combine_shader->setUniform("u_volumetric_texture", GFX::Texture().getWhiteTexture(), 2);
-	
 	GFX::Mesh::getQuad()->render(GL_TRIANGLES);
 	combine_shader->disable();
 
@@ -879,39 +871,57 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 		}
 	}
 
+	renderFog(camera);
 
 	combined_illumination_fbo->unbind();
-	/*GFX::Shader* lut_shader;
-	GFX::Shader* lut_shader2;
-	if (use_degamma)
-		combined_illumination_fbo->color_textures[0]->toViewport(GFX::Shader::Get("gamma"));
-	else if (use_lut) {
-		lut_shader = GFX::Shader::Get("lut");
-		lut_shader->enable();
-		lut_shader->setUniform("u_textureB", GFX::Texture::Get("data/textures/brdfLUT.png", true, true) , 1);
-		lut_shader->setUniform("u_amount", lut_amount);
-		combined_illumination_fbo->color_textures[0]->toViewport(lut_shader);
+	
+	if (!renderFBO)
+	{
+		renderFBO = new GFX::FBO();
+		renderFBO->create(size.x, size.y, 1, GL_RGB, GL_FLOAT, false);
 	}
-	else if (use_lut2) {
-		lut_shader2 = GFX::Shader::Get("lut2");
-		lut_shader2->enable();
-		lut_shader2->setUniform("u_textureB", GFX::Texture::Get("data/textures/brdfLUT.png", true, true), 1);
-		lut_shader2->setUniform("u_amount", lut_amount2);
-		combined_illumination_fbo->color_textures[0]->toViewport(lut_shader2);
 
-	}	
+	renderFBO->bind();
+
+	if (use_degamma)
+		illumination_fbo->color_textures[0]->toViewport(GFX::Shader::Get("gamma"));
+	else if (combined_irr)
+		combined_illumination_fbo->color_textures[0]->toViewport();
 	else
-		combined_illumination_fbo->color_textures[0]->toViewport();*/
+		illumination_fbo->color_textures[0]->toViewport();
 
+	if (use_volumetric)
+	{
+		if (volumetric_fbo)
+		{
+			glEnable(GL_DEPTH_TEST);
+			glEnable(GL_BLEND);
+			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+			volumetric_fbo->color_textures[0]->toViewport();
+			glDisable(GL_BLEND);
+		}
+	}
 
+	renderFBO->unbind();
 
+	/*if (!postfxIN_fbo)
+	{
+		postfxIN_fbo = new GFX::FBO();
+		postfxOUT_fbo = new GFX::FBO();
 
- //-------------- aplicar en ping pong si vols mes dun filtre i fer to viewport
+		postfxIN_fbo->create(size.x, size.y, 1, GL_RGB, GL_HALF_FLOAT, false);
+		postfxOUT_fbo->create(size.x, size.y, 1, GL_RGB, GL_HALF_FLOAT, false);
+	}
+	postfxIN_fbo->bind();
+	renderFBO->color_textures[0]->toViewport();
+	postfxIN_fbo->unbind();
+
+	bloom();*/
 
 	if (!postfx_fbo)
 	{
 		postfx_fbo = new GFX::FBO();
-		postfx_fbo->create(size.x, size.y, 1, GL_RGB, GL_FLOAT, false);
+		postfx_fbo->create(size.x, size.y, 1, GL_RGB, GL_HALF_FLOAT, false);
 	}
 
 	postfx_fbo->bind();
@@ -924,6 +934,26 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 
 	postfx_fbo->bind();
 	if (use_dof) postDepthOfField(camera);
+	postfx_fbo->unbind();
+
+	postfx_fbo->bind();
+	GFX::Shader* lut_shader;
+	GFX::Shader* lut_shader2;
+	if (use_lut) {
+		lut_shader = GFX::Shader::Get("lut");
+		lut_shader->enable();
+		lut_shader->setUniform("u_textureB", GFX::Texture::Get("data/textures/brdfLUT.png", true, true), 1);
+		lut_shader->setUniform("u_amount", lut_amount);
+		postfx_fbo->color_textures[0]->toViewport(lut_shader);
+	}
+	else if (use_lut2) {
+		lut_shader2 = GFX::Shader::Get("lut2");
+		lut_shader2->enable();
+		lut_shader2->setUniform("u_textureB", GFX::Texture::Get("data/textures/brdfLUT.png", true, true), 1);
+		lut_shader2->setUniform("u_amount", lut_amount2);
+		postfx_fbo->color_textures[0]->toViewport(lut_shader2);
+
+	}
 	postfx_fbo->unbind();
 
 	postfx_fbo->bind();
@@ -947,7 +977,6 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 	if (use_tonemapper) renderTonemapper(postfx_fbo->color_textures[0]);
 	else postfx_fbo->color_textures[0]->toViewport();
 
-
 	glDepthFunc(GL_LESS);
 	glEnable(GL_DEPTH_TEST);
 
@@ -967,6 +996,38 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 		ssao_fbo->color_textures[0]->toViewport();
 	if (view_blur)
 		blur_fbo->color_textures[0]->toViewport();
+}
+
+void Renderer::bloom()
+{
+	//four iterations blur
+	vec2 size = CORE::getWindowSize();
+	float width = size.x, height = size.y;
+	GFX::Shader* shader = GFX::Shader::Get("bloom");
+	shader->enable();
+
+	int power = 1;
+	for (int i = 0; i < 4; ++i)
+	{
+		//horizontal blur
+		shader->setUniform("u_offset", vec2(1.0f / width, 0.0) * (float)power);
+		shader->setUniform("u_texture", postfxIN_fbo->color_textures[0], 0);
+		postfxOUT_fbo->bind();
+		GFX::Mesh::getQuad()->render(GL_TRIANGLES);
+		postfxOUT_fbo->unbind();
+		std::swap(postfxIN_fbo, postfxOUT_fbo);
+
+		//vertical blur
+		shader->setUniform("u_offset", vec2(0.0, 1.0f / height) * (float)power);
+		shader->setUniform("u_texture", postfxIN_fbo->color_textures[0], 0);
+		postfxOUT_fbo->bind();
+		GFX::Mesh::getQuad()->render(GL_TRIANGLES);
+		postfxOUT_fbo->unbind();
+		std::swap(postfxIN_fbo, postfxOUT_fbo);
+
+		power = power << 1;
+	}
+
 }
 
 void Renderer::simpleBlur()
@@ -1015,7 +1076,6 @@ void Renderer::postDepthOfField(Camera* camera)
 	quad->render(GL_TRIANGLES);
 	dof_shader->disable();
 }
-
 
 
 void Renderer::renderDecals(SCN::Scene* scene, Camera* camera, GFX::FBO* gbuffers)
@@ -1972,16 +2032,6 @@ void Renderer::showUI()
 	ImGui::Checkbox("Occlusion light", &use_occlusion);
 	ImGui::Checkbox("Dithering", &use_dithering);
 
-	
-	if (ImGui::TreeNode("Effects"))
-	{
-		ImGui::Checkbox("lut", &use_lut);
-		ImGui::Checkbox("lut2", &use_lut2);
-		ImGui::DragFloat("lut amount", &lut_amount);
-		ImGui::DragFloat("lut amount2", &lut_amount2, 0.01f, 0.0f, 0.5f);
-		ImGui::TreePop();
-	}
-
 	if (ImGui::TreeNode("SSAO+BLUR"))
 	{
 		ImGui::Checkbox("Use SSAO", &use_ssao);
@@ -2055,6 +2105,15 @@ void Renderer::showUI()
 		if (use_chromatic_aberration)
 			ImGui::DragFloat("CA Strength", &ca_strength, 0.01f, 0.0f, 100.0f, "%0.3f");
 
+		ImGui::Checkbox("lut", &use_lut);
+		if (use_lut)
+			ImGui::DragFloat("lut amount", &lut_amount, 0.01f, 0.0f, 100.0f, "%0.3f");
+
+		ImGui::Checkbox("lut2", &use_lut2);
+		if (use_lut2)
+			ImGui::DragFloat("lut amount2", &lut_amount2, 0.01f, 0.0f, 100.0f, "%0.3f");
+		ImGui::TreePop();
+
 		ImGui::TreePop();
 	}
 
@@ -2092,10 +2151,6 @@ void Renderer::showUI()
 		shadowmap_size = 1024;
 	if (ImGui::Button("ShadowMap 2048"))
 		shadowmap_size = 2048;
-
-
-
-	
 }
 
 void Renderer::resize()

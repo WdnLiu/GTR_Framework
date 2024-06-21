@@ -106,6 +106,12 @@ namespace SCN {
 		bool use_fish_eye;
 		bool use_chromatic_aberration;
 
+		bool use_lut;
+		bool use_lut2;
+
+		float lut_amount;
+		float lut_amount2;
+
 		float fish_eye_strength;
 
 		float air_density;
@@ -226,6 +232,7 @@ namespace SCN {
 
 		//post-procesing
 		void postDepthOfField(Camera* camera);
+		void bloom();
 
 		void showUI();
 
