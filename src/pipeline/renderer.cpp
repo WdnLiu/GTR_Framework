@@ -97,7 +97,7 @@ Renderer::Renderer(const char* shader_atlas_filename)
 	use_vignetting = false;
 	use_color_correction = false;
 	use_chromatic_aberration = false;
-	use_fish_eye = true;
+	use_fish_eye = false;
 
 	use_lut = false;
 	use_lut2 = false;
@@ -110,7 +110,7 @@ Renderer::Renderer(const char* shader_atlas_filename)
 	combined_irr = false;
 	render_refelction_probes = false;
 
-	use_simpleblurr = true;
+	use_simpleblurr = false;
 
 	ca_strength = 15.0f;
 	vignetting = 1.2f;
@@ -277,7 +277,6 @@ void Renderer::extractSceneInfo(SCN::Scene* scene, Camera* camera)
 {
 	renderables.clear();
 	lights.clear();
-	//decals.clear();
 	opaque_renderables.clear();
 	alpha_renderables.clear();
 	mainLight = nullptr;
@@ -307,8 +306,7 @@ void Renderer::extractSceneInfo(SCN::Scene* scene, Camera* camera)
 				mainLight = light;
 
 		}
-		/*else if (ent->getType() == eEntityType::DECAL)
-				decals.push_back((DecalEntity*)ent);*/
+		
 	}
 }
 
@@ -757,79 +755,11 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 
 	gbuffers->unbind();
 
-	//DECALS (prueba para un decal) -------------------------------------------------------------------------------------------------------------------------------------------------------
+	//DECALS (prueba para un decal, not working) 
+	//renderDecals(scene,camera)
+ 
 	
-	//if (!cloned_depth_texture)
-		//cloned_depth_texture = new GFX::Texture(size.x, size.y, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, false);
-
-
-	//copy gbuffers depth to other texture
-	//gbuffers->depth_texture->copyTo(cloned_depth_texture);
-
-
-	//enable alpha blending
-	//glDisable(GL_BLEND);
-	//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	//block changing alpha channel
-	//glColorMask(true, true, true, false);
-
-	//block from writing to normalmap gbuffer
-	//gbuffers->enableBuffers(true, false, false, false); //normalmap our second pos
-
-	/*glEnable(GL_DEPTH_TEST); //to use the depth test
-	glDepthMask(GL_FALSE); //But to not modify the depth buffer by any means
-	glDepthFunc(GL_GEQUAL); //But only render if the object is inside the depth
-	glEnable(GL_CULL_FACE); //And render the inner side of the cube
-	glFrontFace(GL_CW);
-
 	
-
-	//draw again inside the gbuffers
-	gbuffers->bind();
-	camera->enable();
-
-	GFX::Shader* decal_shader = GFX::Shader::Get("decals");
-	assert(decal_shader);
-
-	decal_shader->enable();
-
-	Matrix44 model;
-	model.setTranslation(-28, 53, -47);
-	model.scale(5, 0.5, 5);
-
-	decal_shader->setUniform("u_model",model);
-	decal_shader->setUniform("u_color", vec4(1.0, 0.0, 0.0, 1.0));
-
-	decal_shader->setUniform("u_camera_pos", camera->eye);
-	decal_shader->setUniform("u_viewprojection", camera->viewprojection_matrix);
-
-	decal_shader->setUniform("u_depth_texture", cloned_depth_texture, 0);
-
-
-	decal_shader->setUniform("u_inverse_viewprojection", camera->inverse_viewprojection_matrix);
-	decal_shader->setUniform("u_iRes", vec2(1.0 / CORE::getWindowSize().x, 1.0 / CORE::getWindowSize().y));
-;
-	Matrix44 model_inverse = model;
-	model_inverse.inverse();
-	decal_shader->setUniform("u_inv_decal_model", model_inverse);
-
-	GFX::Texture* decal_texture = GFX::Texture::Get("data/decals/graffitti.png", true, true);
-	decal_shader->setUniform("u_decal_texture", decal_texture, 1);
-
-	cube.render(GL_TRIANGLES);
-
-	gbuffers->unbind();
-
-	glColorMask(true, true, true, true);
-
-	glDepthFunc(GL_LEQUAL);
-	glFrontFace(GL_CCW);
-
-
-	glDepthMask(GL_TRUE);
-	glDisable(GL_CULL_FACE); */
-	
-	//*________________________________________________
 	
 	ssaoBlur(camera);
 
@@ -1044,7 +974,6 @@ void Renderer::simpleBlur()
 
 	quad->render(GL_TRIANGLES);
 }
-
 void Renderer::postDepthOfField(Camera* camera)
 {
 	vec2 size = CORE::getWindowSize();
@@ -1078,23 +1007,10 @@ void Renderer::postDepthOfField(Camera* camera)
 }
 
 
-void Renderer::renderDecals(SCN::Scene* scene, Camera* camera, GFX::FBO* gbuffers)
+void Renderer::renderDecals(SCN::Scene* scene, Camera* camera)
 {
-	//enable alpha blending
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	
 
-	//block changing alpha channel
-	glColorMask(true, true, true, false);
-
-	glEnable(GL_DEPTH_TEST); //to use the depth test
-	glDepthMask(GL_FALSE); //But to not modify the depth buffer by any means
-	glDepthFunc(GL_GEQUAL); //But only render if the object is inside the depth
-	glEnable(GL_CULL_FACE); //And render the inner side of the cube
-	glFrontFace(GL_CW);
-
-	//block from writing to normalmap gbuffer
-	gbuffers->enableBuffers(false, true, false, false); //normalmap our second pos
 
 	if (!cloned_depth_texture)
 		cloned_depth_texture = new GFX::Texture();
@@ -1103,68 +1019,71 @@ void Renderer::renderDecals(SCN::Scene* scene, Camera* camera, GFX::FBO* gbuffer
 	//copy gbuffers depth to other texture
 	gbuffers->depth_texture->copyTo(cloned_depth_texture);
 
+	//enable alpha blending
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	//block changing alpha channel
+	glColorMask(true, true, true, false);
+
+	//block from writing to normalmap gbuffer
+	gbuffers->enableBuffers(false, true, false, false); //normalmap our second pos
+
+
+	glEnable(GL_DEPTH_TEST); //to use the depth test
+	glDepthMask(GL_FALSE); //But to not modify the depth buffer by any means
+	glDepthFunc(GL_GEQUAL); //But only render if the object is inside the depth
+	glEnable(GL_CULL_FACE); //And render the inner side of the cube
+	glFrontFace(GL_CW);
 	//draw again inside the gbuffers
 	gbuffers->bind();
 
+	camera->enable();
+
+	
 	GFX::Shader* decal_shader = GFX::Shader::Get("decals");
 	assert(decal_shader);
 
 	decal_shader->enable();
 
+	decal_shader->setUniform("u_depth_texture", cloned_depth_texture,0);
 
+
+	decal_shader->setUniform("u_inverse_viewprojection", camera->inverse_viewprojection_matrix);
+	decal_shader->setUniform("u_iRes", vec2(1.0 / CORE::getWindowSize().x, 1.0 / CORE::getWindowSize().y));
+
+	//draw cube per decal
 	Matrix44 model;
-	model.setTranslation(12, 126, 26);
-	model.scale(5, 5, 5);
+	model.setTranslation(-28, 53, -47);
+	model.scale(5, 0.5, 5);
+
+	decal_shader->setUniform("u_model", model);
+	decal_shader->setUniform("u_inv_decal_model", model.inverse());
+
+	GFX::Texture* decal_texture = GFX::Texture::Get("data/decals/graffitti.png", true, true);
+	decal_shader->setUniform("u_decal_texture", decal_texture);
 
 
 	decal_shader->setUniform("u_model", model);
-	decal_shader->setUniform("u_color", vec4(1.0, 0.0, 0.0, 1.0));
+
+	decal_shader->setUniform("u_camera_pos", camera->eye);
+	decal_shader->setUniform("u_viewprojection", camera->viewprojection_matrix);
+
+	decal_shader->setUniform("u_depth_texture", cloned_depth_texture, 0);
 
 
-	cameraToShader(camera, decal_shader);
+	decal_shader->setUniform("u_inverse_viewprojection", camera->inverse_viewprojection_matrix);
+	decal_shader->setUniform("u_iRes", vec2(1.0 / CORE::getWindowSize().x, 1.0 / CORE::getWindowSize().y));
+	;
+	Matrix44 model_inverse = model;
+	model_inverse.inverse();
+	decal_shader->setUniform("u_inv_decal_model", model_inverse);
 
-	//cube.render(GL_TRIANGLES);
+	decal_shader->setUniform("u_decal_texture", decal_texture, 1);
 
-	//decal_shader->disable();
+	cube.render(GL_TRIANGLES);
 
-	/**for (auto decal : decals)
-	{
-		GFX::Shader* decal_shader = GFX::Shader::Get("decals");
-		assert(decal_shader);
-
-		decal_shader->enable();
-
-		decal_shader->setUniform("u_depth_texture", cloned_depth_texture,0);
-
-
-		decal_shader->setUniform("u_inverse_viewprojection", camera->inverse_viewprojection_matrix);
-		decal_shader->setUniform("u_iRes", vec2(1.0 / CORE::getWindowSize().x, 1.0 / CORE::getWindowSize().y));
-
-		//draw cube per decal
-
-
-		Matrix44 model;
-		model.setTranslation(-25,53,-52);
-		model.scale(3, 3, 3);
-
-
-
-		decal_shader->setUniform("u_model", model);
-		decal_shader->setUniform("u_inv_decal_model", model.inverse());
-
-		GFX::Texture* decal_texture = GFX::Texture::Get("data/decals/graffitti.png", true, true);
-		decal_shader->setUniform("u_decal_texture", decal_texture);
-
-
-		//decal_shader->setUniform("u_texture", decal->texture);
-
-
-		cube.render(GL_TRIANGLES);
-
-		decal_shader->disable();
-	}*/
-
-	//gbuffers->unbind();
+	gbuffers->unbind();
 
 	glColorMask(true, true, true, true);
 
@@ -2112,7 +2031,6 @@ void Renderer::showUI()
 		ImGui::Checkbox("lut2", &use_lut2);
 		if (use_lut2)
 			ImGui::DragFloat("lut amount2", &lut_amount2, 0.01f, 0.0f, 100.0f, "%0.3f");
-		ImGui::TreePop();
 
 		ImGui::TreePop();
 	}

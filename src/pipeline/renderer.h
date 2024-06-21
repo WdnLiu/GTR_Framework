@@ -106,12 +106,7 @@ namespace SCN {
 		bool use_fish_eye;
 		bool use_chromatic_aberration;
 
-		bool use_lut;
-		bool use_lut2;
-
-		float lut_amount;
-		float lut_amount2;
-
+		
 		float fish_eye_strength;
 
 		float air_density;
@@ -195,7 +190,7 @@ namespace SCN {
 		void renderIlluminationScene(Camera* camera, vec2* size);
 		void renderIrradianceScene(Camera* camera, vec2* size);
 		void ssaoBlur(Camera* camera);
-		void renderDecals(SCN::Scene* scene, Camera* camera, GFX::FBO* gbuffers);
+		void renderDecals(SCN::Scene* scene, Camera* camera);
 		//render the skybox
 		void renderSkybox(GFX::Texture* cubemap);
 

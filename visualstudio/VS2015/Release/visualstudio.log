@@ -2,260 +2,406 @@
   editor.cpp
   main.cpp
   renderer.cpp
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.h(146,8): error C2086: 'bool SCN::Renderer::use_lut': nueva definición
+  (compilando archivo de origen "../../src/pipeline/renderer.cpp")
+  
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.h(147,9): error C2086: 'float SCN::Renderer::lut_amount': nueva definición
+  (compilando archivo de origen "../../src/pipeline/renderer.cpp")
+  
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.h(148,8): error C2086: 'bool SCN::Renderer::use_lut2': nueva definición
+  (compilando archivo de origen "../../src/pipeline/renderer.cpp")
+  
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.h(149,9): error C2086: 'float SCN::Renderer::lut_amount2': nueva definición
+  (compilando archivo de origen "../../src/pipeline/renderer.cpp")
+  
 C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\scene.h(12,7): warning C4099: 'cJSON': nombre de tipo visto anteriormente usando 'struct' ahora se ve usando 'class'
   (compilando archivo de origen "../../src/main.cpp")
   C:\Users\Maar\Documents\GitHub\GTR_Framework\src\extra\cJSON.h(103,16):
   vea la declaración de 'cJSON'
   
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\scene.h(12,7): warning C4099: 'cJSON': nombre de tipo visto anteriormente usando 'struct' ahora se ve usando 'class'
-  (compilando archivo de origen "../../src/application.cpp")
-  C:\Users\Maar\Documents\GitHub\GTR_Framework\src\extra\cJSON.h(103,16):
-  vea la declaración de 'cJSON'
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.h(146,8): error C2086: 'bool SCN::Renderer::use_lut': nueva definición
+  (compilando archivo de origen "../../src/main.cpp")
   
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\application.cpp(103,14): warning C4244: 'inicializando': conversión de 'double' a 'float'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\application.cpp(104,20): warning C4244: 'inicializando': conversión de 'double' a 'float'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\scene.h(12,7): warning C4099: 'cJSON': nombre de tipo visto anteriormente usando 'struct' ahora se ve usando 'class'
-  (compilando archivo de origen "../../src/editor.cpp")
-  C:\Users\Maar\Documents\GitHub\GTR_Framework\src\extra\cJSON.h(103,16):
-  vea la declaración de 'cJSON'
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.h(147,9): error C2086: 'float SCN::Renderer::lut_amount': nueva definición
+  (compilando archivo de origen "../../src/main.cpp")
+  
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.h(148,8): error C2086: 'bool SCN::Renderer::use_lut2': nueva definición
+  (compilando archivo de origen "../../src/main.cpp")
+  
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.h(149,9): error C2086: 'float SCN::Renderer::lut_amount2': nueva definición
+  (compilando archivo de origen "../../src/main.cpp")
   
 C:\Users\Maar\Documents\GitHub\GTR_Framework\src\extra\cJSON.h(103,16): warning C4099: 'cJSON': nombre de tipo visto anteriormente usando 'class' ahora se ve usando 'struct'
   (compilando archivo de origen "../../src/pipeline/renderer.cpp")
   C:\Users\Maar\Documents\GitHub\GTR_Framework\src\extra\cJSON.h(103,16):
   vea la declaración de 'cJSON'
   
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(62,13): warning C4305: 'inicializando': truncamiento de 'double' a 'float'
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(127,16): warning C4305: '=': truncamiento de 'double' a 'float'
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(162,23): warning C4244: 'argumento': conversión de 'int' a 'T'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(162,23): warning C4244:         with
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(162,23): warning C4244:         [
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(162,23): warning C4244:             T=float
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(162,23): warning C4244:         ]
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(162,20): warning C4244: 'argumento': conversión de 'int' a 'T'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(162,20): warning C4244:         with
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(162,20): warning C4244:         [
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(162,20): warning C4244:             T=float
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(162,20): warning C4244:         ]
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(162,17): warning C4244: 'argumento': conversión de 'int' a 'T'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(162,17): warning C4244:         with
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(162,17): warning C4244:         [
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(162,17): warning C4244:             T=float
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(162,17): warning C4244:         ]
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(165,41): warning C4244: '=': conversión de 'T' a 'int'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(165,41): warning C4244:         with
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(165,41): warning C4244:         [
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(165,41): warning C4244:             T=float
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(165,41): warning C4244:         ]
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(170,41): warning C4244: 'argumento': conversión de 'int' a 'T'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(170,41): warning C4244:         with
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(170,41): warning C4244:         [
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(170,41): warning C4244:             T=float
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(170,41): warning C4244:         ]
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(170,38): warning C4244: 'argumento': conversión de 'int' a 'T'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(170,38): warning C4244:         with
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(170,38): warning C4244:         [
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(170,38): warning C4244:             T=float
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(170,38): warning C4244:         ]
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(170,35): warning C4244: 'argumento': conversión de 'int' a 'T'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(170,35): warning C4244:         with
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(170,35): warning C4244:         [
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(170,35): warning C4244:             T=float
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(170,35): warning C4244:         ]
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(180,12): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(248,20): warning C4018: '<': no coinciden signed/unsigned
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(308,20): warning C4018: '<': no coinciden signed/unsigned
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(393,40): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(393,40): warning C4244:         with
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(393,40): warning C4244:         [
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(393,40): warning C4244:             T=float
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(393,40): warning C4244:         ]
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(393,32): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(393,32): warning C4244:         with
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(393,32): warning C4244:         [
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(393,32): warning C4244:             T=float
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(393,32): warning C4244:         ]
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(448,54): warning C4244: 'argumento': conversión de 'double' a 'T'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(448,54): warning C4244:         with
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(448,54): warning C4244:         [
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(448,54): warning C4244:             T=float
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(448,54): warning C4244:         ]
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(448,40): warning C4244: 'argumento': conversión de 'double' a 'T'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(448,40): warning C4244:         with
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(448,40): warning C4244:         [
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(448,40): warning C4244:             T=float
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(448,40): warning C4244:         ]
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(536,32): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(536,32): warning C4244:         with
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(536,32): warning C4244:         [
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(536,32): warning C4244:             T=float
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(536,32): warning C4244:         ]
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(536,24): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(536,24): warning C4244:         with
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(536,24): warning C4244:         [
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(536,24): warning C4244:             T=float
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(536,24): warning C4244:         ]
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(565,83): warning C4244: 'argumento': conversión de 'double' a 'T'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(565,83): warning C4244:         with
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(565,83): warning C4244:         [
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(565,83): warning C4244:             T=float
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(565,83): warning C4244:         ]
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(565,41): warning C4244: 'argumento': conversión de 'double' a 'T'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(565,41): warning C4244:         with
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(565,41): warning C4244:         [
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(565,41): warning C4244:             T=float
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(565,41): warning C4244:         ]
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(577,32): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(577,32): warning C4244:         with
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(577,32): warning C4244:         [
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(577,32): warning C4244:             T=float
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(577,32): warning C4244:         ]
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(577,24): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(577,24): warning C4244:         with
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(577,24): warning C4244:         [
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(577,24): warning C4244:             T=float
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(577,24): warning C4244:         ]
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(593,83): warning C4244: 'argumento': conversión de 'double' a 'T'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(593,83): warning C4244:         with
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(593,83): warning C4244:         [
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(593,83): warning C4244:             T=float
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(593,83): warning C4244:         ]
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(593,41): warning C4244: 'argumento': conversión de 'double' a 'T'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(593,41): warning C4244:         with
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(593,41): warning C4244:         [
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(593,41): warning C4244:             T=float
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(593,41): warning C4244:         ]
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(625,47): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(625,47): warning C4244:         with
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(625,47): warning C4244:         [
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(625,47): warning C4244:             T=float
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(625,47): warning C4244:         ]
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(625,38): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(625,38): warning C4244:         with
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(625,38): warning C4244:         [
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(625,38): warning C4244:             T=float
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(625,38): warning C4244:         ]
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\scene.h(12,7): warning C4099: 'cJSON': nombre de tipo visto anteriormente usando 'struct' ahora se ve usando 'class'
+  (compilando archivo de origen "../../src/editor.cpp")
+  C:\Users\Maar\Documents\GitHub\GTR_Framework\src\extra\cJSON.h(103,16):
+  vea la declaración de 'cJSON'
+  
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(65,13): warning C4305: 'inicializando': truncamiento de 'double' a 'float'
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(149,16): warning C4305: '=': truncamiento de 'double' a 'float'
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(184,23): warning C4244: 'argumento': conversión de 'int' a 'T'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(184,23): warning C4244:         with
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(184,23): warning C4244:         [
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(184,23): warning C4244:             T=float
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(184,23): warning C4244:         ]
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(184,20): warning C4244: 'argumento': conversión de 'int' a 'T'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(184,20): warning C4244:         with
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(184,20): warning C4244:         [
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(184,20): warning C4244:             T=float
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(184,20): warning C4244:         ]
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(184,17): warning C4244: 'argumento': conversión de 'int' a 'T'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(184,17): warning C4244:         with
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(184,17): warning C4244:         [
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(184,17): warning C4244:             T=float
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(184,17): warning C4244:         ]
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(187,41): warning C4244: '=': conversión de 'T' a 'int'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(187,41): warning C4244:         with
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(187,41): warning C4244:         [
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(187,41): warning C4244:             T=float
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(187,41): warning C4244:         ]
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(192,41): warning C4244: 'argumento': conversión de 'int' a 'T'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(192,41): warning C4244:         with
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(192,41): warning C4244:         [
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(192,41): warning C4244:             T=float
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(192,41): warning C4244:         ]
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(192,38): warning C4244: 'argumento': conversión de 'int' a 'T'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(192,38): warning C4244:         with
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(192,38): warning C4244:         [
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(192,38): warning C4244:             T=float
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(192,38): warning C4244:         ]
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(192,35): warning C4244: 'argumento': conversión de 'int' a 'T'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(192,35): warning C4244:         with
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(192,35): warning C4244:         [
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(192,35): warning C4244:             T=float
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(192,35): warning C4244:         ]
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(202,12): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(270,20): warning C4018: '<': no coinciden signed/unsigned
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(330,20): warning C4018: '<': no coinciden signed/unsigned
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.h(146,8): error C2086: 'bool SCN::Renderer::use_lut': nueva definición
+  (compilando archivo de origen "../../src/editor.cpp")
+  
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.h(147,9): error C2086: 'float SCN::Renderer::lut_amount': nueva definición
+  (compilando archivo de origen "../../src/editor.cpp")
+  
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(415,40): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(415,40): warning C4244:         with
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(415,40): warning C4244:         [
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(415,40): warning C4244:             T=float
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(415,40): warning C4244:         ]
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.h(148,8): error C2086: 'bool SCN::Renderer::use_lut2': nueva definición
+  (compilando archivo de origen "../../src/editor.cpp")
+  
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(415,32): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(415,32): warning C4244:         with
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(415,32): warning C4244:         [
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(415,32): warning C4244:             T=float
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(415,32): warning C4244:         ]
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.h(149,9): error C2086: 'float SCN::Renderer::lut_amount2': nueva definición
+  (compilando archivo de origen "../../src/editor.cpp")
+  
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(470,54): warning C4244: 'argumento': conversión de 'double' a 'T'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(470,54): warning C4244:         with
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(470,54): warning C4244:         [
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(470,54): warning C4244:             T=float
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(470,54): warning C4244:         ]
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(470,40): warning C4244: 'argumento': conversión de 'double' a 'T'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(470,40): warning C4244:         with
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(470,40): warning C4244:         [
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(470,40): warning C4244:             T=float
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(470,40): warning C4244:         ]
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(558,32): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(558,32): warning C4244:         with
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(558,32): warning C4244:         [
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(558,32): warning C4244:             T=float
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(558,32): warning C4244:         ]
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(558,24): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(558,24): warning C4244:         with
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(558,24): warning C4244:         [
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(558,24): warning C4244:             T=float
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(558,24): warning C4244:         ]
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(587,83): warning C4244: 'argumento': conversión de 'double' a 'T'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(587,83): warning C4244:         with
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(587,83): warning C4244:         [
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(587,83): warning C4244:             T=float
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(587,83): warning C4244:         ]
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(587,41): warning C4244: 'argumento': conversión de 'double' a 'T'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(587,41): warning C4244:         with
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(587,41): warning C4244:         [
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(587,41): warning C4244:             T=float
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(587,41): warning C4244:         ]
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(599,32): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(599,32): warning C4244:         with
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(599,32): warning C4244:         [
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(599,32): warning C4244:             T=float
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(599,32): warning C4244:         ]
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(599,24): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(599,24): warning C4244:         with
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(599,24): warning C4244:         [
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(599,24): warning C4244:             T=float
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(599,24): warning C4244:         ]
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(615,83): warning C4244: 'argumento': conversión de 'double' a 'T'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(615,83): warning C4244:         with
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(615,83): warning C4244:         [
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(615,83): warning C4244:             T=float
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(615,83): warning C4244:         ]
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(615,41): warning C4244: 'argumento': conversión de 'double' a 'T'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(615,41): warning C4244:         with
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(615,41): warning C4244:         [
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(615,41): warning C4244:             T=float
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(615,41): warning C4244:         ]
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(642,41): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(642,41): warning C4244:         with
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(642,41): warning C4244:         [
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(642,41): warning C4244:             T=float
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(642,41): warning C4244:         ]
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(642,32): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(642,32): warning C4244:         with
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(642,32): warning C4244:         [
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(642,32): warning C4244:             T=float
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(642,32): warning C4244:         ]
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(670,47): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(670,47): warning C4244:         with
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(670,47): warning C4244:         [
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(670,47): warning C4244:             T=float
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(670,47): warning C4244:         ]
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(670,38): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(670,38): warning C4244:         with
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(670,38): warning C4244:         [
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(670,38): warning C4244:             T=float
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(670,38): warning C4244:         ]
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(717,63): warning C4244: 'argumento': conversión de 'double' a 'T'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(717,63): warning C4244:         with
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(717,63): warning C4244:         [
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(717,63): warning C4244:             T=float
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(717,63): warning C4244:         ]
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(717,48): warning C4244: 'argumento': conversión de 'double' a 'T'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(717,48): warning C4244:         with
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(717,48): warning C4244:         [
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(717,48): warning C4244:             T=float
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(717,48): warning C4244:         ]
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(740,32): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(740,32): warning C4244:         with
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(740,32): warning C4244:         [
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(740,32): warning C4244:             T=float
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(740,32): warning C4244:         ]
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(740,24): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(740,24): warning C4244:         with
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(740,24): warning C4244:         [
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(740,24): warning C4244:             T=float
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(740,24): warning C4244:         ]
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(847,49): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(847,49): warning C4244:         with
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(847,49): warning C4244:         [
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(847,49): warning C4244:             T=float
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(847,49): warning C4244:         ]
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(847,41): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(847,41): warning C4244:         with
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(847,41): warning C4244:         [
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(847,41): warning C4244:             T=float
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(847,41): warning C4244:         ]
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(881,33): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(881,33): warning C4244:         with
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(881,33): warning C4244:         [
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(881,33): warning C4244:             T=float
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(881,33): warning C4244:         ]
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(881,25): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(881,25): warning C4244:         with
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(881,25): warning C4244:         [
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(881,25): warning C4244:             T=float
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(881,25): warning C4244:         ]
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(924,34): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(924,34): warning C4244:         with
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(924,34): warning C4244:         [
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(924,34): warning C4244:             T=float
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(924,34): warning C4244:         ]
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(924,26): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(924,26): warning C4244:         with
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(924,26): warning C4244:         [
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(924,26): warning C4244:             T=float
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(924,26): warning C4244:         ]
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1073,58): warning C4244: 'argumento': conversión de 'double' a 'T'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1073,58): warning C4244:         with
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1073,58): warning C4244:         [
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1073,58): warning C4244:             T=float
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1073,58): warning C4244:         ]
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1073,44): warning C4244: 'argumento': conversión de 'double' a 'T'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1073,44): warning C4244:         with
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1073,44): warning C4244:         [
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1073,44): warning C4244:             T=float
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1073,44): warning C4244:         ]
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1232,20): warning C4018: '<': no coinciden signed/unsigned
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1254,73): warning C4244: 'inicializando': conversión de 'T' a 'unsigned int'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1254,73): warning C4244:         with
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1254,73): warning C4244:         [
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1254,73): warning C4244:             T=float
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1254,73): warning C4244:         ]
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1257,20): warning C4018: '<': no coinciden signed/unsigned
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1287,28): warning C4305: 'argumento': truncamiento de 'double' a 'float'
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1324,45): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1324,45): warning C4244:         with
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1324,45): warning C4244:         [
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1324,45): warning C4244:             T=float
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1324,45): warning C4244:         ]
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1324,33): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1324,33): warning C4244:         with
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1324,33): warning C4244:         [
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1324,33): warning C4244:             T=float
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1324,33): warning C4244:         ]
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1338,88): warning C4244: 'argumento': conversión de 'double' a 'T'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1338,88): warning C4244:         with
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1338,88): warning C4244:         [
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1338,88): warning C4244:             T=float
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1338,88): warning C4244:         ]
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1338,40): warning C4244: 'argumento': conversión de 'double' a 'T'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1338,40): warning C4244:         with
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1338,40): warning C4244:         [
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1338,40): warning C4244:             T=float
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1338,40): warning C4244:         ]
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1420,39): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1420,39): warning C4244:         with
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1420,39): warning C4244:         [
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1420,39): warning C4244:             T=float
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1420,39): warning C4244:         ]
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1420,31): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1420,31): warning C4244:         with
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1420,31): warning C4244:         [
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1420,31): warning C4244:             T=float
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1420,31): warning C4244:         ]
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1440,28): warning C4305: 'argumento': truncamiento de 'double' a 'float'
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1504,56): warning C4244: 'argumento': conversión de 'double' a 'T'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1504,56): warning C4244:         with
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1504,56): warning C4244:         [
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1504,56): warning C4244:             T=float
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1504,56): warning C4244:         ]
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1504,42): warning C4244: 'argumento': conversión de 'double' a 'T'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1504,42): warning C4244:         with
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1504,42): warning C4244:         [
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1504,42): warning C4244:             T=float
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1504,42): warning C4244:         ]
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\scene.h(12,7): warning C4099: 'cJSON': nombre de tipo visto anteriormente usando 'struct' ahora se ve usando 'class'
+  (compilando archivo de origen "../../src/application.cpp")
+  C:\Users\Maar\Documents\GitHub\GTR_Framework\src\extra\cJSON.h(103,16):
+  vea la declaración de 'cJSON'
+  
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1659,10): warning C4244: 'inicializando': conversión de 'long' a 'float'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1791,10): warning C4244: 'inicializando': conversión de 'long' a 'float'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1956,53): warning C4244: 'argumento': conversión de 'double' a 'float'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1956,93): warning C4244: 'argumento': conversión de 'double' a 'float'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1967,73): warning C4244: 'argumento': conversión de 'double' a 'T'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1967,73): warning C4244:         with
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1967,73): warning C4244:         [
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1967,73): warning C4244:             T=float
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1967,73): warning C4244:         ]
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1967,53): warning C4244: 'argumento': conversión de 'double' a 'T'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1967,53): warning C4244:         with
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1967,53): warning C4244:         [
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1967,53): warning C4244:             T=float
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1967,53): warning C4244:         ]
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1967,33): warning C4244: 'argumento': conversión de 'double' a 'T'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1967,33): warning C4244:         with
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1967,33): warning C4244:         [
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1967,33): warning C4244:             T=float
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1967,33): warning C4244:         ]
 C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(116,33): warning C4244: 'argumento': conversión de 'int' a 'float'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(672,63): warning C4244: 'argumento': conversión de 'double' a 'T'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(672,63): warning C4244:         with
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(672,63): warning C4244:         [
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(672,63): warning C4244:             T=float
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(672,63): warning C4244:         ]
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(672,48): warning C4244: 'argumento': conversión de 'double' a 'T'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(672,48): warning C4244:         with
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(672,48): warning C4244:         [
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(672,48): warning C4244:             T=float
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(672,48): warning C4244:         ]
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1990,54): warning C4244: 'argumento': conversión de 'double' a 'float'; posible pérdida de datos
 C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(133,33): warning C4244: 'argumento': conversión de 'int' a 'float'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1990,94): warning C4244: 'argumento': conversión de 'double' a 'float'; posible pérdida de datos
 C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(140,18): warning C4244: 'inicializando': conversión de 'T' a 'int'; posible pérdida de datos
 C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(140,18): warning C4244:         with
 C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(140,18): warning C4244:         [
 C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(140,18): warning C4244:             T=float
 C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(140,18): warning C4244:         ]
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(695,32): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(695,32): warning C4244:         with
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(695,32): warning C4244:         [
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(695,32): warning C4244:             T=float
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(695,32): warning C4244:         ]
 C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(143,36): warning C4244: 'argumento': conversión de 'int' a 'float'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(695,24): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(695,24): warning C4244:         with
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(695,24): warning C4244:         [
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(695,24): warning C4244:             T=float
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(695,24): warning C4244:         ]
 C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(144,61): warning C4244: 'argumento': conversión de 'int' a 'float'; posible pérdida de datos
 C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(144,34): warning C4244: 'argumento': conversión de 'int' a 'float'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(794,40): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(794,40): warning C4244:         with
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(794,40): warning C4244:         [
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(794,40): warning C4244:             T=float
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(794,40): warning C4244:         ]
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(794,32): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(794,32): warning C4244:         with
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(794,32): warning C4244:         [
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(794,32): warning C4244:             T=float
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(794,32): warning C4244:         ]
 C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(201,3): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(821,49): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(821,49): warning C4244:         with
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(821,49): warning C4244:         [
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(821,49): warning C4244:             T=float
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(821,49): warning C4244:         ]
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(821,41): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(821,41): warning C4244:         with
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(821,41): warning C4244:         [
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(821,41): warning C4244:             T=float
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(821,41): warning C4244:         ]
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(920,31): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(920,31): warning C4244:         with
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(920,31): warning C4244:         [
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(920,31): warning C4244:             T=float
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(920,31): warning C4244:         ]
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(920,23): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(920,23): warning C4244:         with
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(920,23): warning C4244:         [
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(920,23): warning C4244:             T=float
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(920,23): warning C4244:         ]
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(945,75): warning C4244: 'argumento': conversión de 'double' a 'T'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(945,75): warning C4244:         with
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(945,75): warning C4244:         [
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(945,75): warning C4244:             T=float
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(945,75): warning C4244:         ]
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(945,44): warning C4244: 'argumento': conversión de 'double' a 'T'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(945,44): warning C4244:         with
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(945,44): warning C4244:         [
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(945,44): warning C4244:             T=float
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(945,44): warning C4244:         ]
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2163,31): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2163,31): warning C4244:         with
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2163,31): warning C4244:         [
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2163,31): warning C4244:             T=float
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2163,31): warning C4244:         ]
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2163,23): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2163,23): warning C4244:         with
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2163,23): warning C4244:         [
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2163,23): warning C4244:             T=float
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2163,23): warning C4244:         ]
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2168,39): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2168,39): warning C4244:         with
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2168,39): warning C4244:         [
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2168,39): warning C4244:             T=float
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2168,39): warning C4244:         ]
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2168,31): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2168,31): warning C4244:         with
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2168,31): warning C4244:         [
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2168,31): warning C4244:             T=float
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2168,31): warning C4244:         ]
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.h(146,8): error C2086: 'bool SCN::Renderer::use_lut': nueva definición
+  (compilando archivo de origen "../../src/application.cpp")
+  
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2176,48): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2176,48): warning C4244:         with
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2176,48): warning C4244:         [
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2176,48): warning C4244:             T=float
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2176,48): warning C4244:         ]
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.h(147,9): error C2086: 'float SCN::Renderer::lut_amount': nueva definición
+  (compilando archivo de origen "../../src/application.cpp")
+  
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2176,40): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2176,40): warning C4244:         with
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2176,40): warning C4244:         [
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2176,40): warning C4244:             T=float
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2176,40): warning C4244:         ]
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.h(148,8): error C2086: 'bool SCN::Renderer::use_lut2': nueva definición
+  (compilando archivo de origen "../../src/application.cpp")
+  
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2183,45): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2183,45): warning C4244:         with
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2183,45): warning C4244:         [
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2183,45): warning C4244:             T=float
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2183,45): warning C4244:         ]
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.h(149,9): error C2086: 'float SCN::Renderer::lut_amount2': nueva definición
+  (compilando archivo de origen "../../src/application.cpp")
+  
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2183,37): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2183,37): warning C4244:         with
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2183,37): warning C4244:         [
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2183,37): warning C4244:             T=float
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2183,37): warning C4244:         ]
 C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(291,33): warning C4244: 'argumento': conversión de 'int' a 'float'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1106,20): warning C4018: '<': no coinciden signed/unsigned
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1128,73): warning C4244: 'inicializando': conversión de 'T' a 'unsigned int'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1128,73): warning C4244:         with
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1128,73): warning C4244:         [
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1128,73): warning C4244:             T=float
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1128,73): warning C4244:         ]
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1131,20): warning C4018: '<': no coinciden signed/unsigned
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1161,28): warning C4305: 'argumento': truncamiento de 'double' a 'float'
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1198,45): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1198,45): warning C4244:         with
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1198,45): warning C4244:         [
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1198,45): warning C4244:             T=float
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1198,45): warning C4244:         ]
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1198,33): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1198,33): warning C4244:         with
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1198,33): warning C4244:         [
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1198,33): warning C4244:             T=float
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1198,33): warning C4244:         ]
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1212,88): warning C4244: 'argumento': conversión de 'double' a 'T'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1212,88): warning C4244:         with
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1212,88): warning C4244:         [
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1212,88): warning C4244:             T=float
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1212,88): warning C4244:         ]
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1212,40): warning C4244: 'argumento': conversión de 'double' a 'T'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1212,40): warning C4244:         with
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1212,40): warning C4244:         [
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1212,40): warning C4244:             T=float
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1212,40): warning C4244:         ]
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1293,39): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1293,39): warning C4244:         with
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1293,39): warning C4244:         [
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1293,39): warning C4244:             T=float
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1293,39): warning C4244:         ]
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1293,31): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1293,31): warning C4244:         with
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1293,31): warning C4244:         [
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1293,31): warning C4244:             T=float
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1293,31): warning C4244:         ]
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1313,28): warning C4305: 'argumento': truncamiento de 'double' a 'float'
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1377,56): warning C4244: 'argumento': conversión de 'double' a 'T'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1377,56): warning C4244:         with
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1377,56): warning C4244:         [
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1377,56): warning C4244:             T=float
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1377,56): warning C4244:         ]
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1377,42): warning C4244: 'argumento': conversión de 'double' a 'T'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1377,42): warning C4244:         with
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1377,42): warning C4244:         [
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1377,42): warning C4244:             T=float
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1377,42): warning C4244:         ]
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1532,10): warning C4244: 'inicializando': conversión de 'long' a 'float'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2188,44): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2188,44): warning C4244:         with
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2188,44): warning C4244:         [
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2188,44): warning C4244:             T=float
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2188,44): warning C4244:         ]
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2188,32): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2188,32): warning C4244:         with
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2188,32): warning C4244:         [
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2188,32): warning C4244:             T=float
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2188,32): warning C4244:         ]
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2192,32): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2192,32): warning C4244:         with
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2192,32): warning C4244:         [
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2192,32): warning C4244:             T=float
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2192,32): warning C4244:         ]
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2192,24): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2192,24): warning C4244:         with
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2192,24): warning C4244:         [
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2192,24): warning C4244:             T=float
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2192,24): warning C4244:         ]
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2196,31): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2196,31): warning C4244:         with
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2196,31): warning C4244:         [
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2196,31): warning C4244:             T=float
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2196,31): warning C4244:         ]
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2196,23): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2196,23): warning C4244:         with
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2196,23): warning C4244:         [
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2196,23): warning C4244:             T=float
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2196,23): warning C4244:         ]
 C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(306,39): warning C4244: '=': conversión de 'T' a 'int'; posible pérdida de datos
 C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(306,39): warning C4244:         with
 C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(306,39): warning C4244:         [
@@ -263,112 +409,25 @@ C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(306,39): warning C42
 C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(306,39): warning C4244:         ]
 C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(308,56): warning C4244: 'argumento': conversión de 'int' a 'float'; posible pérdida de datos
 C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(308,54): warning C4244: 'argumento': conversión de 'int' a 'float'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1664,10): warning C4244: 'inicializando': conversión de 'long' a 'float'; posible pérdida de datos
 C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(322,2): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
 C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(360,60): warning C4305: 'argumento': truncamiento de 'double' a 'float'
 C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(374,57): warning C4305: 'argumento': truncamiento de 'double' a 'float'
 C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(417,34): warning C4244: 'argumento': conversión de 'double' a 'float'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1829,53): warning C4244: 'argumento': conversión de 'double' a 'float'; posible pérdida de datos
 C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(417,27): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
 C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(417,27): warning C4244:         with
 C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(417,27): warning C4244:         [
 C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(417,27): warning C4244:             T=float
 C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(417,27): warning C4244:         ]
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1829,93): warning C4244: 'argumento': conversión de 'double' a 'float'; posible pérdida de datos
 C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(417,19): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
 C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(417,19): warning C4244:         with
 C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(417,19): warning C4244:         [
 C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(417,19): warning C4244:             T=float
 C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(417,19): warning C4244:         ]
 C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(440,25): warning C4244: 'argumento': conversión de 'double' a 'float'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1840,73): warning C4244: 'argumento': conversión de 'double' a 'T'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1840,73): warning C4244:         with
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1840,73): warning C4244:         [
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1840,73): warning C4244:             T=float
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1840,73): warning C4244:         ]
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1840,53): warning C4244: 'argumento': conversión de 'double' a 'T'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1840,53): warning C4244:         with
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1840,53): warning C4244:         [
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1840,53): warning C4244:             T=float
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1840,53): warning C4244:         ]
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1840,33): warning C4244: 'argumento': conversión de 'double' a 'T'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1840,33): warning C4244:         with
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1840,33): warning C4244:         [
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1840,33): warning C4244:             T=float
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1840,33): warning C4244:         ]
 C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(533,22): warning C4018: '<': no coinciden signed/unsigned
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1863,54): warning C4244: 'argumento': conversión de 'double' a 'float'; posible pérdida de datos
 C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(554,83): warning C4305: 'argumento': truncamiento de 'double' a 'float'
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1863,94): warning C4244: 'argumento': conversión de 'double' a 'float'; posible pérdida de datos
 C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(559,61): warning C4305: 'argumento': truncamiento de 'double' a 'float'
 C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(579,10): warning C4244: 'inicializando': conversión de 'float' a 'int'; posible pérdida de datos
 C:\Users\Maar\Documents\GitHub\GTR_Framework\src\editor.cpp(581,86): warning C4244: 'argumento': conversión de 'int' a 'float'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1999,31): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1999,31): warning C4244:         with
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1999,31): warning C4244:         [
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1999,31): warning C4244:             T=float
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1999,31): warning C4244:         ]
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1999,23): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1999,23): warning C4244:         with
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1999,23): warning C4244:         [
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1999,23): warning C4244:             T=float
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(1999,23): warning C4244:         ]
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2004,39): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2004,39): warning C4244:         with
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2004,39): warning C4244:         [
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2004,39): warning C4244:             T=float
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2004,39): warning C4244:         ]
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2004,31): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2004,31): warning C4244:         with
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2004,31): warning C4244:         [
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2004,31): warning C4244:             T=float
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2004,31): warning C4244:         ]
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2012,48): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2012,48): warning C4244:         with
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2012,48): warning C4244:         [
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2012,48): warning C4244:             T=float
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2012,48): warning C4244:         ]
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2012,40): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2012,40): warning C4244:         with
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2012,40): warning C4244:         [
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2012,40): warning C4244:             T=float
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2012,40): warning C4244:         ]
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2019,45): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2019,45): warning C4244:         with
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2019,45): warning C4244:         [
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2019,45): warning C4244:             T=float
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2019,45): warning C4244:         ]
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2019,37): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2019,37): warning C4244:         with
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2019,37): warning C4244:         [
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2019,37): warning C4244:             T=float
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2019,37): warning C4244:         ]
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2024,44): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2024,44): warning C4244:         with
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2024,44): warning C4244:         [
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2024,44): warning C4244:             T=float
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2024,44): warning C4244:         ]
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2024,32): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2024,32): warning C4244:         with
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2024,32): warning C4244:         [
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2024,32): warning C4244:             T=float
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2024,32): warning C4244:         ]
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2028,32): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2028,32): warning C4244:         with
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2028,32): warning C4244:         [
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2028,32): warning C4244:             T=float
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2028,32): warning C4244:         ]
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2028,24): warning C4244: 'argumento': conversión de 'T' a 'int'; posible pérdida de datos
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2028,24): warning C4244:         with
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2028,24): warning C4244:         [
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2028,24): warning C4244:             T=float
-C:\Users\Maar\Documents\GitHub\GTR_Framework\src\pipeline\renderer.cpp(2028,24): warning C4244:         ]
-     Creando biblioteca ..\..\GTR.lib y objeto ..\..\GTR.exp
-LINK : warning LNK4098: la biblioteca predeterminada'LIBCMT' entra en conflicto con otras bibliotecas; use la biblioteca /NODEFAULTLIB:biblioteca
-  Generando código
-  31 of 6138 functions ( 0.5%) were compiled, the rest were copied from previous compilation.
-    1 functions were new in current compilation
-    96 functions had inline decision re-evaluated but remain unchanged
-  Generación de código finalizada
-glew32s.lib(glew.obj) : warning LNK4099: no se encontró PDB '' con 'glew32s.lib(glew.obj)' o en ''; se vinculará el objeto sin tener en cuenta información de depuración
-  visualstudio.vcxproj -> C:\Users\Maar\Documents\GitHub\GTR_Framework\GTR.exe
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\application.cpp(102,14): warning C4244: 'inicializando': conversión de 'double' a 'float'; posible pérdida de datos
+C:\Users\Maar\Documents\GitHub\GTR_Framework\src\application.cpp(103,20): warning C4244: 'inicializando': conversión de 'double' a 'float'; posible pérdida de datos
