@@ -88,6 +88,10 @@ namespace SCN {
 		bool use_blur;
 		bool use_dithering;
 		bool use_tonemapper;
+		//volumetrics
+		bool use_volumetric;
+		bool constant_density;
+		float air_density;
 
 		bool show_probes;
 		//temporal
@@ -142,9 +146,13 @@ namespace SCN {
 		void renderSceneDeferred(SCN::Scene* scene, Camera* camera);
 		void gbufferToShader(GFX::Shader* shader, vec2 size, Camera* camera);
 		void lightsDeferred(Camera* camera);
+		void renderIrradianceLights();
+		void renderProbeLights(Camera* camera);
 		void ssaoBlur(Camera* camera);
 		//render the skybox
 		void renderSkybox(GFX::Texture* cubemap);
+
+		void renderFog(Camera* camera);
 
 		//to render one node from the prefab and its children
 		void renderNode(SCN::Node* node, Camera* camera);

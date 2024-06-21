@@ -17,6 +17,7 @@ probe basic.vs probe.fs
 irradiance quad.vs irradiance.fs
 combine quad.vs combine.fs
 tonemapper quad.vs tonemapper.fs
+volumetric quad.vs volumetric.fs
 
 \basic.vs
 
@@ -1605,4 +1606,243 @@ void main() {
 	rgb = max(rgb,vec3(0.001));
 	rgb = pow( rgb, vec3( u_igamma ) );
 	FragColor = vec4( rgb, 1.0 );
+}
+
+\volumetric.fs
+#version 330 core
+
+in vec2 v_uv;
+in vec3 v_world_position;
+
+uniform sampler2D u_depth_texture;
+
+uniform mat4 u_viewprojection;
+uniform mat4 u_inverse_viewprojection;
+uniform vec2 u_iRes;
+uniform vec3 u_camera_position;
+uniform float u_air_density;
+uniform float u_time;
+uniform float u_constant_density;
+
+uniform vec4 u_color;
+
+uniform float u_alpha_cutoff;
+uniform vec3 u_ambient_light;
+uniform vec3 u_emissive_factor;
+uniform vec3 u_light_position;
+uniform vec3 u_light_color;
+uniform vec3 u_light_front;
+uniform float u_specular;
+uniform float u_light_max_distance;
+uniform int u_light_type;
+uniform vec2 u_light_cone_info;
+uniform float u_alpha;
+
+uniform int u_light_cast_shadows;
+uniform sampler2D u_shadowmap;
+uniform mat4 u_shadowmap_viewprojection;
+uniform float u_shadow_bias;
+
+uniform float time;
+
+out vec4 FragColor;
+
+#define POINTLIGHT 1
+#define SPOTLIGHT 2
+#define DIRECTIONALLIGHT 3
+
+#define SAMPLES 64
+
+float rand(float n){return fract(sin(n) * 43758.5453123);}
+
+float rand(vec2 co) {
+    return fract(sin(dot(co.xy, vec2(12.9898, 78.233))) * 43758.5453);
+}
+
+float noise(float p){
+	float fl = floor(p);
+    float fc = fract(p);
+	return mix(rand(fl), rand(fl + 1.0), fc);
+}
+	
+float noise(vec2 n) {
+	const vec2 d = vec2(0.0, 1.0);
+    vec2 b = floor(n);
+    vec2 f = smoothstep(vec2(0.0), vec2(1.0), fract(n));
+    return mix(
+        mix(rand(b), rand(b + d.yx), f.x),
+        mix(rand(b + d.xy), rand(b + d.yy), f.x),
+        f.y
+    );
+}
+
+float mod289(float x){return x - floor(x * (1.0 / 289.0)) * 289.0;}
+vec4 mod289(vec4 x){return x - floor(x * (1.0 / 289.0)) * 289.0;}
+vec4 perm(vec4 x){return mod289(((x * 34.0) + 1.0) * x);}
+
+float noise(vec3 p){
+    vec3 a = floor(p);
+    vec3 d = p - a;
+    d = d * d * (3.0 - 2.0 * d);
+
+    vec4 b = a.xxyy + vec4(0.0, 1.0, 0.0, 1.0);
+    vec4 k1 = perm(b.xyxy);
+    vec4 k2 = perm(k1.xyxy + b.zzww);
+
+    vec4 c = k2 + a.zzzz;
+    vec4 k3 = perm(c);
+    vec4 k4 = perm(c + 1.0);
+
+    vec4 o1 = fract(k3 * (1.0 / 41.0));
+    vec4 o2 = fract(k4 * (1.0 / 41.0));
+
+    vec4 o3 = o2 * d.z + o1 * (1.0 - d.z);
+    vec2 o4 = o3.yw * d.x + o3.xz * (1.0 - d.x);
+
+    return o4.y * d.y + o4.x * (1.0 - d.y);
+}
+
+float computeShadow(vec3 wp)
+{
+    //project our 3D position to the shadowmap
+    vec4 proj_pos = u_shadowmap_viewprojection * vec4(wp,1.0);
+
+    //from homogeneus space to clip space
+    vec2 shadow_uv = proj_pos.xy / proj_pos.w;
+
+    //from clip space to uv space
+    shadow_uv = shadow_uv * 0.5 + vec2(0.5);
+
+    if (shadow_uv.x < 0.0 || shadow_uv.x > 1.0 ||
+    shadow_uv.y < 0.0 || shadow_uv.y > 1.0)
+    {
+        if (u_light_type == DIRECTIONALLIGHT) 
+            return 1.0;
+    }
+    //get point depth [-1 .. +1] in non-linear space
+    float real_depth = (proj_pos.z - u_shadow_bias) / proj_pos.w;
+
+    //normalize from [-1..+1] to [0..+1] still non-linear
+    real_depth = real_depth * 0.5 + 0.5;
+
+    //read depth from depth buffer in [0..+1] non-linear
+    float shadow_depth = texture(u_shadowmap, shadow_uv).x;
+
+    //compute final shadow factor by comparing
+    float shadow_factor = 1.0;
+
+    //we can compare them, even if they are not linear
+    if( shadow_depth < real_depth )
+        shadow_factor = 0.0;
+
+    return shadow_factor;
+}
+
+vec3 volumetricLight(vec3 light, vec3 world_position)
+{
+    //initialize further used variables
+    vec3 L;
+    vec3 factor = vec3(1.0f);
+    float shadow_factor = 1.0f;
+
+    float height_factor = max(0.0, world_position.y) * 0.003;
+    vec3 time = vec3(u_time, 0, 0);
+    float particle_density = max(0.0, noise(world_position * 0.05 + time) - height_factor);
+
+    if (u_light_type == DIRECTIONALLIGHT)
+    {
+        if ( u_light_cast_shadows == 1.0)
+            shadow_factor *= computeShadow(world_position);
+    }
+    else if (u_light_type == SPOTLIGHT  || u_light_type == POINTLIGHT)
+    {   //emitted from single point in all directions
+        //vector from point to light
+        L = u_light_position - world_position;
+        float dist = length(L);
+        //ignore light distance
+        L = L/dist;
+
+        //calculate area affected by spotlight
+        if (u_light_type == SPOTLIGHT)
+        {
+            if ( u_light_cast_shadows == 1.0)
+                shadow_factor *= computeShadow(world_position);
+
+            float cos_angle = dot( u_light_front.xyz, L );
+            
+            if ( cos_angle < u_light_cone_info.x )
+                factor *= 0.0f;
+            else if ( cos_angle < u_light_cone_info.y )
+                factor *= ( cos_angle - u_light_cone_info.x ) / ( u_light_cone_info.y - u_light_cone_info.x );
+        }
+
+        //Compute attenuation
+        float att_factor = u_light_max_distance - dist;
+        att_factor /= u_light_max_distance;
+        att_factor = max(att_factor, 0.0);
+
+        //accumulate light attributes in single factor
+        factor *= att_factor;
+    }
+    
+    light += u_light_color * factor * shadow_factor;
+
+    return light*particle_density;
+}
+
+void main()
+{
+    vec2 uv = gl_FragCoord.xy * u_iRes.xy;
+		
+    //compute world position from pixel depth
+	float depth = texture(u_depth_texture, uv).x;
+	if (depth == 1.0)
+        discard;
+
+	vec4 screen_coord = vec4(uv.x * 2.0 - 1.0, uv.y * 2.0 - 1.0, depth * 2.0 - 1.0, 1.0);
+	vec4 world_proj = u_inverse_viewprojection * screen_coord;
+	vec3 world_pos = world_proj.xyz / world_proj.w;
+    vec3 V =  world_pos - u_camera_position;
+    float dist = min(length( V ), 500);
+    V /= dist;
+
+    float step_dist = dist / float(SAMPLES);
+	vec3 ray_step = V * step_dist;
+	vec3 current_pos = u_camera_position;
+	current_pos += ray_step * noise(gl_FragCoord.xy);
+
+	vec3 color = vec3(0.0f);
+    vec3 light = u_ambient_light;
+	float transparency = 1.0;
+
+	float air_step = u_air_density * step_dist;
+
+    vec3 current_position = u_camera_position;
+    current_position += step_dist*noise(gl_FragCoord.xy);
+
+	for(int i = 0; i < SAMPLES; ++i)
+	{
+		if(u_constant_density != 1.0f)
+		{
+			air_step =  u_air_density * step_dist * noise(current_position);
+		}
+
+		//evaluate contribution
+        vec3 i_light = volumetricLight(vec3(0), current_position);
+        light += i_light*step_dist/float(SAMPLES);
+
+		//advance to next position
+		current_position.xyz += ray_step;
+
+		//reduce visibility
+		transparency -= air_step;
+
+		//too dense, nothing can be seen behind
+		if(transparency < 0.001)
+			break;
+	}
+    
+    transparency = clamp( dist*u_air_density , 0.0f, 1.0f );
+
+	FragColor = vec4(light, transparency);
 }
