@@ -101,6 +101,13 @@ namespace SCN {
 		bool use_volumetric;
 		bool constant_density;
 		bool use_simpleblurr;
+		bool use_vignetting;
+		bool use_color_correction;
+		bool use_fish_eye;
+		bool use_chromatic_aberration;
+
+		float fish_eye_strength;
+
 		float air_density;
 
 		bool show_probes;
@@ -114,6 +121,10 @@ namespace SCN {
 		float tonemapper_scale;
 		float tonemapper_avg_lum;
 		float tonemapper_lumwhite;
+
+		vec3 contrast;
+		float vignetting;
+		float ca_strength;
 
 		float ssao_radius;
 		float ssao_max_distance;
