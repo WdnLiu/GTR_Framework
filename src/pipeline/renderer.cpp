@@ -613,7 +613,30 @@ void Renderer::renderTonemapper()
 	shader->disable();
 }
 
+void Renderer::renderIlluminationScene(Camera* camera, vec2* size) {
+	if (!illumination_fbo)
+	{
+		illumination_fbo = new GFX::FBO();
+		illumination_fbo->create(size->x, size->y, 1, GL_RGB, GL_FLOAT, false);
+	}
 
+	illumination_fbo->bind();
+
+	gbuffers->depth_texture->copyTo(NULL);
+
+	glClearColor(scene->background_color.x, scene->background_color.y, scene->background_color.z, 1.0);
+	glClearColor(0, 0, 0, 1.0f);//set the clear color
+	glClear(GL_COLOR_BUFFER_BIT);
+
+	if (skybox_cubemap)
+		renderSkybox(skybox_cubemap);
+
+	lightsDeferred(camera);
+
+
+	illumination_fbo->unbind();
+
+}
 
 void Renderer::renderIrradianceScene(Camera* camera,vec2* size)
 {
@@ -788,29 +811,10 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 	
 	ssaoBlur(camera);
 
-	if (!illumination_fbo)
-	{
-		illumination_fbo = new GFX::FBO();
-		illumination_fbo->create(size.x, size.y, 1, GL_RGB, GL_FLOAT, false);
-	}
+	//render illumination scene
+	renderIlluminationScene(camera, &size);
 
-	illumination_fbo->bind();
-
-	gbuffers->depth_texture->copyTo(NULL);
-
-	glClearColor(scene->background_color.x, scene->background_color.y, scene->background_color.z, 1.0);
-	glClearColor(0, 0, 0, 1.0f);//set the clear color
-	glClear(GL_COLOR_BUFFER_BIT);
-
-	if (skybox_cubemap)
-		renderSkybox(skybox_cubemap);
-
-	lightsDeferred(camera);
-
-
-	illumination_fbo->unbind();
-
-
+	//render irradiance
 	renderIrradianceScene(camera, &size);
 
 
@@ -1924,7 +1928,7 @@ void Renderer::showUI()
 	if (ImGui::TreeNode("Irradiance"))
 	{
 		ImGui::Checkbox("Show irradiance probes", &show_probes);
-		ImGui::Checkbox("Show with irradiance", &combined_irr);
+		ImGui::Checkbox("Scene with irradiance", &combined_irr);
 		if (ImGui::Button("Capture Irradiance"))
 			captureProbes();
 	

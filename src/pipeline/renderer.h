@@ -166,7 +166,8 @@ namespace SCN {
 		void renderSceneDeferred(SCN::Scene* scene, Camera* camera);
 		void gbufferToShader(GFX::Shader* shader, vec2 size, Camera* camera);
 		void lightsDeferred(Camera* camera);
-		void renderIrradianceLights();
+		//void renderIrradianceLights();
+		void renderIlluminationScene(Camera* camera, vec2* size);
 		void renderIrradianceScene(Camera* camera, vec2* size);
 		void ssaoBlur(Camera* camera);
 		void renderDecals(SCN::Scene* scene, Camera* camera, GFX::FBO* gbuffers);
