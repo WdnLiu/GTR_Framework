@@ -2078,8 +2078,8 @@ out vec4 FragColor;
 void main()
 {
 	
-    float videoColor = texture2D(u_texture, v_uv).r;
-    vec4 finalColor = texture2D(u_textureB, vec2(videoColor,u_amount));
+    float iluColor = texture2D(u_texture, v_uv).r;
+    vec4 finalColor = texture2D(u_textureB, vec2(iluColor,u_amount));
     FragColor = finalColor;
 }
 \postfx.fs
