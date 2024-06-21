@@ -21,6 +21,7 @@ decals basic.vs decals.fs
 depthoffield quad.vs depthoffield.fs
 tonemapper quad.vs tonemapper.fs
 volumetric quad.vs volumetric.fs
+simpleBlur quad.vs simpleBlur.fs
 
 \basic.vs
 
@@ -1982,4 +1983,32 @@ void main()
     transparency = clamp( dist*u_air_density , 0.0f, 1.0f );
 
 	FragColor = vec4(light, transparency);
+}
+
+\simpleBlur.fs
+
+#version 330 core
+
+in vec3 v_position;
+in vec2 v_uv;
+
+uniform sampler2D u_texture;
+uniform vec2 iRes;
+uniform float u_scale;
+
+out vec4 FragColor;
+
+void main()
+{
+    vec2 uv = v_uv;
+
+    vec4 color = vec4(0.0f);
+
+    for (int i = -3; i <= 3; ++i)
+    for (int j = -3; j <= 3; ++j)
+    color += texture(u_texture, uv + iRes*vec2(i, j)*u_scale);
+
+    color /= 49.0f;
+
+    FragColor = color;
 }

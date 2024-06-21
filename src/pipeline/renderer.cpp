@@ -89,12 +89,14 @@ Renderer::Renderer(const char* shader_atlas_filename)
 	view_blur = false;
 	use_blur = false;
 	use_dithering = false;
-	use_volumetric = true;
+	use_volumetric = false;
 	constant_density = false;
 
 	show_probes = false;
 	combined_irr = false;
 	render_refelction_probes = false;
+
+	bool use_simpleblurr = true;
 
 	sphere.createSphere(1.0f);
 	sphere.uploadToVRAM();
@@ -597,7 +599,7 @@ void Renderer::ssaoBlur(Camera* camera)
 	blur_fbo->unbind();
 }
 
-void Renderer::renderTonemapper()
+void Renderer::renderTonemapper(GFX::Texture* colorTex)
 {
 	GFX::Shader* shader;
 	//TONEMAPPER
@@ -609,7 +611,7 @@ void Renderer::renderTonemapper()
 	shader->setUniform("u_lumwhite2", tonemapper_lumwhite);
 	shader->setUniform("u_igamma", 1.0f / gamma);
 
-	renderFBO->color_textures[0]->toViewport(shader);
+	colorTex->toViewport(shader);
 	shader->disable();
 }
 
@@ -843,11 +845,8 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 	}
 
 	combined_illumination_fbo->unbind();
-
-
-
 	
-	/*if (!renderFBO)
+	if (!renderFBO)
 	{
 		renderFBO = new GFX::FBO();
 		renderFBO->create(size.x, size.y, 1, GL_RGB, GL_FLOAT, false);
@@ -856,9 +855,12 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 
 	renderFBO->bind();
 
-
-
-
+	if (use_degamma)
+		illumination_fbo->color_textures[0]->toViewport(GFX::Shader::Get("gamma"));
+	else if (combined_irr)
+		combined_illumination_fbo->color_textures[0]->toViewport();
+	else
+		illumination_fbo->color_textures[0]->toViewport();
 
 	if (use_volumetric)
 	{
@@ -873,24 +875,29 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 	}
 
 	renderFBO->unbind();
-	*/
-	//if (use_tonemapper) renderTonemapper();
-	
 
-	if (use_degamma)
-		illumination_fbo->color_textures[0]->toViewport(GFX::Shader::Get("gamma"));
-	else if (combined_irr)
-		combined_illumination_fbo->color_textures[0]->toViewport();
-	else
-		illumination_fbo->color_textures[0]->toViewport();
+	if (!postfx_fbo)
+	{
+		postfx_fbo = new GFX::FBO();
+		postfx_fbo->create(size.x, size.y, 1, GL_RGB, GL_FLOAT, false);
+	}
+
+	postfx_fbo->bind();
+	renderFBO->color_textures[0]->toViewport();
+	postfx_fbo->unbind();
+
+	postfx_fbo->bind();
+	if (use_simpleblurr) simpleBlur();
+	postfx_fbo->unbind();
+
+	if (use_tonemapper) renderTonemapper(postfx_fbo->color_textures[0]);
+	else postfx_fbo->color_textures[0]->toViewport();
 
 	glDepthFunc(GL_LESS);
 	glEnable(GL_DEPTH_TEST);
 
 	if (show_probes) visualizeGrid(2);
 	if (render_refelction_probes) visualizeReflectionProbes(10.0f);
-
-
 
 	glDisable(GL_DEPTH_TEST);
 	switch (gbuffer_show_mode) //debug
@@ -905,6 +912,21 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 		ssao_fbo->color_textures[0]->toViewport();
 	if (view_blur)
 		blur_fbo->color_textures[0]->toViewport();
+}
+
+void Renderer::simpleBlur()
+{
+	vec2 size = CORE::getWindowSize();
+	GFX::Mesh* quad = GFX::Mesh::getQuad();
+
+	GFX::Shader* shader = GFX::Shader::Get("simpleBlur");
+	shader->enable();
+
+	shader->setUniform("u_texture", postfx_fbo->color_textures[0], 0);
+	shader->setUniform("iRes", vec2(1.0f / size.x, 1.0f / size.y));
+	shader->setUniform("u_scale", df_scale_blur);
+
+	quad->render(GL_TRIANGLES);
 }
 
 void Renderer::postDepthOfField(Camera* camera)
@@ -1217,6 +1239,7 @@ void Renderer::renderFog(Camera* camera)
 
 	GFX::Mesh* quad = GFX::Mesh::getQuad();
 
+	if (!mainLight) return;
 	lightToShader(mainLight, shader);
 	if (mainLight->cast_shadows && mainLight->shadowMapFBO)
 		{
@@ -1941,6 +1964,15 @@ void Renderer::showUI()
 		ImGui::TreePop();
 	}
 
+	if (ImGui::TreeNode("postfx"))
+	{
+		ImGui::Checkbox("Simple Blurr", &use_simpleblurr);
+		if (use_simpleblurr)
+			ImGui::DragFloat("Blur scale", &df_scale_blur, 0.01f, 0, 100);
+
+		ImGui::TreePop();
+	}
+
 	//effects post
 	//ImGui::Combo("Show GBuffer", (int*)&post_fx, "NONE\0DEPTHOFFIELD\0BLOOM\0POST_COUNT\0", ePost_fx::POST_COUNT);
 
@@ -2025,6 +2057,9 @@ void Renderer::resize()
 		renderFBO = new GFX::FBO();
 	renderFBO->create(size.x, size.y, 1, GL_RGB, GL_FLOAT, false);
 
+	if (!blur_fbo)
+		blur_fbo = new GFX::FBO();
+	blur_fbo->create(size.x, size.y, 1, GL_RGB, GL_HALF_FLOAT, false);
 }
 
 #else
