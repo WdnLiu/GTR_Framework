@@ -31,18 +31,29 @@ Application::Application()
 	camera->setPerspective(45.f, window_width / (float)window_height, 1.0f, 10000.f);
 
 	//load scene
-	scene = new SCN::Scene();
 
 
-	if (!scene->load("data/scene.json"))
+	
+	scene1 = new SCN::Scene();
+	scene2 = new SCN::Scene();
+	scene3 = new SCN::Scene();
+
+	if (!scene1->load("data/scene.json"))
 		exit(1);
 
 
 
+	if (!scene3->load("data/scene_irradiance.json"))
+		exit(1);
+
+	scenes.push_back(scene1); scenes.push_back(scene2); scenes.push_back(scene3);
+
+	scene = scenes[currScene];
+
 	camera->lookAt(scene->main_camera.eye, scene->main_camera.center, vec3(0, 1, 0));
 	camera->fov = scene->main_camera.fov;
 
-	camera->lookAt(vec3(25, 31, -85), vec3(0, 20, 0),  vec3(0, 1, 0));
+	//camera->lookAt(vec3(25, 31, -85), vec3(0, 20, 0),  vec3(0, 1, 0));
 
 	//loads and compiles several shaders from one single file
 	//change to "data/shader_atlas_osx.txt" if you are in XCODE
@@ -149,24 +160,21 @@ void Application::onKeyDown(SDL_KeyboardEvent event)
 
 	switch (event.keysym.sym)
 	{
-	case SDLK_1: renderer->pipeline_mode = ePipelineMode::DEFERRED; break;
-	case SDLK_2: renderer->pipeline_mode = ePipelineMode::FORWARD; break;
-	case SDLK_i: std::swap(scene, scene3); break;
 
-		//case SDLK_l: hacer entonces que suba los datos desde el disco
+		case SDLK_1: renderer->pipeline_mode = ePipelineMode::DEFERRED; break;
+		case SDLK_2: renderer->pipeline_mode = ePipelineMode::FORWARD ; break;
+		case SDLK_t: currScene = ++currScene % 3; scene = scenes[currScene]; editor->scene = scene; break;
+		case SDLK_ESCAPE: must_exit = true; break; //ESC key, kill the app
+		case SDLK_TAB: render_ui = !render_ui; break;
+		case SDLK_F5: GFX::Shader::ReloadAll(); break;
+		case SDLK_F6: //refresh
+			scene->clear();
+			scene->load(scene->filename.c_str());
+			camera->lookAt(scene->main_camera.eye, scene->main_camera.center, Vector3f(0, 1, 0));
+			camera->fov = scene->main_camera.fov;
+			break;
+		}
 
-		//case SDLK_t: std::swap(scene, scene2); break;
-	case SDLK_ESCAPE: must_exit = true; break; //ESC key, kill the app
-	case SDLK_TAB: render_ui = !render_ui; break;
-	case SDLK_F5: GFX::Shader::ReloadAll(); break;
-	case SDLK_F6: //refresh
-		scene->clear();
-		scene->load(scene->filename.c_str());
-		camera->lookAt(scene->main_camera.eye, scene->main_camera.center, Vector3f(0, 1, 0));
-		camera->fov = scene->main_camera.fov;
-		break;
-
-	}
 }
 
 void Application::onKeyUp(SDL_KeyboardEvent event)
@@ -231,6 +239,8 @@ void Application::onResize(int width, int height)
 	camera->aspect = width / (float)height;
 	window_width = width;
 	window_height = height;
+	
+	SCN::Renderer::instance->resize();
 }
 
 void Application::onFileDrop(std::string filename, std::string relative, SDL_Event event)

@@ -80,6 +80,8 @@ namespace SCN {
 	class Renderer
 	{
 	public:
+		static Renderer* instance;
+
 		bool render_wireframe;
 		bool render_boundaries;
 		bool use_multipass_lights;
@@ -94,11 +96,23 @@ namespace SCN {
 		bool view_blur;
 		bool use_blur;
 		bool use_dithering;
+		bool use_tonemapper;
+		//volumetrics
+		bool use_volumetric;
+		bool constant_density;
+		float air_density;
 
 		bool show_probes;
 		bool render_refelction_probes;
 		//temporal
 		bool combined_irr;
+
+
+		//tonemapper
+		float curr_tonemapper;
+		float tonemapper_scale;
+		float tonemapper_avg_lum;
+		float tonemapper_lumwhite;
 
 		float ssao_radius;
 		float ssao_max_distance;
@@ -135,6 +149,8 @@ namespace SCN {
 
 		void extractRenderables(SCN::Node* node, Camera* camera);
 
+		void renderTonemapper();
+
 		//updated every frame
 		Renderer(const char* shaders_atlas_filename);
 
@@ -150,10 +166,14 @@ namespace SCN {
 		void renderSceneDeferred(SCN::Scene* scene, Camera* camera);
 		void gbufferToShader(GFX::Shader* shader, vec2 size, Camera* camera);
 		void lightsDeferred(Camera* camera);
+		void renderIrradianceLights();
+		void renderProbeLights(Camera* camera);
 		void ssaoBlur(Camera* camera);
 		void renderDecals(SCN::Scene* scene, Camera* camera, GFX::FBO* gbuffers);
 		//render the skybox
 		void renderSkybox(GFX::Texture* cubemap);
+
+		void renderFog(Camera* camera);
 
 		//to render one node from the prefab and its children
 		void renderNode(SCN::Node* node, Camera* camera);
@@ -195,6 +215,8 @@ namespace SCN {
 		void lightToShader(LightEntity* light, GFX::Shader* shader); //sends light uniforms to shader	
 		void lightToShader(GFX::Shader* shader);
 		void texturesToShader(SCN::Material* material, GFX::Shader* shader) const;
+
+		void resize();
 	};
 
 };

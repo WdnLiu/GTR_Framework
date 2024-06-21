@@ -22,6 +22,8 @@
 using namespace SCN;
 
 //some globals
+Renderer* Renderer::instance = NULL;
+
 GFX::Mesh sphere;
 GFX::FBO* gbuffers = nullptr;
 GFX::FBO* illumination_fbo = nullptr;
@@ -30,6 +32,7 @@ GFX::FBO* final_fbo = nullptr;
 GFX::FBO* blur_fbo = nullptr;
 
 GFX::FBO* irr_fbo = nullptr;
+GFX::FBO* renderFBO = nullptr;
 
 GFX::FBO* probe_illumination_fbo = nullptr;
 GFX::FBO* combined_illumination_fbo = nullptr;
@@ -37,6 +40,7 @@ GFX::FBO* combined_illumination_fbo = nullptr;
 GFX::Texture* cloned_depth_texture = nullptr;
 GFX::FBO* reflections_fbo = nullptr;
 
+GFX::FBO* postfx_fbo = nullptr;
 sProbe probe;
 std::vector<sProbe> probes;
 
@@ -44,7 +48,7 @@ sIrradianceInfo probes_info;    //a place to store info about the layout of the 
 
 GFX::Texture* probes_texture = nullptr;
 
-std::vector< sReflectionProbe> reflection_probes; //tres y buscar cuál es la que esta más cerca !! to implement
+std::vector< sReflectionProbe> reflection_probes; //tres y buscar cuï¿½l es la que esta mï¿½s cerca !! to implement
 
 sReflectionProbe reflection_probe;
 GFX::Mesh cube;
@@ -55,8 +59,15 @@ GFX::FBO* blur_final_fbo = nullptr;
 sReflectionProbe refl_probe;
 
 
+float gamma = 2.2;
+
+//volumetrics
+GFX::FBO* volumetric_fbo = nullptr;
+
 Renderer::Renderer(const char* shader_atlas_filename)
 {
+	Renderer::instance = this;
+
 	render_wireframe = false;
 	render_boundaries = false;
 	scene = nullptr;
@@ -78,6 +89,8 @@ Renderer::Renderer(const char* shader_atlas_filename)
 	view_blur = false;
 	use_blur = false;
 	use_dithering = false;
+	use_volumetric = true;
+	constant_density = false;
 
 	show_probes = false;
 	combined_irr = false;
@@ -105,14 +118,24 @@ Renderer::Renderer(const char* shader_atlas_filename)
 	df_max_distance = 3.0f;
 	df_scale_blur = 1.0f;
 
+	//tonemapper attributes
+	use_tonemapper = false;
+	curr_tonemapper = 0.0f;
+	tonemapper_scale = 1.0f;
+	tonemapper_avg_lum = 1.0f;
+	tonemapper_lumwhite = 1.0f;
+	air_density = 0.0001;
 
 	//define grid proves-------------------------------
 	
+	
+
+	//define grid proves
 	//define bounding of the grid and num probes
 	probes_info.start.set(-400, 0, -400); //sc1
 	probes_info.end.set(400, 300, 400); //sc1
 
-
+	
 
 	//probes_info.start.set(80, 0, 90); //sc2
 	//probes_info.end.set(-80, 80, -90); //sc2
@@ -129,6 +152,7 @@ Renderer::Renderer(const char* shader_atlas_filename)
 	probes_info.delta = delta;
 
 	//store grid
+
 
 	for (int z = 0; z < probes_info.dim.z; ++z) {
 		for (int y = 0; y < probes_info.dim.y; ++y) {
@@ -182,6 +206,8 @@ Renderer::Renderer(const char* shader_atlas_filename)
 
 	//add it to the list
 	reflection_probes.push_back(refl_probe);
+
+
 
 }
 
@@ -359,6 +385,16 @@ void Renderer::renderScene(SCN::Scene* scene, Camera* camera)
 
 void Renderer::renderSceneForward(SCN::Scene* scene, Camera* camera)
 {
+	vec2 size = CORE::getWindowSize();
+
+	if (!illumination_fbo)
+	{
+		illumination_fbo = new GFX::FBO();
+		illumination_fbo->create(size.x, size.y, 1, GL_RGB, GL_FLOAT, false);
+	}
+
+	//illumination_fbo->bind();
+
 	camera->enable();
 	glDisable(GL_BLEND);
 	glEnable(GL_DEPTH_TEST);
@@ -390,6 +426,13 @@ void Renderer::renderSceneForward(SCN::Scene* scene, Camera* camera)
 			renderMeshWithMaterialLights(re.model, re.mesh, re.material);
 	}
 
+	/*illumination_fbo->unbind();
+
+	if (use_degamma)
+		illumination_fbo->color_textures[0]->toViewport(GFX::Shader::Get("gamma"));
+
+	else
+		illumination_fbo->color_textures[0]->toViewport();*/
 }
 
 void Renderer::gbufferToShader(GFX::Shader* shader, vec2 size, Camera* camera)
@@ -534,8 +577,6 @@ void Renderer::ssaoBlur(Camera* camera)
 		blur_fbo->create(size.x, size.y, 1, GL_RGB, GL_UNSIGNED_BYTE, false);
 		blur_fbo->color_textures[0]->setName("blur");
 	}
-
-
 	blur_fbo->bind();
 
 	glClearColor(1, 1, 1, 1); //fondo blanco
@@ -556,7 +597,105 @@ void Renderer::ssaoBlur(Camera* camera)
 	blur_fbo->unbind();
 }
 
+void Renderer::renderTonemapper()
+{
+	GFX::Shader* shader;
+	//TONEMAPPER
 
+	shader = GFX::Shader::Get("tonemapper");
+	shader->enable();
+	shader->setUniform("u_scale", tonemapper_scale);
+	shader->setUniform("u_average_lum", tonemapper_avg_lum);
+	shader->setUniform("u_lumwhite2", tonemapper_lumwhite);
+	shader->setUniform("u_igamma", 1.0f / gamma);
+
+	renderFBO->color_textures[0]->toViewport(shader);
+	shader->disable();
+}
+
+void Renderer::renderIrradianceLights()
+{
+	vec2 size = CORE::getWindowSize();
+
+	if (!combined_illumination_fbo)
+	{
+		combined_illumination_fbo = new GFX::FBO();
+		combined_illumination_fbo->create(size.x, size.y, 1, GL_RGB, GL_FLOAT, false);
+		combined_illumination_fbo->color_textures[0]->setName("total_illum");
+	}
+
+	combined_illumination_fbo->bind();
+	GFX::Shader* combine_shader = GFX::Shader::Get("combine");
+	combine_shader->enable();
+	combine_shader->setUniform("u_illumination_texture", illumination_fbo->color_textures[0], 0);
+	combine_shader->setUniform("u_probe_illumination_texture", probe_illumination_fbo->color_textures[0], 1);
+
+	GFX::Mesh::getQuad()->render(GL_TRIANGLES);
+	combine_shader->disable();
+	combined_illumination_fbo->unbind();
+}
+
+void Renderer::renderProbeLights(Camera* camera)
+{
+	vec2 size = CORE::getWindowSize();
+
+	//dlete:renderProbe(probe.pos, 1, probe.sh);
+	if (!probe_illumination_fbo)
+	{
+		probe_illumination_fbo = new GFX::FBO();
+		probe_illumination_fbo->create(size.x, size.y, 1, GL_RGB, GL_FLOAT, false);
+		probe_illumination_fbo->color_textures[0]->setName("irradiance_probe");
+
+	}
+	// Render probe illumination
+	probe_illumination_fbo->bind();
+	glClear(GL_COLOR_BUFFER_BIT);
+
+
+	if (probes_texture) {
+		GFX::Mesh* quad = GFX::Mesh::getQuad();
+
+		GFX::Shader* sh_irradiance = GFX::Shader::Get("irradiance");
+		assert(sh_irradiance);
+
+		sh_irradiance->enable();
+
+
+		sh_irradiance->setUniform("u_irr_start", probes_info.start);
+		sh_irradiance->setUniform("u_irr_end", probes_info.end);
+		sh_irradiance->setUniform("u_irr_normal_distance", (float)0.0f);
+		sh_irradiance->setUniform("u_irr_delta", probes_info.delta);
+		sh_irradiance->setUniform("u_irr_dims", probes_info.dim);
+
+		probes_info.num_probes = probes.size();
+
+		sh_irradiance->setUniform("u_num_probes", (int)probes_info.num_probes);
+
+		int texturePos = 0;
+
+		sh_irradiance->setUniform("u_probes_texture", probes_texture, texturePos++);
+
+		// you need also pass the distance factor, for now leave it as 0.0
+		sh_irradiance->setUniform("u_irr_normal_distance", 0.0f);
+
+		//gbufers
+		sh_irradiance->setUniform("u_color_texture", gbuffers->color_textures[0], texturePos++);
+		sh_irradiance->setUniform("u_normal_texture", gbuffers->color_textures[1], texturePos++);
+		sh_irradiance->setUniform("u_extra_texture", gbuffers->color_textures[2], texturePos++);
+		sh_irradiance->setUniform("u_metallic_texture", gbuffers->color_textures[3], texturePos++);
+		sh_irradiance->setUniform("u_depth_texture", gbuffers->depth_texture, texturePos++);
+
+		//to reconstruct world position
+		sh_irradiance->setUniform("u_iRes", vec2(1.0 / size.x, 1.0 / size.y));
+		sh_irradiance->setUniform("u_inverse_viewprojection", camera->inverse_viewprojection_matrix);
+		sh_irradiance->setUniform("u_viewprojection", camera->viewprojection_matrix);
+
+		quad->render(GL_TRIANGLES);
+		sh_irradiance->disable();
+	}
+
+	probe_illumination_fbo->unbind();
+}
 
 void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 {
@@ -660,48 +799,6 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 	glDisable(GL_CULL_FACE); */
 	
 	//*________________________________________________
-	//ssao
-	if (!ssao_fbo) {
-		ssao_fbo = new GFX::FBO();
-		ssao_fbo->create(size.x, size.y, 1, GL_RGB, GL_UNSIGNED_BYTE, false);
-		ssao_fbo->color_textures[0]->setName("SSAO");
-	}
-
-	ssao_fbo->bind();
-	glClearColor(1, 1, 1, 1); //fondo blanco
-	glClear(GL_COLOR_BUFFER_BIT);
-	glDisable(GL_DEPTH_TEST);
-	glDisable(GL_BLEND);
-
-	GFX::Shader* sh_ssao = GFX::Shader::Get("ssao");
-	assert(sh_ssao);
-	sh_ssao->enable();
-	sh_ssao->setUniform("u_depth_texture", gbuffers->depth_texture, 0);
-
-	sh_ssao->setUniform("u_radius", ssao_radius);
-	sh_ssao->setUniform("far", ssao_max_distance);
-	sh_ssao->setUniform("near", (float)0.0001f);
-
-	//to reconstruct world position
-	sh_ssao->setUniform("u_iRes", vec2(1.0 / ssao_fbo->color_textures[0]->width, 1.0 / ssao_fbo->color_textures[0]->height));
-	sh_ssao->setUniform("u_inverse_viewprojection", camera->inverse_viewprojection_matrix);
-	sh_ssao->setUniform3Array("u_points", (float*)&random_points[0], random_points.size());
-	sh_ssao->setUniform("u_viewprojection", camera->viewprojection_matrix);
-
-	quad->render(GL_TRIANGLES);
-
-
-	ssao_fbo->unbind();
-
-	//interpolacion
-	//bind the texture we want to change 
-	ssao_fbo->color_textures[0]->bind();
-	//disable using mipmaps
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	//enable bilinear filtering
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-	ssao_fbo->color_textures[0]->unbind();
 	
 	ssaoBlur(camera);
 
@@ -723,6 +820,7 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 		renderSkybox(skybox_cubemap);
 
 	lightsDeferred(camera);
+
 
 	illumination_fbo->unbind();
 
@@ -792,7 +890,7 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 
 
 
-
+	
 	if (!combined_illumination_fbo)
 	{
 		combined_illumination_fbo = new GFX::FBO();
@@ -824,15 +922,45 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 
 
 
+	//renderProbeLights(camera);
+	//renderIrradianceLights();
+	renderFog(camera);
+
+	if (!renderFBO)
+	{
+		renderFBO = new GFX::FBO();
+		renderFBO->create(size.x, size.y, 1, GL_RGB, GL_FLOAT, false);
+	}
+
+
+	renderFBO->bind();
+
 	if (use_degamma)
 		illumination_fbo->color_textures[0]->toViewport(GFX::Shader::Get("gamma"));
-
 	else if (combined_irr)
 		combined_illumination_fbo->color_textures[0]->toViewport();
-
 	else
 		illumination_fbo->color_textures[0]->toViewport();
 
+	if (show_probes) renderProbes(10);
+
+
+	if (use_volumetric)
+	{
+		if (volumetric_fbo)
+		{
+			glEnable(GL_DEPTH_TEST);
+			glEnable(GL_BLEND);
+			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+			volumetric_fbo->color_textures[0]->toViewport();
+			glDisable(GL_BLEND);
+		}
+	}
+
+	renderFBO->unbind();
+	
+	if (use_tonemapper) renderTonemapper();
+	else renderFBO->color_textures[0]->toViewport();
 
 
 	glDepthFunc(GL_LESS);
@@ -840,8 +968,6 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 
 	if (show_probes) visualizeGrid(2);
 	if (render_refelction_probes) visualizeReflectionProbes(10.0f);
-
-
 
 
 
@@ -1094,6 +1220,7 @@ void  SCN::Renderer::captureProbes() {
 	delete[] sh_data;
 
 }
+
 void SCN::Renderer::captureProbe(sProbe& p) //cuanta luz llega a esa esfera
 {
 	//poner camara donde esta la probe y tira renderer en 6 direcciones
@@ -1137,6 +1264,75 @@ void SCN::Renderer::captureProbe(sProbe& p) //cuanta luz llega a esa esfera
 
 }
 
+void Renderer::renderFog(Camera* camera) 
+{
+	vec2 size = CORE::getWindowSize();
+	int shadowMapPos = 8;
+
+	if (!volumetric_fbo)
+	{
+		volumetric_fbo = new GFX::FBO();
+		volumetric_fbo->create(size.x / 2, size.y / 2, 3, GL_RGBA, GL_UNSIGNED_BYTE, false);
+	}
+
+	volumetric_fbo->bind();
+
+	glClear(GL_COLOR_BUFFER_BIT);
+
+	glDisable(GL_DEPTH_TEST);
+	glDisable(GL_BLEND);
+
+	GFX::Shader* shader = GFX::Shader::Get("volumetric");
+	shader->enable();
+	shader->setTexture("u_depth_texture", gbuffers->depth_texture, 0);
+	shader->setMatrix44("u_inverse_viewprojection", camera->inverse_viewprojection_matrix);
+	shader->setUniform("u_iRes", vec2(1.0 / volumetric_fbo->color_textures[0]->width, 1.0 / volumetric_fbo->color_textures[0]->height));
+
+	cameraToShader(camera, shader);
+	shader->setUniform("u_air_density", air_density);
+	shader->setUniform("u_ambient_light", scene->ambient_light);
+	shader->setUniform("u_constant_density", (float)constant_density);
+	shader->setUniform("u_time", (float)getTime() * 0.001f);
+
+	GFX::Mesh* quad = GFX::Mesh::getQuad();
+
+	lightToShader(mainLight, shader);
+	if (mainLight->cast_shadows && mainLight->shadowMapFBO)
+		{
+			shadowToShader(mainLight, shadowMapPos, shader);
+		}
+		else
+			shader->setUniform("u_light_cast_shadows", 0);
+	quad->render(GL_TRIANGLES);
+
+	//for (LightEntity* light : lights)
+	//{
+	//	if (light->light_type == POINT)
+	//		continue;
+
+	//	//upload uniforms and render
+	//	lightToShader(light, shader);
+
+	//	if (light->cast_shadows && light->shadowMapFBO)
+	//	{
+	//		shadowToShader(light, shadowMapPos, shader);
+	//	}
+	//	else
+	//		shader->setUniform("u_light_cast_shadows", 0);
+
+	//	//only upload once
+	//	shader->setUniform("u_ambient_light", vec3(0.0f));
+	//	glEnable(GL_BLEND);
+	//	quad->render(GL_TRIANGLES);
+	//}
+	//quad->render(GL_TRIANGLES);
+
+	glEnable(GL_DEPTH_TEST);
+	glDisable(GL_BLEND);
+
+	volumetric_fbo->unbind();
+}
+
 void  SCN::Renderer::visualizeGrid(float scale) {
 
 	for (auto& probe : probes) {
@@ -1164,8 +1360,6 @@ void  SCN::Renderer::renderProbe(vec3 pos, float scale, SphericalHarmonics& shs)
 	shader->setUniform3Array("u_coefs", shs.coeffs[0].v, 9);
 	sphere.render(GL_TRIANGLES);
 	shader->disable();
-
-
 }
 void SCN::Renderer::captureReflectionProbes() {
 
@@ -1788,13 +1982,21 @@ void Renderer::showUI()
 	ImGui::Checkbox("Occlusion light", &use_occlusion);
 	ImGui::Checkbox("Dithering", &use_dithering);
 
-	ImGui::Checkbox("Use SSAO", &use_ssao);
-	ImGui::Checkbox("Use blur", &use_blur);
+	if (ImGui::TreeNode("SSAO+BLUR"))
+	{
+		ImGui::Checkbox("Use SSAO", &use_ssao);
+		ImGui::Checkbox("Use blur", &use_blur);
 
-	ImGui::DragFloat("ssao radius", &ssao_radius, 0.01f, 0.0f);
-	ImGui::DragFloat("ssao max distance", &ssao_max_distance, 0.01f, 0.0f);
-	ImGui::Checkbox("View ssao", &view_ssao);
-	ImGui::Checkbox("View blur", &view_blur);
+		if (use_ssao || use_blur) {
+			ImGui::DragFloat("ssao radius", &ssao_radius, 0.01f, 0.0f);
+			ImGui::DragFloat("ssao max distance", &ssao_max_distance, 0.01f, 0.0f);
+
+			ImGui::Checkbox("View ssao", &view_ssao);
+			ImGui::Checkbox("View blur", &view_blur);
+		}
+		ImGui::TreePop();
+	}
+
 	ImGui::Checkbox("Use degamma", &use_degamma);
 
 	ImGui::Checkbox("Show irradiance probes", &show_probes);
@@ -1811,6 +2013,29 @@ void Renderer::showUI()
 	ImGui::DragFloat("Dof min distance", &df_min_distance);
 	ImGui::DragFloat("DoF max distance", &df_max_distance);
 	ImGui::DragFloat("Dof scale blur", &df_scale_blur);
+	
+	if (ImGui::TreeNode("Tonemapper Parameters"))
+	{
+		ImGui::Checkbox("Use Tonemapper", &use_tonemapper);
+		if (use_tonemapper)
+		{
+			ImGui::DragFloat("Scale", &tonemapper_scale, 0.01f, 0.0f, 2.0f);
+			ImGui::DragFloat("Average Lum", &tonemapper_avg_lum, 0.01f, 0.0f, 2.0f);
+			ImGui::DragFloat("Lum White", &tonemapper_lumwhite, 0.01f, 0.0f, 2.0f);
+		}
+		ImGui::TreePop();
+	}
+
+	if (ImGui::TreeNode("Volumetric"))
+	{
+		ImGui::Checkbox("Use volumetrics", &use_volumetric);
+
+		if (use_volumetric) {
+			ImGui::DragFloat("Air density", &air_density, 0.00001f, 0.0f, 1.0f, "%0.5f");
+			ImGui::Checkbox("Use constant density", &constant_density);
+		}
+		ImGui::TreePop();
+	}
 
 	if (ImGui::Button("ShadowMap 256"))
 		shadowmap_size = 256;
@@ -1826,6 +2051,46 @@ void Renderer::showUI()
 
 	if (ImGui::Button("Capture Refl.probes"))
 		captureReflectionProbes();
+}
+
+void Renderer::resize()
+{
+	vec2 size = CORE::getWindowSize();
+
+	if (!gbuffers)
+		gbuffers = new GFX::FBO();
+
+	gbuffers->create(size.x, size.y, 4, GL_RGBA, GL_UNSIGNED_BYTE, true);  //crea todas las texturas attached, true if we want depthbuffer in a texure (para poder leerlo)
+
+	if (!illumination_fbo)
+		illumination_fbo = new GFX::FBO();
+
+	illumination_fbo->create(size.x, size.y, 1, GL_RGB, GL_FLOAT, false);
+
+	if (!combined_illumination_fbo)
+	{
+		combined_illumination_fbo = new GFX::FBO();
+		combined_illumination_fbo->color_textures[0]->setName("total_illum");
+	}
+
+	combined_illumination_fbo->create(size.x, size.y, 1, GL_RGB, GL_FLOAT, false);
+
+	if (!probe_illumination_fbo)
+	{
+		probe_illumination_fbo = new GFX::FBO();
+		probe_illumination_fbo->color_textures[0]->setName("irradiance_probe");
+	}
+	probe_illumination_fbo->create(size.x, size.y, 1, GL_RGB, GL_FLOAT, false);
+
+	if (!volumetric_fbo)
+		volumetric_fbo = new GFX::FBO();
+	
+	volumetric_fbo->create(size.x / 2, size.y / 2, 3, GL_RGBA, GL_UNSIGNED_BYTE, false);
+
+	if (!renderFBO)
+		renderFBO = new GFX::FBO();
+	renderFBO->create(size.x, size.y, 1, GL_RGB, GL_FLOAT, false);
+
 }
 
 #else
