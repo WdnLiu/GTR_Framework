@@ -613,46 +613,29 @@ void Renderer::renderTonemapper()
 	shader->disable();
 }
 
-void Renderer::renderIrradianceLights()
+
+
+void Renderer::renderIrradianceScene(Camera* camera,vec2* size)
 {
-	vec2 size = CORE::getWindowSize();
 
-	if (!combined_illumination_fbo)
-	{
-		combined_illumination_fbo = new GFX::FBO();
-		combined_illumination_fbo->create(size.x, size.y, 1, GL_RGB, GL_FLOAT, false);
-		combined_illumination_fbo->color_textures[0]->setName("total_illum");
-	}
 
-	combined_illumination_fbo->bind();
-	GFX::Shader* combine_shader = GFX::Shader::Get("combine");
-	combine_shader->enable();
-	combine_shader->setUniform("u_illumination_texture", illumination_fbo->color_textures[0], 0);
-	combine_shader->setUniform("u_probe_illumination_texture", probe_illumination_fbo->color_textures[0], 1);
-
-	GFX::Mesh::getQuad()->render(GL_TRIANGLES);
-	combine_shader->disable();
-	combined_illumination_fbo->unbind();
-}
-
-void Renderer::renderProbeLights(Camera* camera)
-{
-	vec2 size = CORE::getWindowSize();
-
-	//dlete:renderProbe(probe.pos, 1, probe.sh);
 	if (!probe_illumination_fbo)
 	{
 		probe_illumination_fbo = new GFX::FBO();
-		probe_illumination_fbo->create(size.x, size.y, 1, GL_RGB, GL_FLOAT, false);
+		probe_illumination_fbo->create(size->x, size->y, 1, GL_RGB, GL_FLOAT, false);
 		probe_illumination_fbo->color_textures[0]->setName("irradiance_probe");
 
 	}
-	// Render probe illumination
+
+
+	// Render probe irradiance
 	probe_illumination_fbo->bind();
 	glClear(GL_COLOR_BUFFER_BIT);
 
 
 	if (probes_texture) {
+
+
 		GFX::Mesh* quad = GFX::Mesh::getQuad();
 
 		GFX::Shader* sh_irradiance = GFX::Shader::Get("irradiance");
@@ -686,13 +669,16 @@ void Renderer::renderProbeLights(Camera* camera)
 		sh_irradiance->setUniform("u_depth_texture", gbuffers->depth_texture, texturePos++);
 
 		//to reconstruct world position
-		sh_irradiance->setUniform("u_iRes", vec2(1.0 / size.x, 1.0 / size.y));
+		sh_irradiance->setUniform("u_iRes", vec2(1.0 / size->x, 1.0 / size->y));
 		sh_irradiance->setUniform("u_inverse_viewprojection", camera->inverse_viewprojection_matrix);
 		sh_irradiance->setUniform("u_viewprojection", camera->viewprojection_matrix);
 
 		quad->render(GL_TRIANGLES);
 		sh_irradiance->disable();
+
+
 	}
+
 
 	probe_illumination_fbo->unbind();
 }
@@ -825,72 +811,10 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 	illumination_fbo->unbind();
 
 
-	if (!probe_illumination_fbo)
-	{
-		probe_illumination_fbo = new GFX::FBO();
-		probe_illumination_fbo->create(size.x, size.y, 1, GL_RGB, GL_FLOAT, false);
-		probe_illumination_fbo->color_textures[0]->setName("irradiance_probe");
-
-	}
+	renderIrradianceScene(camera, &size);
 
 
-	// Render probe illumination
-	probe_illumination_fbo->bind();
-	glClear(GL_COLOR_BUFFER_BIT);
-
-
-	if (probes_texture) {
-
-
-		GFX::Mesh* quad = GFX::Mesh::getQuad();
-
-		GFX::Shader* sh_irradiance = GFX::Shader::Get("irradiance");
-		assert(sh_irradiance);
-
-		sh_irradiance->enable();
-
-
-		sh_irradiance->setUniform("u_irr_start", probes_info.start);
-		sh_irradiance->setUniform("u_irr_end", probes_info.end);
-		sh_irradiance->setUniform("u_irr_normal_distance", (float)0.0f);
-		sh_irradiance->setUniform("u_irr_delta", probes_info.delta);
-		sh_irradiance->setUniform("u_irr_dims", probes_info.dim);
-
-		probes_info.num_probes = probes.size();
-
-		sh_irradiance->setUniform("u_num_probes", (int)probes_info.num_probes);
-
-		int texturePos = 0;
-
-		sh_irradiance->setUniform("u_probes_texture", probes_texture, texturePos++);
-
-		// you need also pass the distance factor, for now leave it as 0.0
-		sh_irradiance->setUniform("u_irr_normal_distance", 0.0f);
-
-		//gbufers
-		sh_irradiance->setUniform("u_color_texture", gbuffers->color_textures[0], texturePos++);
-		sh_irradiance->setUniform("u_normal_texture", gbuffers->color_textures[1], texturePos++);
-		sh_irradiance->setUniform("u_extra_texture", gbuffers->color_textures[2], texturePos++);
-		sh_irradiance->setUniform("u_metallic_texture", gbuffers->color_textures[3], texturePos++);
-		sh_irradiance->setUniform("u_depth_texture", gbuffers->depth_texture, texturePos++);
-
-		//to reconstruct world position
-		sh_irradiance->setUniform("u_iRes", vec2(1.0 / size.x, 1.0 / size.y));
-		sh_irradiance->setUniform("u_inverse_viewprojection", camera->inverse_viewprojection_matrix);
-		sh_irradiance->setUniform("u_viewprojection", camera->viewprojection_matrix);
-
-		quad->render(GL_TRIANGLES);
-		sh_irradiance->disable();
-
-
-	}
-
-
-	probe_illumination_fbo->unbind();
-
-
-
-	
+	//FINAL FBO
 	if (!combined_illumination_fbo)
 	{
 		combined_illumination_fbo = new GFX::FBO();
@@ -924,25 +848,18 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 
 	//renderProbeLights(camera);
 	//renderIrradianceLights();
-	renderFog(camera);
 
-	if (!renderFBO)
+	/*if (!renderFBO)
 	{
 		renderFBO = new GFX::FBO();
 		renderFBO->create(size.x, size.y, 1, GL_RGB, GL_FLOAT, false);
 	}
-
+	renderFog(camera);
 
 	renderFBO->bind();
 
-	if (use_degamma)
-		illumination_fbo->color_textures[0]->toViewport(GFX::Shader::Get("gamma"));
-	else if (combined_irr)
-		combined_illumination_fbo->color_textures[0]->toViewport();
-	else
-		illumination_fbo->color_textures[0]->toViewport();
 
-	if (show_probes) renderProbes(10);
+
 
 
 	if (use_volumetric)
@@ -958,10 +875,16 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 	}
 
 	renderFBO->unbind();
+	*/
+	//if (use_tonemapper) renderTonemapper();
 	
-	if (use_tonemapper) renderTonemapper();
-	else renderFBO->color_textures[0]->toViewport();
 
+	if (use_degamma)
+		illumination_fbo->color_textures[0]->toViewport(GFX::Shader::Get("gamma"));
+	else if (combined_irr)
+		combined_illumination_fbo->color_textures[0]->toViewport();
+	else
+		illumination_fbo->color_textures[0]->toViewport();
 
 	glDepthFunc(GL_LESS);
 	glEnable(GL_DEPTH_TEST);
@@ -1999,11 +1922,26 @@ void Renderer::showUI()
 
 	ImGui::Checkbox("Use degamma", &use_degamma);
 
-	ImGui::Checkbox("Show irradiance probes", &show_probes);
-	ImGui::Checkbox("Show all combined", &combined_irr);
 
-	ImGui::Checkbox("Show reflection probes", &render_refelction_probes);
+	if (ImGui::TreeNode("Irradiance"))
+	{
+		ImGui::Checkbox("Show irradiance probes", &show_probes);
+		ImGui::Checkbox("Show with irradiance", &combined_irr);
+		if (ImGui::Button("Capture Irradiance"))
+			captureProbes();
+	
+		ImGui::TreePop();
+	}
 
+
+	if (ImGui::TreeNode("Relfections"))
+	{
+		ImGui::Checkbox("Show reflection probes", &render_refelction_probes);
+		if (ImGui::Button("Capture Refl.probes"))
+			captureReflectionProbes();
+
+		ImGui::TreePop();
+	}
 
 	//effects post
 	//ImGui::Combo("Show GBuffer", (int*)&post_fx, "NONE\0DEPTHOFFIELD\0BLOOM\0POST_COUNT\0", ePost_fx::POST_COUNT);
@@ -2046,11 +1984,9 @@ void Renderer::showUI()
 	if (ImGui::Button("ShadowMap 2048"))
 		shadowmap_size = 2048;
 
-	if (ImGui::Button("Capture Irradiance"))
-		captureProbes();
 
-	if (ImGui::Button("Capture Refl.probes"))
-		captureReflectionProbes();
+
+	
 }
 
 void Renderer::resize()
