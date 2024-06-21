@@ -831,8 +831,11 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 	GFX::Shader* combine_shader = GFX::Shader::Get("combine");
 	combine_shader->enable();
 	combine_shader->setUniform("u_illumination_texture", illumination_fbo->color_textures[0], 0);
-	combine_shader->setUniform("u_probe_illumination_texture", probe_illumination_fbo->color_textures[0], 1);
-
+	
+	if(combined_irr)
+		combine_shader->setUniform("u_probe_illumination_texture", probe_illumination_fbo->color_textures[0], 1);
+	else
+		combine_shader->setUniform("u_probe_illumination_texture", GFX::Texture().getBlackTexture(), 1);
 	GFX::Mesh::getQuad()->render(GL_TRIANGLES);
 	combine_shader->disable();
 
@@ -888,7 +891,7 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 	else if (combined_irr)
 		combined_illumination_fbo->color_textures[0]->toViewport();
 	else
-		illumination_fbo->color_textures[0]->toViewport();
+		combined_illumination_fbo->color_textures[0]->toViewport();
 
 	glDepthFunc(GL_LESS);
 	glEnable(GL_DEPTH_TEST);
