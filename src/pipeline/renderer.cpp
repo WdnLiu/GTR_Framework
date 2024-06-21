@@ -846,6 +846,9 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 		}
 	}
 
+	renderFog(camera);
+
+
 	combined_illumination_fbo->unbind();
 
 
@@ -856,7 +859,6 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 		renderFBO = new GFX::FBO();
 		renderFBO->create(size.x, size.y, 1, GL_RGB, GL_FLOAT, false);
 	}
-	renderFog(camera);
 
 	renderFBO->bind();
 
