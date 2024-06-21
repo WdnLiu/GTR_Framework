@@ -108,7 +108,7 @@ namespace SCN {
 		//temporal
 		bool combined_irr;
 
-
+		bool use_dof;
 		//tonemapper
 		float curr_tonemapper;
 		float tonemapper_scale;
@@ -121,6 +121,7 @@ namespace SCN {
 		//post depth of field
 		float df_min_distance;
 		float df_max_distance;
+		float df_focal_distance;
 		float df_scale_blur;
 
 		std::vector<vec3> random_points;

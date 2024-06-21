@@ -1688,33 +1688,34 @@ in vec2 v_uv;
 out vec4 FragColor;
 
 uniform sampler2D u_focus_texture;
+uniform sampler2D u_unfocus_texture;
 uniform sampler2D u_depth_texture;
 
 uniform float u_min_distance;
 uniform float u_max_distance;
+uniform float u_focal_distance;
+
+uniform float camera_near;
+uniform float camera_far;
 
 uniform float u_scale_blur;
 
 uniform vec2 u_iRes;
 
-void main()
+void main() 
 {
-    vec2 uv = gl_FragCoord.xy * u_iRes.xy; 
-    vec4 focusColor = texture(u_focus_texture, uv);
-    
-    vec4 blurColor = vec4 (0.0f);
-   
-   //Apply  blur the image directly 
-    for(int i= -3 ; i<=3; ++i)
-    for(int j= -3 ; j<=3; ++j)
-        blurColor += texture(u_focus_texture,uv + u_iRes* vec2(i,j) * u_scale_blur);
-    
-    blurColor /= 49.0;
-    
-    float depth = texture(u_depth_texture, uv).r;
+	vec2 uv = gl_FragCoord.xy * u_iRes.xy;
+	
+	float depth = texture(u_depth_texture, v_uv).x;
 
-    float blurAmount = smoothstep(u_min_distance, u_max_distance, depth);
-    FragColor = mix(focusColor, blurColor, blurAmount);
+	depth = camera_near * (depth + 1.0) / (camera_far + camera_near - depth * (camera_far - camera_near));
+
+	vec4 color = texture(u_focus_texture, v_uv);
+	vec4 unfocused = texture(u_unfocus_texture, v_uv);
+
+	float blur = smoothstep(u_min_distance, u_max_distance, abs(depth - u_focal_distance));
+
+	FragColor = mix(color, unfocused, blur);
 }
 
 
