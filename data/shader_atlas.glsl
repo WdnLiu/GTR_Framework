@@ -22,7 +22,11 @@ depthoffield quad.vs depthoffield.fs
 tonemapper quad.vs tonemapper.fs
 volumetric quad.vs volumetric.fs
 simpleBlur quad.vs simpleBlur.fs
+bloom quad.vs bloom.fs
 postfx quad.vs postfx.fs
+
+lut quad.vs lut.fs
+lut2 quad.vs lut2.fs
 
 \basic.vs
 
@@ -2097,4 +2101,91 @@ void main()
         color *= 1.2 - length(uv-vec2(0.5)) * vignetting;
 
     FragColor = color;
+}
+
+\bloom.fs
+
+#version 330 core
+
+in vec2 v_uv;
+out vec4 FragColor;
+	
+//linear blur shader of 9 samples
+precision highp float;
+uniform sampler2D u_texture;
+uniform vec2 u_offset;
+uniform float u_intensity;
+void main() 
+{
+   vec4 sum = vec4(0.0);
+   sum += texture(u_texture, v_uv + u_offset * -4.0) * 0.05/0.98;
+   sum += texture(u_texture, v_uv + u_offset * -3.0) * 0.09/0.98;
+   sum += texture(u_texture, v_uv + u_offset * -2.0) * 0.12/0.98;
+   sum += texture(u_texture, v_uv + u_offset * -1.0) * 0.15/0.98;
+   sum += texture(u_texture, v_uv) * 0.16/0.98;
+   sum += texture(u_texture, v_uv + u_offset * 4.0) * 0.05/0.98;
+   sum += texture(u_texture, v_uv + u_offset * 3.0) * 0.09/0.98;
+   sum += texture(u_texture, v_uv + u_offset * 2.0) * 0.12/0.98;
+   sum += texture(u_texture, v_uv + u_offset * 1.0) * 0.15/0.98;
+   FragColor = u_intensity * sum;
+}
+
+\lut.fs
+#version 330 core
+
+
+in vec2 v_uv;
+
+uniform sampler2D u_texture;
+uniform sampler2D u_textureB;
+uniform float u_amount;
+
+out vec4 FragColor;
+
+void main() {
+    vec4 color = clamp(texture(u_texture, v_uv), vec4(0.0), vec4(1.0));
+    float blueColor = color.b * 63.0;
+
+    vec2 quad1;
+    quad1.y = floor(floor(blueColor) / 8.0);
+    quad1.x = floor(blueColor) - (quad1.y * 8.0);
+
+    vec2 quad2;
+    quad2.y = floor(ceil(blueColor) / 8.0);
+    quad2.x = ceil(blueColor) - (quad2.y * 8.0);
+
+    vec2 texPos1;
+    texPos1.x = (quad1.x * 0.125) + 0.5 / 512.0 + ((0.125 - 1.0 / 512.0) * color.r);
+    texPos1.y = 1.0 - ((quad1.y * 0.125) + 0.5 / 512.0 + ((0.125 - 1.0 / 512.0) * color.g));
+
+    vec2 texPos2;
+    texPos2.x = (quad2.x * 0.125) + 0.5 / 512.0 + ((0.125 - 1.0 / 512.0) * color.r);
+    texPos2.y = 1.0 - ((quad2.y * 0.125) + 0.5 / 512.0 + ((0.125 - 1.0 / 512.0) * color.g));
+
+    vec4 newColor1 = texture(u_textureB, texPos1);
+    vec4 newColor2 = texture(u_textureB, texPos2);
+
+    vec4 newColor = mix(newColor1, newColor2, fract(blueColor));
+
+    FragColor = vec4(mix(color.rgb, newColor.rgb, u_amount), color.a);
+   
+  }
+
+\lut2.fs
+
+#version 330 core
+
+in vec2 v_uv;
+uniform sampler2D u_texture;
+uniform sampler2D u_textureB;
+uniform float u_amount;
+
+out vec4 FragColor;
+
+void main()
+{
+	
+    float videoColor = texture2D(u_texture, v_uv).r;
+    vec4 finalColor = texture2D(u_textureB, vec2(videoColor,u_amount));
+    FragColor = finalColor;
 }

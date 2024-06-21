@@ -41,6 +41,9 @@ GFX::Texture* cloned_depth_texture = nullptr;
 GFX::FBO* reflections_fbo = nullptr;
 
 GFX::FBO* postfx_fbo = nullptr;
+GFX::FBO* postfxIN_fbo = nullptr;
+GFX::FBO* postfxOUT_fbo = nullptr;
+
 sProbe probe;
 std::vector<sProbe> probes;
 
@@ -95,6 +98,12 @@ Renderer::Renderer(const char* shader_atlas_filename)
 	use_color_correction = false;
 	use_chromatic_aberration = false;
 	use_fish_eye = true;
+
+	use_lut = false;
+	use_lut2 = false;
+
+	lut_amount = 0.2f;
+	lut_amount2 = 0.2f;
 
 	use_dof = false;
 	show_probes = false;
@@ -864,7 +873,6 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 
 	renderFog(camera);
 
-
 	combined_illumination_fbo->unbind();
 	
 	if (!renderFBO)
@@ -896,10 +904,24 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 
 	renderFBO->unbind();
 
+	/*if (!postfxIN_fbo)
+	{
+		postfxIN_fbo = new GFX::FBO();
+		postfxOUT_fbo = new GFX::FBO();
+
+		postfxIN_fbo->create(size.x, size.y, 1, GL_RGB, GL_HALF_FLOAT, false);
+		postfxOUT_fbo->create(size.x, size.y, 1, GL_RGB, GL_HALF_FLOAT, false);
+	}
+	postfxIN_fbo->bind();
+	renderFBO->color_textures[0]->toViewport();
+	postfxIN_fbo->unbind();
+
+	bloom();*/
+
 	if (!postfx_fbo)
 	{
 		postfx_fbo = new GFX::FBO();
-		postfx_fbo->create(size.x, size.y, 1, GL_RGB, GL_FLOAT, false);
+		postfx_fbo->create(size.x, size.y, 1, GL_RGB, GL_HALF_FLOAT, false);
 	}
 
 	postfx_fbo->bind();
@@ -912,6 +934,26 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 
 	postfx_fbo->bind();
 	if (use_dof) postDepthOfField(camera);
+	postfx_fbo->unbind();
+
+	postfx_fbo->bind();
+	GFX::Shader* lut_shader;
+	GFX::Shader* lut_shader2;
+	if (use_lut) {
+		lut_shader = GFX::Shader::Get("lut");
+		lut_shader->enable();
+		lut_shader->setUniform("u_textureB", GFX::Texture::Get("data/textures/brdfLUT.png", true, true), 1);
+		lut_shader->setUniform("u_amount", lut_amount);
+		postfx_fbo->color_textures[0]->toViewport(lut_shader);
+	}
+	else if (use_lut2) {
+		lut_shader2 = GFX::Shader::Get("lut2");
+		lut_shader2->enable();
+		lut_shader2->setUniform("u_textureB", GFX::Texture::Get("data/textures/brdfLUT.png", true, true), 1);
+		lut_shader2->setUniform("u_amount", lut_amount2);
+		postfx_fbo->color_textures[0]->toViewport(lut_shader2);
+
+	}
 	postfx_fbo->unbind();
 
 	postfx_fbo->bind();
@@ -954,6 +996,38 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 		ssao_fbo->color_textures[0]->toViewport();
 	if (view_blur)
 		blur_fbo->color_textures[0]->toViewport();
+}
+
+void Renderer::bloom()
+{
+	//four iterations blur
+	vec2 size = CORE::getWindowSize();
+	float width = size.x, height = size.y;
+	GFX::Shader* shader = GFX::Shader::Get("bloom");
+	shader->enable();
+
+	int power = 1;
+	for (int i = 0; i < 4; ++i)
+	{
+		//horizontal blur
+		shader->setUniform("u_offset", vec2(1.0f / width, 0.0) * (float)power);
+		shader->setUniform("u_texture", postfxIN_fbo->color_textures[0], 0);
+		postfxOUT_fbo->bind();
+		GFX::Mesh::getQuad()->render(GL_TRIANGLES);
+		postfxOUT_fbo->unbind();
+		std::swap(postfxIN_fbo, postfxOUT_fbo);
+
+		//vertical blur
+		shader->setUniform("u_offset", vec2(0.0, 1.0f / height) * (float)power);
+		shader->setUniform("u_texture", postfxIN_fbo->color_textures[0], 0);
+		postfxOUT_fbo->bind();
+		GFX::Mesh::getQuad()->render(GL_TRIANGLES);
+		postfxOUT_fbo->unbind();
+		std::swap(postfxIN_fbo, postfxOUT_fbo);
+
+		power = power << 1;
+	}
+
 }
 
 void Renderer::simpleBlur()
@@ -2031,6 +2105,15 @@ void Renderer::showUI()
 		if (use_chromatic_aberration)
 			ImGui::DragFloat("CA Strength", &ca_strength, 0.01f, 0.0f, 100.0f, "%0.3f");
 
+		ImGui::Checkbox("lut", &use_lut);
+		if (use_lut)
+			ImGui::DragFloat("lut amount", &lut_amount, 0.01f, 0.0f, 100.0f, "%0.3f");
+
+		ImGui::Checkbox("lut2", &use_lut2);
+		if (use_lut2)
+			ImGui::DragFloat("lut amount2", &lut_amount2, 0.01f, 0.0f, 100.0f, "%0.3f");
+		ImGui::TreePop();
+
 		ImGui::TreePop();
 	}
 
@@ -2068,10 +2151,6 @@ void Renderer::showUI()
 		shadowmap_size = 1024;
 	if (ImGui::Button("ShadowMap 2048"))
 		shadowmap_size = 2048;
-
-
-
-	
 }
 
 void Renderer::resize()
