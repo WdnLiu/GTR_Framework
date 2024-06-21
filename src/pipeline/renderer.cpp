@@ -97,7 +97,7 @@ Renderer::Renderer(const char* shader_atlas_filename)
 	use_vignetting = false;
 	use_color_correction = false;
 	use_chromatic_aberration = false;
-	use_fish_eye = true;
+	use_fish_eye = false;
 
 	use_lut = false;
 	use_lut2 = false;
@@ -110,7 +110,7 @@ Renderer::Renderer(const char* shader_atlas_filename)
 	combined_irr = false;
 	render_refelction_probes = false;
 
-	use_simpleblurr = true;
+	use_simpleblurr = false;
 
 	ca_strength = 15.0f;
 	vignetting = 1.2f;
