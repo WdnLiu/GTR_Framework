@@ -41,7 +41,8 @@ Application::Application()
 	if (!scene1->load("data/scene.json"))
 		exit(1);
 
-
+	if (!scene2->load("data/scene2.json"))
+		exit(1);
 
 	if (!scene3->load("data/scene_irradiance.json"))
 		exit(1);
@@ -163,7 +164,7 @@ void Application::onKeyDown(SDL_KeyboardEvent event)
 
 		case SDLK_1: renderer->pipeline_mode = ePipelineMode::DEFERRED; break;
 		case SDLK_2: renderer->pipeline_mode = ePipelineMode::FORWARD ; break;
-		case SDLK_t: currScene = ++currScene % 3; scene = scenes[currScene]; editor->scene = scene; break;
+		case SDLK_t: currScene = ++currScene % scenes.size(); scene = scenes[currScene]; editor->scene = scene; break;
 		case SDLK_ESCAPE: must_exit = true; break; //ESC key, kill the app
 		case SDLK_TAB: render_ui = !render_ui; break;
 		case SDLK_F5: GFX::Shader::ReloadAll(); break;

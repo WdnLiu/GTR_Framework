@@ -89,12 +89,15 @@ Renderer::Renderer(const char* shader_atlas_filename)
 	view_blur = false;
 	use_blur = false;
 	use_dithering = false;
-	use_volumetric = true;
+	use_volumetric = false;
 	constant_density = false;
 
+	use_dof = false;
 	show_probes = false;
 	combined_irr = false;
 	render_refelction_probes = false;
+
+	bool use_simpleblurr = true;
 
 	sphere.createSphere(1.0f);
 	sphere.uploadToVRAM();
@@ -117,6 +120,7 @@ Renderer::Renderer(const char* shader_atlas_filename)
 	df_min_distance = 1.0f;
 	df_max_distance = 3.0f;
 	df_scale_blur = 1.0f;
+	df_focal_distance = 1.5f;
 
 	//tonemapper attributes
 	use_tonemapper = false;
@@ -597,7 +601,7 @@ void Renderer::ssaoBlur(Camera* camera)
 	blur_fbo->unbind();
 }
 
-void Renderer::renderTonemapper()
+void Renderer::renderTonemapper(GFX::Texture* colorTex)
 {
 	GFX::Shader* shader;
 	//TONEMAPPER
@@ -609,7 +613,7 @@ void Renderer::renderTonemapper()
 	shader->setUniform("u_lumwhite2", tonemapper_lumwhite);
 	shader->setUniform("u_igamma", 1.0f / gamma);
 
-	renderFBO->color_textures[0]->toViewport(shader);
+	colorTex->toViewport(shader);
 	shader->disable();
 }
 
@@ -853,11 +857,8 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 
 
 	combined_illumination_fbo->unbind();
-
-
-
 	
-	/*if (!renderFBO)
+	if (!renderFBO)
 	{
 		renderFBO = new GFX::FBO();
 		renderFBO->create(size.x, size.y, 1, GL_RGB, GL_FLOAT, false);
@@ -865,9 +866,12 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 
 	renderFBO->bind();
 
-
-
-
+	if (use_degamma)
+		illumination_fbo->color_textures[0]->toViewport(GFX::Shader::Get("gamma"));
+	else if (combined_irr)
+		combined_illumination_fbo->color_textures[0]->toViewport();
+	else
+		illumination_fbo->color_textures[0]->toViewport();
 
 	if (use_volumetric)
 	{
@@ -882,23 +886,41 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 	}
 
 	renderFBO->unbind();
-	*/
-	//if (use_tonemapper) renderTonemapper();
-	
 
+//<<<<<<< HEAD
 	if (use_degamma)
 		illumination_fbo->color_textures[0]->toViewport(GFX::Shader::Get("gamma"));
 	
 	else
 		combined_illumination_fbo->color_textures[0]->toViewport();
+//--------------
+	if (!postfx_fbo)
+	{
+		postfx_fbo = new GFX::FBO();
+		postfx_fbo->create(size.x, size.y, 1, GL_RGB, GL_FLOAT, false);
+	}
+
+	postfx_fbo->bind();
+	renderFBO->color_textures[0]->toViewport();
+	postfx_fbo->unbind();
+
+	postfx_fbo->bind();
+	if (use_simpleblurr) simpleBlur();
+	postfx_fbo->unbind();
+
+	postfx_fbo->bind();
+	if (use_dof) postDepthOfField(camera);
+	postfx_fbo->unbind();
+
+	if (use_tonemapper) renderTonemapper(postfx_fbo->color_textures[0]);
+	else postfx_fbo->color_textures[0]->toViewport();
+//>>>>>>> origin/simpleBlurr
 
 	glDepthFunc(GL_LESS);
 	glEnable(GL_DEPTH_TEST);
 
 	if (show_probes) visualizeGrid(2);
 	if (render_refelction_probes) visualizeReflectionProbes(10.0f);
-
-
 
 	glDisable(GL_DEPTH_TEST);
 	switch (gbuffer_show_mode) //debug
@@ -915,46 +937,51 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 		blur_fbo->color_textures[0]->toViewport();
 }
 
-void Renderer::postDepthOfField(Camera* camera)
+void Renderer::simpleBlur()
 {
 	vec2 size = CORE::getWindowSize();
 	GFX::Mesh* quad = GFX::Mesh::getQuad();
 
-	// Create FBO for depth of field if not created
-	if (!dof_fbo) {
-		dof_fbo = new GFX::FBO();
-		dof_fbo->create(size.x, size.y, 1, GL_RGB, GL_FLOAT, false);
-	}
+	GFX::Shader* shader = GFX::Shader::Get("simpleBlur");
+	shader->enable();
 
-	dof_fbo->bind();
-	glClear(GL_COLOR_BUFFER_BIT);
-	glDisable(GL_DEPTH_TEST);
-	glDisable(GL_BLEND);
+	shader->setUniform("u_texture", postfx_fbo->color_textures[0], 0);
+	shader->setUniform("iRes", vec2(1.0f / size.x, 1.0f / size.y));
+	shader->setUniform("u_scale", df_scale_blur);
+
+	quad->render(GL_TRIANGLES);
+}
+
+void Renderer::postDepthOfField(Camera* camera)
+{
+	vec2 size = CORE::getWindowSize();
+	GFX::Mesh* quad = GFX::Mesh::getQuad();
 
 	GFX::Shader* dof_shader = GFX::Shader::Get("depthoffield");
 	assert(dof_shader);
 
 	dof_shader->enable();
 
-
-
 	// Set uniforms for depth of field shader
-	dof_shader->setUniform("u_focus_texture", combined_illumination_fbo->color_textures[0], 0);
+	dof_shader->setUniform("u_focus_texture", renderFBO->color_textures[0], 0);
+	dof_shader->setUniform("u_unfocus_texture", postfx_fbo->color_textures[0], 1);
 
 	dof_shader->setUniform("u_depth_texture", gbuffers->depth_texture, 2);
 
 	// Depth of field parameters
 	dof_shader->setUniform("u_min_distance", df_min_distance);
 	dof_shader->setUniform("u_max_distance", df_max_distance);
+	dof_shader->setUniform("u_focal_distance", df_focal_distance);
 	dof_shader->setUniform("u_scale_blur", df_scale_blur);
 
-	dof_shader->setUniform("u_iRes", vec2(1.0 / CORE::getWindowSize().x, 1.0 / CORE::getWindowSize().y));
+	dof_shader->setUniform("camera_near", camera->near_plane);
+	dof_shader->setUniform("camera_far", camera->far_plane);
 
+	dof_shader->setUniform("u_iRes", vec2(1.0 / size.x, 1.0 / size.y));
 
 	// Render the quad
 	quad->render(GL_TRIANGLES);
 	dof_shader->disable();
-	dof_fbo->unbind();
 }
 
 
@@ -1225,6 +1252,7 @@ void Renderer::renderFog(Camera* camera)
 
 	GFX::Mesh* quad = GFX::Mesh::getQuad();
 
+	if (!mainLight) return;
 	lightToShader(mainLight, shader);
 	if (mainLight->cast_shadows && mainLight->shadowMapFBO)
 		{
@@ -1949,14 +1977,24 @@ void Renderer::showUI()
 		ImGui::TreePop();
 	}
 
+	if (ImGui::TreeNode("postfx"))
+	{
+		ImGui::Checkbox("Simple Blurr", &use_simpleblurr);
+		ImGui::Checkbox("Depth of field", &use_dof);
+		
+		//postDepthofField
+		if (use_dof) {
+			ImGui::DragFloat("Dof min distance", &df_min_distance, 0.01f, 0.0f, df_max_distance);
+			ImGui::DragFloat("DoF max distance", &df_max_distance, 0.01f, df_min_distance, 100000.0f);
+			ImGui::DragFloat("DoF focal distance", &df_focal_distance, 0.01f, 0.01f, 100000.0f);
+		}
+		ImGui::DragFloat("Blur scale", &df_scale_blur, 0.01f, 0, 100);
+
+		ImGui::TreePop();
+	}
+
 	//effects post
 	//ImGui::Combo("Show GBuffer", (int*)&post_fx, "NONE\0DEPTHOFFIELD\0BLOOM\0POST_COUNT\0", ePost_fx::POST_COUNT);
-
-
-	//postDepthofField
-	ImGui::DragFloat("Dof min distance", &df_min_distance);
-	ImGui::DragFloat("DoF max distance", &df_max_distance);
-	ImGui::DragFloat("Dof scale blur", &df_scale_blur);
 	
 	if (ImGui::TreeNode("Tonemapper Parameters"))
 	{
@@ -2033,6 +2071,9 @@ void Renderer::resize()
 		renderFBO = new GFX::FBO();
 	renderFBO->create(size.x, size.y, 1, GL_RGB, GL_FLOAT, false);
 
+	if (!blur_fbo)
+		blur_fbo = new GFX::FBO();
+	blur_fbo->create(size.x, size.y, 1, GL_RGB, GL_HALF_FLOAT, false);
 }
 
 #else

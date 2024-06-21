@@ -100,6 +100,7 @@ namespace SCN {
 		//volumetrics
 		bool use_volumetric;
 		bool constant_density;
+		bool use_simpleblurr;
 		float air_density;
 
 		bool show_probes;
@@ -107,7 +108,7 @@ namespace SCN {
 		//temporal
 		bool combined_irr;
 
-
+		bool use_dof;
 		//tonemapper
 		float curr_tonemapper;
 		float tonemapper_scale;
@@ -120,6 +121,7 @@ namespace SCN {
 		//post depth of field
 		float df_min_distance;
 		float df_max_distance;
+		float df_focal_distance;
 		float df_scale_blur;
 
 		std::vector<vec3> random_points;
@@ -149,7 +151,7 @@ namespace SCN {
 
 		void extractRenderables(SCN::Node* node, Camera* camera);
 
-		void renderTonemapper();
+		void renderTonemapper(GFX::Texture* colorTex);
 
 		//updated every frame
 		Renderer(const char* shaders_atlas_filename);
@@ -174,6 +176,7 @@ namespace SCN {
 		//render the skybox
 		void renderSkybox(GFX::Texture* cubemap);
 
+		void simpleBlur();
 		void renderFog(Camera* camera);
 
 		//to render one node from the prefab and its children
