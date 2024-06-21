@@ -551,22 +551,15 @@ void Renderer::renderTonemapper()
 {
 	GFX::Shader* shader;
 	//TONEMAPPER
-	if (curr_tonemapper == 0)
-	{
-		shader = GFX::Shader::Get("tonemapper");
-		shader->enable();
-		shader->setUniform("u_scale", tonemapper_scale);
-		shader->setUniform("u_average_lum", tonemapper_avg_lum);
-		shader->setUniform("u_lumwhite2", tonemapper_lumwhite);
-		shader->setUniform("u_igamma", 1.0f / gamma);
-	}
-	else {
-		shader = GFX::Shader::Get("uncharted_tonemapper");
-		shader->enable();
-	}
 
-	postfx_fbo->color_textures[0]->toViewport(shader);
-	//reflections_fbo->color_textures[0]->toViewport(shader);
+	shader = GFX::Shader::Get("tonemapper");
+	shader->enable();
+	shader->setUniform("u_scale", tonemapper_scale);
+	shader->setUniform("u_average_lum", tonemapper_avg_lum);
+	shader->setUniform("u_lumwhite2", tonemapper_lumwhite);
+	shader->setUniform("u_igamma", 1.0f / gamma);
+
+	renderFBO->color_textures[0]->toViewport(shader);
 	shader->disable();
 }
 
@@ -752,7 +745,8 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 
 	renderFBO->unbind();
 	
-	renderFBO->color_textures[0]->toViewport();
+	if (use_tonemapper) renderTonemapper();
+	else renderFBO->color_textures[0]->toViewport();
 
 	glDisable(GL_DEPTH_TEST);
 	switch (gbuffer_show_mode) //debug
@@ -939,7 +933,12 @@ void Renderer::renderFog(Camera* camera)
 	GFX::Mesh* quad = GFX::Mesh::getQuad();
 
 	lightToShader(mainLight, shader);
-	shadowToShader(shader);
+	if (mainLight->cast_shadows && mainLight->shadowMapFBO)
+		{
+			shadowToShader(mainLight, shadowMapPos, shader);
+		}
+		else
+			shader->setUniform("u_light_cast_shadows", 0);
 	quad->render(GL_TRIANGLES);
 
 	//for (LightEntity* light : lights)
