@@ -34,6 +34,13 @@ enum eShowGBuffer
 	SHOW_BUFFER_COUNT
 };
 
+enum ePost_fx {
+	NONEFX,
+	DEPTHOFFIELD,
+	BLOOM,
+	POSTFXCOUNT
+};
+
 struct sProbe {
 	vec3 pos; //where is located
 	vec3 local; //its ijk pos in the matrix
@@ -110,6 +117,7 @@ namespace SCN {
 
 		ePipelineMode pipeline_mode;
 		eShowGBuffer gbuffer_show_mode;
+		ePost_fx post_fx;
 
 		int shadowmap_size;
 
@@ -153,6 +161,17 @@ namespace SCN {
 		void renderSkybox(GFX::Texture* cubemap);
 
 		void renderFog(Camera* camera);
+
+		float df_min_distance;
+		float df_max_distance;
+		float df_scale_blur;
+		float df_focal_distance;
+
+		int nDownSampling;
+
+		void postDepthOfField(Camera* camera);
+		void bloomEffect(GFX::Texture* inBuffer, GFX::Texture* outBuffer);
+		void downSample(GFX::Texture* inBuffer, GFX::Texture* outBuffer);
 
 		//to render one node from the prefab and its children
 		void renderNode(SCN::Node* node, Camera* camera);

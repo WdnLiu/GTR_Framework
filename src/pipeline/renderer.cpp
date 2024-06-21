@@ -37,6 +37,12 @@ GFX::FBO* renderFBO = nullptr;
 GFX::FBO* probe_illumination_fbo = nullptr;
 GFX::FBO* combined_illumination_fbo = nullptr;
 GFX::FBO* postfx_fbo = nullptr;
+
+GFX::FBO* dof_fbo = nullptr;
+GFX::FBO* blur_final_fbo = nullptr;
+
+std::vector<GFX::FBO*> bloom_fbos(8, NULL);
+
 sProbe probe;
 std::vector<sProbe> probes;
 //a place to store info about the layout of the grid
@@ -115,6 +121,11 @@ Renderer::Renderer(const char* shader_atlas_filename)
 	probes_info.start.set(80, 0, 90); //sc2
 	probes_info.end.set(-80, 80, -90); //sc2
 
+	df_min_distance = 1.0f;
+	df_max_distance = 3.0f;
+	df_scale_blur = 1.0f;
+
+	nDownSampling = 4;
 
 	probes_info.dim.set(10, 4, 10);
 
@@ -713,11 +724,12 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 	renderIrradianceLights();
 
 	renderFog(camera);
+	postDepthOfField(camera);
 
 	if (!renderFBO)
 	{
 		renderFBO = new GFX::FBO();
-		renderFBO->create(size.x, size.y, 1, GL_RGB, GL_FLOAT, false);
+		renderFBO->create(size.x, size.y, 1, GL_RGB, GL_HALF_FLOAT, false);
 	}
 
 	renderFBO->bind();
@@ -743,8 +755,19 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 		}
 	}
 
+	if (post_fx == ePost_fx::DEPTHOFFIELD)
+		dof_fbo->color_textures[0]->toViewport();
+		
 	renderFBO->unbind();
+	/*
+	GFX::Texture* outBuffer = new GFX::Texture;  outBuffer->bind(); renderFBO->color_textures[0]; outBuffer->unbind();
+	GFX::Texture* inBuffer = new GFX::Texture;  inBuffer->bind(); renderFBO->color_textures[0]; inBuffer->unbind();*/
+
+	/*bloomEffect(inBuffer, outBuffer);*/
 	
+	/*else if (post_fx == ePost_fx::BLOOM)
+		outBuffer->toViewport();*/
+
 	if (use_tonemapper) renderTonemapper();
 	else renderFBO->color_textures[0]->toViewport();
 
@@ -998,6 +1021,112 @@ void  Renderer::renderProbe(vec3 pos, float scale, SphericalHarmonics& shs) {
 	shader->setUniform3Array("u_coefs", shs.coeffs[0].v, 9);
 	sphere.render(GL_TRIANGLES);
 	shader->disable();
+}
+
+void Renderer::bloomEffect(GFX::Texture* inBuffer, GFX::Texture* outBuffer)
+{
+	int power = 1;
+	GFX::Shader* shader = GFX::Shader::Get("bloom");
+	shader->enable();
+	for (int i = 0; i < nDownSampling; ++i)
+	{
+		//Horizontal blur
+		outBuffer->bind();
+		shader = GFX::Shader::Get("fx_blur");
+		shader->enable();
+		shader->setUniform("u_intensity", df_scale_blur);
+		shader->setUniform("u_offset", vec2(1.0f / inBuffer->width, 0.0) * (float)power);
+		inBuffer->toViewport(shader);
+		outBuffer->unbind();
+
+		std::swap(inBuffer, outBuffer);
+
+		//Vertical blur
+		outBuffer->bind();
+		shader->setUniform("u_offset", vec2(0.0, 1.0f / inBuffer->height) * (float)power);
+		inBuffer->toViewport(shader);
+		outBuffer->unbind();
+
+		std::swap(inBuffer, outBuffer);
+		power = power << 1;
+	}
+}
+
+void Renderer::downSample(GFX::Texture* inBuffer, GFX::Texture* outBuffer)
+{
+	vec2 size = CORE::getWindowSize();
+	int i = 0;
+	for (i; i < nDownSampling; ++i) {
+		float width = size.x / 2.0f;
+		float height = size.y / 2.0f;
+
+		if (width <= 2.0f || height <= 2.0f)
+			return;
+
+		if (!bloom_fbos[i]) {
+			if (!bloom_fbos[i]) {
+				bloom_fbos[i] = new GFX::FBO();
+			}
+			bloom_fbos[i]->create(width, height, 1, GL_RGB, GL_HALF_FLOAT, false);
+		}
+
+		bloom_fbos[i]->bind();
+		{
+			inBuffer->toViewport();
+		}
+		bloom_fbos[i]->unbind();
+
+		// Prepare for the next iteration
+		inBuffer = bloom_fbos[i]->color_textures[0];
+		size.x = width;
+		size.y = height;
+	}
+}
+
+void Renderer::postDepthOfField(Camera* camera)
+{
+	vec2 size = CORE::getWindowSize();
+	GFX::Mesh* quad = GFX::Mesh::getQuad();
+
+	// Create FBO for depth of field if not created
+	if (!dof_fbo) {
+		dof_fbo = new GFX::FBO();
+		dof_fbo->create(size.x, size.y, 1, GL_RGB, GL_HALF_FLOAT, false);
+	}
+
+
+	dof_fbo->bind();
+	glClear(GL_COLOR_BUFFER_BIT);
+	glDisable(GL_DEPTH_TEST);
+	glDisable(GL_BLEND);
+
+	combined_illumination_fbo->color_textures[0]->toViewport();
+
+	dof_fbo->unbind();
+
+	GFX::Shader* dof_shader = GFX::Shader::Get("depthoffield");
+	assert(dof_shader);
+
+	dof_shader->enable();
+
+	// Set uniforms for depth of field shader
+	dof_shader->setUniform("u_focus_texture", combined_illumination_fbo->color_textures[0], 0);
+
+	dof_shader->setUniform("u_depth_texture", gbuffers->depth_texture, 2);
+
+	// Depth of field parameters
+	dof_shader->setUniform("u_min_distance", df_min_distance);
+	dof_shader->setUniform("u_max_distance", df_max_distance);
+	dof_shader->setUniform("u_scale_blur", df_scale_blur);
+	dof_shader->setUniform("u_focal_distance", df_focal_distance);
+
+	dof_shader->setUniform("u_iRes", vec2(1.0 / CORE::getWindowSize().x, 1.0 / CORE::getWindowSize().y));
+
+
+	// Render the quad
+	quad->render(GL_TRIANGLES);
+	dof_shader->disable();
+	dof_fbo->unbind();
 }
 
 void Renderer::renderMeshWithMaterialGBuffers(const Matrix44 model, GFX::Mesh* mesh, SCN::Material* material)
@@ -1557,6 +1686,25 @@ void Renderer::showUI()
 		ImGui::TreePop();
 	}
 
+	//effects post
+	if (ImGui::TreeNode("Postfx"))
+	{
+		ImGui::Combo("Postfx", (int*)&post_fx, "NONE\0DEPTHOFFIELD\0BLOOM\0", ePost_fx::POSTFXCOUNT);
+
+		//postDepthofField
+		if (post_fx == ePost_fx::DEPTHOFFIELD)
+		{
+			ImGui::DragFloat("Min distance", &df_min_distance, 0.01f, 0.0f, df_max_distance);
+			ImGui::DragFloat("Max distance", &df_max_distance, 0.01f, df_min_distance, 10000.0f);
+			ImGui::DragFloat("Focal distance", &df_focal_distance, 0.01f, 0.0f, 1000.0f);
+		}
+
+		ImGui::DragInt("downsampling", &nDownSampling, 1, 1, 8);
+		ImGui::DragFloat("u_blur_scale", &df_scale_blur, 0.1f, 0.0f, 10.0f);
+
+		ImGui::TreePop();
+	}
+
 	if (ImGui::TreeNode("Volumetric"))
 	{
 		ImGui::Checkbox("Use volumetrics", &use_volumetric);
@@ -1617,8 +1765,17 @@ void Renderer::resize()
 
 	if (!renderFBO)
 		renderFBO = new GFX::FBO();
-	renderFBO->create(size.x, size.y, 1, GL_RGB, GL_FLOAT, false);
+	renderFBO->create(size.x, size.y, 1, GL_RGB, GL_HALF_FLOAT, false);
 
+	if (!dof_fbo) 
+		dof_fbo = new GFX::FBO();
+	dof_fbo->create(size.x, size.y, 1, GL_RGB, GL_FLOAT, false);
+
+	for (int i = 0; i < 8; ++i) {
+		if (!bloom_fbos[i])
+			bloom_fbos[i] = new GFX::FBO();
+		bloom_fbos[i]->create(size.x, size.y, 1, GL_RGB, GL_HALF_FLOAT, false);
+	}
 }
 
 #else

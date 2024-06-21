@@ -18,6 +18,7 @@ irradiance quad.vs irradiance.fs
 combine quad.vs combine.fs
 tonemapper quad.vs tonemapper.fs
 volumetric quad.vs volumetric.fs
+depthoffield quad.vs depthoffield.fs
 
 \basic.vs
 
@@ -1845,4 +1846,41 @@ void main()
     transparency = clamp( dist*u_air_density , 0.0f, 1.0f );
 
 	FragColor = vec4(light, transparency);
+}
+
+\depthoffield.fs
+
+#version 330 core
+in vec2 v_uv;
+
+out vec4 FragColor;
+
+uniform sampler2D u_focus_texture;
+uniform sampler2D u_depth_texture;
+
+uniform float u_min_distance;
+uniform float u_max_distance;
+
+uniform float u_scale_blur;
+
+uniform vec2 u_iRes;
+
+void main()
+{
+    vec2 uv = gl_FragCoord.xy * u_iRes.xy; 
+    vec4 focusColor = texture(u_focus_texture, uv);
+
+    vec4 blurColor = vec4 (0.0f);
+
+   //Apply  blur the image directly ---Change to Gaussean Blur!!
+    for(int i= -3 ; i<=3; ++i)
+    for(int j= -3 ; j<=3; ++j)
+        blurColor += texture(u_focus_texture,uv + u_iRes* vec2(i,j) * u_scale_blur);
+
+    blurColor /= 49.0;
+
+    float depth = texture(u_depth_texture, uv).r;
+
+    float blurAmount = smoothstep(u_min_distance, u_max_distance, depth);
+    FragColor = mix(focusColor, blurColor, blurAmount);
 }
