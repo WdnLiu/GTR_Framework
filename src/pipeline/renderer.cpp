@@ -52,6 +52,7 @@ GFX::Mesh cube;
 //post
 GFX::FBO* dof_fbo = nullptr;
 GFX::FBO* blur_final_fbo = nullptr;
+sReflectionProbe refl_probe;
 
 
 Renderer::Renderer(const char* shader_atlas_filename)
@@ -104,18 +105,12 @@ Renderer::Renderer(const char* shader_atlas_filename)
 	df_max_distance = 3.0f;
 	df_scale_blur = 1.0f;
 
-	//delete----------------
-	//probe.pos.set(0, 11,7);
-	//probe.pos.set(71, 26, 42);
-	//delete----------------
 
-
-
-
-	//define grid proves
+	//define grid proves-------------------------------
+	
 	//define bounding of the grid and num probes
-	probes_info.start.set(-80, 0, -90); //sc1
-	probes_info.end.set(80, 80, 90); //sc1
+	probes_info.start.set(-400, 0, -400); //sc1
+	probes_info.end.set(400, 300, 400); //sc1
 
 
 
@@ -123,7 +118,7 @@ Renderer::Renderer(const char* shader_atlas_filename)
 	//probes_info.end.set(-80, 80, -90); //sc2
 
 
-	probes_info.dim.set(10, 4, 10);
+	probes_info.dim.set(11, 5, 11);
 
 	//compute the vector from one corner to the other
 	vec3 delta = (probes_info.end - probes_info.start);
@@ -158,37 +153,39 @@ Renderer::Renderer(const char* shader_atlas_filename)
 	// saveIrradianceToDisk ---------------------------------
 
 	//write to file header and probes data
-	/*FILE* f = fopen("irradiance.bin", "wb");
+	FILE* f = fopen("irradiance.bin", "wb");
 	fwrite(&probes_info, sizeof(sIrradianceInfo), 1, f);
 	fwrite(&(probes[0]), sizeof(sProbe), probes.size(), f);
-	fclose(f);*/
+	fclose(f);
 
 	//reflections--------------------------------------------
-	sReflectionProbe probe;
 
-	//set it up
-	/*probe.pos.set(-80, 16, 43);
-	probe.cubemap = new GFX::Texture();
-	probe.cubemap->createCubemap(
+	//1-probe set it up
+	refl_probe.pos.set(-80, 16, 43);
+	refl_probe.cubemap = new GFX::Texture();
+	refl_probe.cubemap->createCubemap(
 		512, 512, 	//size
 		NULL, 	//data
 		GL_RGB, GL_UNSIGNED_INT, true);	//mipmaps
 
 	//add it to the list
-	reflection_probes.push_back(probe);*/
+	reflection_probes.push_back(refl_probe);
 
-	reflection_probes.push_back({ vec3(-80, 16, 43),NULL });
-	reflection_probes.push_back({ vec3(0, 100, 300),NULL });
+
+	//2- probe set it up
+	refl_probe.pos.set(0, 100, 300);
+	refl_probe.cubemap = new GFX::Texture();
+	refl_probe.cubemap->createCubemap(
+		512, 512, 	//size
+		NULL, 	//data
+		GL_RGB, GL_UNSIGNED_INT, true);	//mipmaps
+
+	//add it to the list
+	reflection_probes.push_back(refl_probe);
 
 }
 
-void Renderer::visualizeGrid()
-{
-	/*You must have a method to visualize your grid to be sure all probes have the right value.
-	Just iterate through our probes vector and render a sphere with its coefficients.
-	Check that the illumination in every probe matches the light of its surroundings.*/
 
-}
 void Renderer::extractRenderables(SCN::Node* node, Camera* camera)
 {
 	if (!node->visible)
@@ -590,18 +587,26 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 
 	gbuffers->unbind();
 
-	//DECALS (render a red cube) -------------------------------------------------------------------------------------------------------------------------------------------------------
+	//DECALS (prueba para un decal) -------------------------------------------------------------------------------------------------------------------------------------------------------
+	
+	//if (!cloned_depth_texture)
+		//cloned_depth_texture = new GFX::Texture(size.x, size.y, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, false);
+
+
+	//copy gbuffers depth to other texture
+	//gbuffers->depth_texture->copyTo(cloned_depth_texture);
+
 
 	//enable alpha blending
-	glDisable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	//glDisable(GL_BLEND);
+	//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	//block changing alpha channel
-	glColorMask(true, true, true, false);
+	//glColorMask(true, true, true, false);
 
 	//block from writing to normalmap gbuffer
-	//gbuffers->enableBuffers(false, true, false, false); //normalmap our second pos
+	//gbuffers->enableBuffers(true, false, false, false); //normalmap our second pos
 
-	glEnable(GL_DEPTH_TEST); //to use the depth test
+	/*glEnable(GL_DEPTH_TEST); //to use the depth test
 	glDepthMask(GL_FALSE); //But to not modify the depth buffer by any means
 	glDepthFunc(GL_GEQUAL); //But only render if the object is inside the depth
 	glEnable(GL_CULL_FACE); //And render the inner side of the cube
@@ -609,15 +614,7 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 
 	
 
-	if (!cloned_depth_texture)
-		cloned_depth_texture = new GFX::Texture(size.x,size.y, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, false);
-
-
-
-	//copy gbuffers depth to other texture
-	gbuffers->depth_texture->copyTo(cloned_depth_texture);
-
-	//draw again inside the gbuffers*/
+	//draw again inside the gbuffers
 	gbuffers->bind();
 	camera->enable();
 
@@ -628,7 +625,7 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 
 	Matrix44 model;
 	model.setTranslation(-28, 53, -47);
-	model.scale(4, 4, 0.5);
+	model.scale(5, 0.5, 5);
 
 	decal_shader->setUniform("u_model",model);
 	decal_shader->setUniform("u_color", vec4(1.0, 0.0, 0.0, 1.0));
@@ -660,10 +657,52 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 
 
 	glDepthMask(GL_TRUE);
-	glDisable(GL_CULL_FACE);
+	glDisable(GL_CULL_FACE); */
 	
 	//*________________________________________________
+	//ssao
+	if (!ssao_fbo) {
+		ssao_fbo = new GFX::FBO();
+		ssao_fbo->create(size.x, size.y, 1, GL_RGB, GL_UNSIGNED_BYTE, false);
+		ssao_fbo->color_textures[0]->setName("SSAO");
+	}
 
+	ssao_fbo->bind();
+	glClearColor(1, 1, 1, 1); //fondo blanco
+	glClear(GL_COLOR_BUFFER_BIT);
+	glDisable(GL_DEPTH_TEST);
+	glDisable(GL_BLEND);
+
+	GFX::Shader* sh_ssao = GFX::Shader::Get("ssao");
+	assert(sh_ssao);
+	sh_ssao->enable();
+	sh_ssao->setUniform("u_depth_texture", gbuffers->depth_texture, 0);
+
+	sh_ssao->setUniform("u_radius", ssao_radius);
+	sh_ssao->setUniform("far", ssao_max_distance);
+	sh_ssao->setUniform("near", (float)0.0001f);
+
+	//to reconstruct world position
+	sh_ssao->setUniform("u_iRes", vec2(1.0 / ssao_fbo->color_textures[0]->width, 1.0 / ssao_fbo->color_textures[0]->height));
+	sh_ssao->setUniform("u_inverse_viewprojection", camera->inverse_viewprojection_matrix);
+	sh_ssao->setUniform3Array("u_points", (float*)&random_points[0], random_points.size());
+	sh_ssao->setUniform("u_viewprojection", camera->viewprojection_matrix);
+
+	quad->render(GL_TRIANGLES);
+
+
+	ssao_fbo->unbind();
+
+	//interpolacion
+	//bind the texture we want to change 
+	ssao_fbo->color_textures[0]->bind();
+	//disable using mipmaps
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	//enable bilinear filtering
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	ssao_fbo->color_textures[0]->unbind();
+	
 	ssaoBlur(camera);
 
 	if (!illumination_fbo)
@@ -799,8 +838,8 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 	glDepthFunc(GL_LESS);
 	glEnable(GL_DEPTH_TEST);
 
-	if (show_probes) renderProbes(1);
-	if (render_refelction_probes) renderReflectionProbes(10.0f);
+	if (show_probes) visualizeGrid(2);
+	if (render_refelction_probes) visualizeReflectionProbes(10.0f);
 
 
 
@@ -1021,7 +1060,7 @@ void Renderer::renderNode(SCN::Node* node, Camera* camera)
 void  SCN::Renderer::captureProbes() {
 
 	for (auto& probe : probes) {
-		captureProbe(probe);  //TO OPTIMIZE: crear solo una vez las imagenes no cada vez (constatic reusea ya ) y cam ?
+		captureProbe(probe);  
 	}
 
 	if (probes_texture)
@@ -1098,7 +1137,7 @@ void SCN::Renderer::captureProbe(sProbe& p) //cuanta luz llega a esa esfera
 
 }
 
-void  SCN::Renderer::renderProbes(float scale) {
+void  SCN::Renderer::visualizeGrid(float scale) {
 
 	for (auto& probe : probes) {
 		renderProbe(probe.pos, scale, probe.sh);
@@ -1153,7 +1192,7 @@ void SCN::Renderer::captureReflectionProbe(sReflectionProbe& p) {
 
 	Camera cam;
 
-	//set the fov to 90 and the aspect to 1 (cuadrados)
+	//set the fov to 90 and the aspect to 1 
 	cam.setPerspective(90, 1, 0.1, 1000);
 
 	for (int i = 0; i < 6; ++i) //for every cubemap face
@@ -1180,29 +1219,23 @@ void SCN::Renderer::captureReflectionProbe(sReflectionProbe& p) {
 	p.cubemap->generateMipmaps();
 
 
-
-
-
-
 }
-void SCN::Renderer::renderReflectionProbes(float scale) {
 
+void SCN::Renderer::visualizeReflectionProbes(float scale) {
+
+	glDisable(GL_BLEND);
+	glEnable(GL_CULL_FACE); //para no pintar parte interior
 	for (auto& ref : reflection_probes) {
 		renderReflectionProbe(ref, scale);
 	}
 }
 void SCN::Renderer::renderReflectionProbe(sReflectionProbe& p, float scale) {
+	
+
 	Camera* camera = Camera::current;
 
-	glDisable(GL_BLEND);
-	glEnable(GL_CULL_FACE); //para no pintar parte interior
-
-
 	GFX::Shader* sh_reflc = GFX::Shader::Get("reflecionProbe");
-
-
-	if (!sh_reflc)
-		return;
+	assert(sh_reflc);
 
 	sh_reflc->enable();
 
@@ -1217,16 +1250,16 @@ void SCN::Renderer::renderReflectionProbe(sReflectionProbe& p, float scale) {
 	sh_reflc->setUniform("u_model", m);
 	cameraToShader(camera, sh_reflc);
 
-	sh_reflc->setTexture("u_environment_texture", texture, 0); //reflections texture
+	sh_reflc->setUniform("u_environment_texture", texture, 0); //reflections texture
 	sh_reflc->setUniform("u_metallic_roughness_texture", gbuffers->color_textures[3], 1);
 	sh_reflc->setUniform("u_color_texture", gbuffers->color_textures[0], 2);
+	sh_reflc->setUniform("u_camera_pos", camera->eye);
+
 
 	vec2 size = CORE::getWindowSize();
 	sh_reflc->setUniform("u_iRes", vec2(1.0 / size.x, 1.0 / size.y));
 	sphere.render(GL_TRIANGLES);
 	sh_reflc->disable();
-
-
 
 }
 

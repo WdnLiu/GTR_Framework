@@ -686,6 +686,7 @@ void main()
     ExtraColor.xyz = emissive;
     ExtraColor.a = (occlusion_option == 1) ? material_properties.x : 1;
     MetalnessColor = vec4(u_metallic_roughness, u_metallic_factor, 0, 0);
+
 }
 
 \skybox.fs
@@ -1608,9 +1609,6 @@ void main()
 
     vec3 baseColor = texture(u_color_texture, uv).rgb;
 
-    
-    //vec3 color = textureLod(u_environment_texture,N,0.0).xyz ; //usar vecotr reflejado //coje minmap num3
-
     //compute the reflection
     float metalness = texture(u_metallic_roughness_texture,uv).x;
     float roughness = texture(u_metallic_roughness_texture,uv).y;
@@ -1618,28 +1616,12 @@ void main()
     vec3 L = normalize(u_camera_position-v_world_position);
     vec3 R = normalize(reflect(-L, N));
 
-    vec3 reflection = baseColor * textureLod(u_environment_texture, R, roughness * 5.0 ).xyz; //color
+    vec3 reflection = baseColor * textureLod(u_environment_texture, R, roughness * 5.0 ).xyz; 
 
     //set the metalness as alpha
     FragColor = vec4( reflection, metalness );
 
 }    
-\decal.fs
-#version 330 core
-
-in vec3 v_position;
-in vec3 v_world_position;
-in vec3 v_normal;
-in vec2 v_uv;
-in vec4 v_color;
-
-uniform vec4 u_color;
-out vec4 FragColor;
-
-void main() {
-    FragColor = vec4(1.0,0.0,0.0,1.0);
-   
-}
 
 
 \decals.fs
@@ -1680,11 +1662,13 @@ void main()
     vec3 localpos = (u_inv_decal_model * vec4(worldpos,1.0)).xyz;
 
    //if outside of the volume
+   
 
     //use XZ as UVs, remap to 0..1 range
     vec2 decal_uv = localpos.xz + vec2(0.5);
 
     vec4 albedo = texture(u_decal_texture,decal_uv);
+
 
     //skip transparent pixels
     if(albedo.a == 0.0)

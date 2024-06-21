@@ -245,6 +245,7 @@ void SceneEditor::render(Camera* camera)
 		if (UI::Filename("Skybox", scene->skybox_filename, scene->base_folder))
 			renderer->setupScene();
 
+		
 		//add info to the debug panel about the camera
 		if (ImGui::TreeNode(camera, "Camera")) {
 			inspectObject(camera);

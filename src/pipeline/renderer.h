@@ -172,14 +172,14 @@ namespace SCN {
 		//irradiance
 		void captureProbe(sProbe& p); //rellena los spherical harmonics de la probe con la luz que llega al punto donde esta la probe
 		void renderProbe(vec3 pos, float scale, SphericalHarmonics& shs);
-		void renderProbes(float scale);
+		void visualizeGrid(float scale);
 		void captureProbes();
 
 
 		//reflection
 		void captureReflectionProbe(sReflectionProbe& p);
 		void renderReflectionProbe(sReflectionProbe& p,float scale);
-		void renderReflectionProbes(float scale);
+		void visualizeReflectionProbes(float scale);
 		void captureReflectionProbes();
 
 
@@ -195,7 +195,6 @@ namespace SCN {
 		void lightToShader(LightEntity* light, GFX::Shader* shader); //sends light uniforms to shader	
 		void lightToShader(GFX::Shader* shader);
 		void texturesToShader(SCN::Material* material, GFX::Shader* shader) const;
-		void visualizeGrid();
 	};
 
 };

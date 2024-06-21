@@ -77,7 +77,6 @@ bool SCN::Scene::fromString(std::string& data, const char* base_folder)
 	main_camera.center = readJSONVector3(json, "camera_target", main_camera.center);
 	main_camera.fov = readJSONNumber(json, "camera_fov", main_camera.fov);
 	skybox_filename = readJSONString(json, "skybox", skybox_filename.c_str());
-
 	//entities
 	cJSON* entities_json = cJSON_GetObjectItemCaseSensitive(json, "entities");
 	cJSON* entity_json;
@@ -302,24 +301,7 @@ bool SCN::PrefabEntity::testRay(const Ray& ray, Vector3f& coll, float max_dist)
 	root.model = root.model;
 	return root.testRay(ray, coll, 0xFF, max_dist);
 }
-//Decal
 
-/*SCN::DecalEntity::DecalEntity()
-{
-}
-
-void SCN::DecalEntity::configure(cJSON* json)
-{
-
-	this->filename = readJSONString(json, "filename", filename.c_str());
-
-}
-
-void SCN::DecalEntity::serialize(cJSON* json)
-{
-	writeJSONString(json, "filename", filename.c_str());
-}
-*/
 
 SCN::UnknownEntity::UnknownEntity()
 {
