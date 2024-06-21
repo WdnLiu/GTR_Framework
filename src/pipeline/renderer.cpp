@@ -814,7 +814,7 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 	renderIrradianceScene(camera, &size);
 
 
-	//FINAL FBO
+	//FINAL FBO TO BE DISPLAYED ON THE SCREEN
 	if (!combined_illumination_fbo)
 	{
 		combined_illumination_fbo = new GFX::FBO();
@@ -846,9 +846,7 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 
 
 
-	//renderProbeLights(camera);
-	//renderIrradianceLights();
-
+	
 	/*if (!renderFBO)
 	{
 		renderFBO = new GFX::FBO();
