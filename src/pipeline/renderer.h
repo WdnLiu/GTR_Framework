@@ -124,6 +124,12 @@ namespace SCN {
 		float df_focal_distance;
 		float df_scale_blur;
 
+
+		//postfx
+		bool use_lut;
+		float lut_amount;
+		bool use_lut2;
+		float lut_amount2;
 		std::vector<vec3> random_points;
 
 		ePipelineMode pipeline_mode;

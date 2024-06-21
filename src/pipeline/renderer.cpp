@@ -97,6 +97,11 @@ Renderer::Renderer(const char* shader_atlas_filename)
 	combined_irr = false;
 	render_refelction_probes = false;
 
+	use_lut = false;
+	lut_amount = 0.5f;
+	use_lut2 = false;
+	lut_amount2 = 0.5f;
+
 	bool use_simpleblurr = true;
 
 	sphere.createSphere(1.0f);
@@ -821,6 +826,8 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 	//render irradiance
 	renderIrradianceScene(camera, &size);
 
+	//precompute volumetrics
+	//renderFog(camera);
 
 	//FINAL FBO TO BE DISPLAYED ON THE SCREEN
 	if (!combined_illumination_fbo)
@@ -832,7 +839,10 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 	}
 
 	combined_illumination_fbo->bind();
+
 	GFX::Shader* combine_shader = GFX::Shader::Get("combine");
+
+
 	combine_shader->enable();
 	combine_shader->setUniform("u_illumination_texture", illumination_fbo->color_textures[0], 0);
 	
@@ -840,6 +850,13 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 		combine_shader->setUniform("u_probe_illumination_texture", probe_illumination_fbo->color_textures[0], 1);
 	else
 		combine_shader->setUniform("u_probe_illumination_texture", GFX::Texture().getBlackTexture(), 1);
+
+	//if (use_volumetric && volumetric_fbo)
+
+		//combine_shader->setUniform("u_volumetric_texture", volumetric_fbo->color_textures[0], 2);
+	//else
+		//combine_shader->setUniform("u_volumetric_texture", GFX::Texture().getWhiteTexture(), 2);
+	
 	GFX::Mesh::getQuad()->render(GL_TRIANGLES);
 	combine_shader->disable();
 
@@ -853,47 +870,36 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 		}
 	}
 
-	renderFog(camera);
-
 
 	combined_illumination_fbo->unbind();
-	
-	if (!renderFBO)
-	{
-		renderFBO = new GFX::FBO();
-		renderFBO->create(size.x, size.y, 1, GL_RGB, GL_FLOAT, false);
-	}
-
-	renderFBO->bind();
-
+	GFX::Shader* lut_shader;
+	GFX::Shader* lut_shader2;
 	if (use_degamma)
-		illumination_fbo->color_textures[0]->toViewport(GFX::Shader::Get("gamma"));
-	else if (combined_irr)
-		combined_illumination_fbo->color_textures[0]->toViewport();
-	else
-		illumination_fbo->color_textures[0]->toViewport();
-
-	if (use_volumetric)
-	{
-		if (volumetric_fbo)
-		{
-			glEnable(GL_DEPTH_TEST);
-			glEnable(GL_BLEND);
-			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-			volumetric_fbo->color_textures[0]->toViewport();
-			glDisable(GL_BLEND);
-		}
+		combined_illumination_fbo->color_textures[0]->toViewport(GFX::Shader::Get("gamma"));
+	else if (use_lut) {
+		lut_shader = GFX::Shader::Get("lut");
+		lut_shader->enable();
+		lut_shader->setUniform("u_textureB", GFX::Texture::Get("data/textures/brdfLUT.png", true, true) , 1);
+		lut_shader->setUniform("u_amount", lut_amount);
+		combined_illumination_fbo->color_textures[0]->toViewport(lut_shader);
 	}
+	else if (use_lut2) {
+		lut_shader2 = GFX::Shader::Get("lut2");
+		lut_shader2->enable();
+		lut_shader2->setUniform("u_textureB", GFX::Texture::Get("data/textures/brdfLUT.png", true, true), 1);
+		lut_shader2->setUniform("u_amount", lut_amount2);
+		combined_illumination_fbo->color_textures[0]->toViewport(lut_shader2);
 
-	renderFBO->unbind();
 
-//<<<<<<< HEAD
-	if (use_degamma)
-		illumination_fbo->color_textures[0]->toViewport(GFX::Shader::Get("gamma"));
-	
+	}
+		
 	else
 		combined_illumination_fbo->color_textures[0]->toViewport();
-//--------------
+
+
+
+
+/*/-------------- aplicar en ping pong si vols mes dun filtre i fer to viewport
 	if (!postfx_fbo)
 	{
 		postfx_fbo = new GFX::FBO();
@@ -914,7 +920,7 @@ void Renderer::renderSceneDeferred(SCN::Scene* scene, Camera* camera)
 
 	if (use_tonemapper) renderTonemapper(postfx_fbo->color_textures[0]);
 	else postfx_fbo->color_textures[0]->toViewport();
-//>>>>>>> origin/simpleBlurr
+//>>>>>>> origin/simpleBlurr*/
 
 	glDepthFunc(GL_LESS);
 	glEnable(GL_DEPTH_TEST);
@@ -983,6 +989,7 @@ void Renderer::postDepthOfField(Camera* camera)
 	quad->render(GL_TRIANGLES);
 	dof_shader->disable();
 }
+
 
 
 void Renderer::renderDecals(SCN::Scene* scene, Camera* camera, GFX::FBO* gbuffers)
@@ -1938,6 +1945,16 @@ void Renderer::showUI()
 	ImGui::Checkbox("Specular light", &use_specular);
 	ImGui::Checkbox("Occlusion light", &use_occlusion);
 	ImGui::Checkbox("Dithering", &use_dithering);
+
+	
+	if (ImGui::TreeNode("Effects"))
+	{
+		ImGui::Checkbox("lut", &use_lut);
+		ImGui::Checkbox("lut2", &use_lut2);
+		ImGui::DragFloat("lut amount", &lut_amount);
+		ImGui::DragFloat("lut amount2", &lut_amount2, 0.01f, 0.0f, 0.5f);
+		ImGui::TreePop();
+	}
 
 	if (ImGui::TreeNode("SSAO+BLUR"))
 	{

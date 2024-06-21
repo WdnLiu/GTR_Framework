@@ -22,6 +22,8 @@ depthoffield quad.vs depthoffield.fs
 tonemapper quad.vs tonemapper.fs
 volumetric quad.vs volumetric.fs
 simpleBlur quad.vs simpleBlur.fs
+lut quad.vs lut.fs
+lut2 quad.vs lut2.fs
 
 \basic.vs
 
@@ -1575,10 +1577,11 @@ void main()
     // Fetch the existing illumination and probe illumination
     vec3 illumination = texture(u_illumination_texture, v_uv).rgb;
     vec3 probe_illumination = texture(u_probe_illumination_texture, v_uv).rgb;
+   // vec3 volumetric_illumination= texture(u_volumetric_texture,v_uv).rgb;
 
     // Combine the two illumination values
     // Here we simply add them, but you can use different blending techniques
-    vec3 combined_illumination = illumination + probe_illumination;
+    vec3 combined_illumination = illumination + probe_illumination ;
 
     // Output the final combined color
     frag_color = vec4(combined_illumination, 1.0);
@@ -2012,4 +2015,66 @@ void main()
     color /= 49.0f;
 
     FragColor = color;
+}
+
+
+\lut.fs
+#version 330 core
+
+
+in vec2 v_uv;
+
+uniform sampler2D u_texture;
+uniform sampler2D u_textureB;
+uniform float u_amount;
+
+out vec4 FragColor;
+
+void main() {
+    vec4 color = clamp(texture(u_texture, v_uv), vec4(0.0), vec4(1.0));
+    float blueColor = color.b * 63.0;
+
+    vec2 quad1;
+    quad1.y = floor(floor(blueColor) / 8.0);
+    quad1.x = floor(blueColor) - (quad1.y * 8.0);
+
+    vec2 quad2;
+    quad2.y = floor(ceil(blueColor) / 8.0);
+    quad2.x = ceil(blueColor) - (quad2.y * 8.0);
+
+    vec2 texPos1;
+    texPos1.x = (quad1.x * 0.125) + 0.5 / 512.0 + ((0.125 - 1.0 / 512.0) * color.r);
+    texPos1.y = 1.0 - ((quad1.y * 0.125) + 0.5 / 512.0 + ((0.125 - 1.0 / 512.0) * color.g));
+
+    vec2 texPos2;
+    texPos2.x = (quad2.x * 0.125) + 0.5 / 512.0 + ((0.125 - 1.0 / 512.0) * color.r);
+    texPos2.y = 1.0 - ((quad2.y * 0.125) + 0.5 / 512.0 + ((0.125 - 1.0 / 512.0) * color.g));
+
+    vec4 newColor1 = texture(u_textureB, texPos1);
+    vec4 newColor2 = texture(u_textureB, texPos2);
+
+    vec4 newColor = mix(newColor1, newColor2, fract(blueColor));
+
+    FragColor = vec4(mix(color.rgb, newColor.rgb, u_amount), color.a);
+   
+  }
+
+\lut2.fs
+
+
+#version 330 core
+
+in vec2 v_uv;
+uniform sampler2D u_texture;
+uniform sampler2D u_textureB;
+uniform float u_amount;
+
+out vec4 FragColor;
+
+void main()
+{
+	
+    float videoColor = texture2D(u_texture, v_uv).r;
+    vec4 finalColor = texture2D(u_textureB, vec2(videoColor,u_amount));
+    FragColor = finalColor;
 }
